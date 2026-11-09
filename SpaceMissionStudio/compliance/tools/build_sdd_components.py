@@ -79,7 +79,8 @@ SRS_TO_COMPONENTS = {
                  "gui/phasing_formation_dialog", "gui/spacecraft_template_dialog", "gui/app",
                  "gui/webengine_setup", "gui/json_view", "gui/code_editor", "gui/json_positions",
                  "gui/json_assist", "schema/fields", "gui/json_refactor"],
-    "SRS-F-16": ["engine/vizard", "gui/vizard_launcher", "gui/vizard_dialog"],
+    "SRS-F-16": ["engine/vizard", "gui/vizard_launcher", "gui/vizard_dialog", "engine/scene3d",
+                 "gui/mission_view_widget"],
     "SRS-F-17": ["dependencies", "engine/service", "output_provenance"],
     "SRS-F-18": ["fsw_export/catalog", "fsw_export/sources", "fsw_export/cdecl", "fsw_export/model",
                  "fsw_export/capture", "fsw_export/generate", "fsw_export/documents", "fsw_export/digest",
@@ -165,7 +166,7 @@ SRS_TO_COMPONENTS = {
     "SRS-H-01": ["gui/widgets", "gui/param_form", "gui/feedback", "schema/validation"],
     "SRS-H-02": ["gui/template_wizard", "gui/load_scenario_widget", "engine/spacecraft_templates"],
     "SRS-H-03": ["engine/scenario_explainer", "gui/scenario_explainer_widget"],
-    "SRS-A-01": ["engine/earth_orientation", "engine/spaceweather", "gui/vizard_launcher"],
+    "SRS-A-01": ["engine/earth_orientation", "engine/spaceweather"],
     "SRS-A-02": ["engine/kernels"],
 }
 

@@ -1907,3 +1907,19 @@ changed. The installers now install with the pins' SHA-256
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `tests/test_dependencies.py::test_the_release_constraints_pin_every_dependency_the_installers_use` | `install.sh`, `install.ps1`, `bundle_python.py` and the CI workflow name `constraints.txt` | `install.sh`, `install.ps1` and the CI workflow name `constraints.txt` (the vendored Basilisk step and CI's editable install); `install.sh`, `install.ps1` and `bundle_python.py` name `constraints-hashes.txt` | `bundle_python.py` installs from the hashed file only; the hashed file is checked against `constraints.txt` in `tests/test_hashed_installs.py`, so the check is stricter, not weaker |
+
+## No Vizard download, and the 3D view (2026-11-09)
+
+The Vizard download and the automatic search for Vizard are removed (AVS
+Lab's build has Unity Analytics on; the user's decision), so their tests
+are removed with them. No other assertion is weakened; no golden or
+output file changed.
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_vizard_launcher.py`: 19 `test_fetch_vizard_*`, `test_vizard_fetch_worker_*` and `test_a_cancelled_or_oversized_download_leaves_no_partial_file`, `test_download_url_for_platform_covers_windows_and_linux` | the download, its worker, checksum record and zip guard | removed | the code they test is removed |
+| `tests/gui/test_vizard_launcher.py`: `test_search_*` (3), `test_find_returns_none_with_no_remembered_path_and_nothing_on_disk`, `test_remembered_path_that_no_longer_exists_falls_back_to_search` | Vizard found in Desktop, Downloads or home | removed; `test_nothing_is_found_unless_the_user_chose_it` and `test_a_copy_the_former_download_left_is_never_started` | the search is removed: only the user's choice is used |
+| `tests/gui/test_main_window.py`: `test_fetch_vizard_with_progress_success_remembers_and_returns_the_path`, `test_fetch_vizard_with_progress_failure_shows_error_and_returns_none` | the download's progress dialog | removed; `test_the_vizard_not_found_dialog_offers_the_3d_view_and_no_download` | the download is removed |
+| `tests/gui/test_main_window.py::test_locate_vizard_dismissed_returns_none` | docstring names "Download Vizard" | names "Open the 3D View" | the button's name; the assertion is unchanged |
+| `tests/test_network.py::test_every_download_is_a_purpose_with_https_hosts` | the purposes include `vizard` | they do not | the purpose is removed |
+| `tests/gui/test_workspace.py::test_the_areas_and_what_they_hold` | Results tabs: Overview, Plots, Dashboard, Output, Compare | 3D View after Plots | the new tab; the other tabs and their order are unchanged |

@@ -3,7 +3,7 @@
 DRD: ECSS-E-ST-40C Annex E
 Document: SMS-ICD, issue 1 (draft), 2026-10-08. Remediation R14.
 
-**Status:** draft, derived from the implemented interfaces (version 2.5.0; `CHANGELOG.md` lists what changed in each release, for 2.1.0 the model analyses' and the IDM-CIC import's commands and scenario fields, ICD-12; 2.1.1 changes no interface; 2.2.0 reads and writes the same CCSDS messages as before, now from the GUI too; 2.3.0 reads more of an IDM-CIC model, writes devices and the power budget from it with import records of targets `devices` and `power`, adds `idm-import` options and `generate-constellation --phasing-keeping`, ICD-02 and ICD-12; 2.4.0 reads a device's axis and field of view from its equipment's shapes, writing the same fields, can put the body frame's origin at the centre of gravity, recorded in the model record's `origin` and `origin_offset_m`, and adds `idm-import --origin`, ICD-02 and ICD-12; 2.5.0 adds thrusters to a 3D model's equipment from an IDM-CIC model's plume cones, writing the existing equipment fields and a devices record's `model.equipment[NAME]` values, and the property target `thruster.MaxThrust`, ICD-12; its JSON editor writes the scenario file as before).
+**Status:** draft, derived from the implemented interfaces (version 2.6.0; `CHANGELOG.md` lists what changed in each release, for 2.1.0 the model analyses' and the IDM-CIC import's commands and scenario fields, ICD-12; 2.1.1 changes no interface; 2.2.0 reads and writes the same CCSDS messages as before, now from the GUI too; 2.3.0 reads more of an IDM-CIC model, writes devices and the power budget from it with import records of targets `devices` and `power`, adds `idm-import` options and `generate-constellation --phasing-keeping`, ICD-02 and ICD-12; 2.4.0 reads a device's axis and field of view from its equipment's shapes, writing the same fields, can put the body frame's origin at the centre of gravity, recorded in the model record's `origin` and `origin_offset_m`, and adds `idm-import --origin`, ICD-02 and ICD-12; 2.5.0 adds thrusters to a 3D model's equipment from an IDM-CIC model's plume cones, writing the existing equipment fields and a devices record's `model.equipment[NAME]` values, and the property target `thruster.MaxThrust`, ICD-12; its JSON editor writes the scenario file as before; 2.6.0 adds the `network` command (`--offline on|off`), reads an administrator's `policy.json` and `SPACEMISSIONSTUDIO_OFFLINE`, refuses network use outside a download's hosts and logs it in `~/.spacemissionstudio/logs/network.log`, no longer downloads Vizard, and puts a CycloneDX 1.6 bill of materials (`SPACEMISSIONSTUDIO_SBOM.cdx.json`) in each installer; the scenario file is as before).
 It has not been reviewed (H01), and no IRD exists (waived, D-11).
 
 ## 1 Introduction (E.2.1<1>)
@@ -166,7 +166,7 @@ messages (`SimulationBaseClass`, `spacecraft`, `gravityEffector`,
 - **Save file:** a `.bin` file written through `vizSupport`.
 - **Live:** a ZMQ stream to a Vizard process started by the tool or by the
   user.
-- Vizard is downloaded only on consent.
+- Vizard is never downloaded; only a Vizard the user chose is started.
 
 #### 5.3.9 Flight-software export (ICD-09)
 

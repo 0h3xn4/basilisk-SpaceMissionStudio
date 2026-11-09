@@ -8,7 +8,19 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 2.6.0 (2026-11-09)
+
+The run in 3D inside the app, and the tool's network use enforced and
+checked. **Results › 3D View** plays a run back in 3D in SpaceMissionStudio
+itself, with nothing to install and nothing sent anywhere. It replaces
+the Vizard download: the Vizard AVS Lab publishes has Unity Analytics
+switched on. Every download now goes through one place that knows which
+hosts it may contact; you, or an administrator for every user, can
+switch them all off; any other network use is refused and logged; and a
+network audit anyone can run checks it. The installers are built with
+every package checked against its recorded SHA-256, and each carries a
+bill of materials. Nothing the tool computes for an existing scenario
+changes: every template gives the same results as in 2.5.0.
 
 ### Added
 
@@ -50,10 +62,63 @@ fixes bugs.
   (CycloneDX 1.6: every package, the file installed and its SHA-256,
   every data file), attached to the release beside it.
 
+- **Results › 3D View: the run in 3D, inside the app.** The central body
+  (Earth shaded by its albedo map, turning), each spacecraft's path, the
+  spacecraft with its 3D model turned by the run's attitude, the ground
+  stations and the Sun's direction, played back with a speed you choose.
+  The slider and the shared time cursor move together. **Follow** shows
+  one spacecraft at its true size with its body axes and the Sun and
+  nadir arrows. Nothing to install and nothing sent anywhere: it is
+  drawn by the app's own copy of plotly.js and is part of the network
+  audit.
+
+### Removed
+
+- **The Vizard download.** The Vizard AVS Lab publishes has Unity
+  Analytics switched on, so SpaceMissionStudio no longer downloads it,
+  no longer looks for a Vizard on your computer, and ignores a copy an
+  earlier version downloaded. A Vizard you choose in **Settings >
+  Vizard** is still started; **Results › 3D View** needs none.
+
 ### Fixed
 
 - **The Windows installer took the newest `tzdata`.** pandas needs it on
   Windows only, and it was not pinned; it is now (2026.6).
+
+### Who should update
+
+- **Everyone, and above all teams asked what the tool sends:** 2.6.0
+  makes no network use you did not ask for, refuses any other and logs
+  each one; **Settings > Network** shows what is allowed.
+- **Anyone who downloaded Vizard with an earlier version:** that copy
+  (in `~/.cache/SpaceMissionStudio/vizard`) is no longer started; delete
+  the folder. Use **Results › 3D View**, or choose a Vizard yourself in
+  **Settings > Vizard** if you accept what it sends.
+- **Administrators:** switch every download off for every user of a
+  computer with `policy.json` containing `{"offline": true}`
+  ([Network use, offline mode and telemetry](docs/reference/network.md)).
+- **Compatibility:** results, templates and the scenario format are as
+  in 2.5.0, and 2.5.0 opens the files 2.6.0 saves.
+- **The installers:** on Linux, `apt install
+  ./spacemissionstudio_2.6.0_amd64.deb` replaces 2.5.0; on Windows, run
+  the 2.6.0 setup over 2.5.0. Check each against `SHA256SUMS-linux` or
+  `SHA256SUMS-windows`; its bill of materials is attached beside it.
+
+### Known limits
+
+As in 2.5.0. The 3D View plays the run's own series back; it is not a
+renderer. A run is shown on at most 1,500 frames with the nearest
+recorded attitude. The Earth turns by its rotation angle without
+precession (about 0.4 degrees off in 2030), and its colours are an
+all-sky albedo map, mostly cloud. The Sun is drawn for Earth-centred
+runs only, other central bodies are plain spheres, and there are no
+instrument or camera views and no panels
+([Limitations](docs/reference/limitations.md)). The network rules cover
+SpaceMissionStudio's own processes; a Vizard you start yourself is a
+separate program, outside them. The bundled space weather is still
+1.3.0's (observations to 2026-10-24, CelesTrak's forecast to
+2026-12-07; CelesTrak could not be reached for this release either):
+fetch the current file before a drag study.
 
 ## 2.5.0 (2026-11-08)
 

@@ -18,9 +18,9 @@
 
 """The startup fetch/update prompt -- the one piece of this app's
 "closed-off/offline" policy that runs automatically, once, each time the
-GUI starts (everything else that touches the network, e.g.
-``gui.vizard_launcher.fetch_vizard``, is reached only via an explicit,
-separate user click). Real user decision this module exists to satisfy:
+GUI starts (everything else that touches the network, e.g. the Reference
+data dialog's **Download...**, is reached only via an explicit, separate
+user click). Real user decision this module exists to satisfy:
 "A one time fetch during each startup of the app is also allowed, to
 store everything that is needed locally so it can be used later again.
 But the user always should be asked if they want to fetch/update."
@@ -56,10 +56,9 @@ Two independent items, either/both selectable:
 
 Both run on a background :class:`StartupFetchWorker` thread (the same
 cooperative-QThread pattern already used by
-``gui.kernel_status_widget``/``gui.vizard_launcher``), so a slow or
-stalled network call never freezes the GUI; this prompt's own progress
-dialog has no Cancel button (unlike the Vizard download's cooperative
-cancellation) since both fetches here are normally fast cache-hits, and
+``gui.kernel_status_widget``), so a slow or stalled network call never
+freezes the GUI; this prompt's own progress dialog has no Cancel button
+since both fetches here are normally fast cache-hits, and
 a real fetch that hangs is better surfaced by letting it time out
 (``requests``/``urllib`` timeouts already apply inside each) than by
 adding cancellation machinery for a rare case.
@@ -288,8 +287,7 @@ def maybe_run_startup_fetch(parent: QWidget) -> None:
     worker.finished_all.connect(on_finished)
     worker.start()
     progress.show()
-    # See gui.main_window.MainWindow._fetch_vizard_with_progress's own
-    # comment on this exact idiom: QEventLoop.quit() is a no-op if the
+    # QEventLoop.quit() is a no-op if the
     # loop isn't running yet, so a worker that finishes synchronously
     # inside start() needs this outcome check before the unconditional
     # exec() below, or it would hang forever waiting for a quit() that

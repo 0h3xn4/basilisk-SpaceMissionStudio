@@ -5,6 +5,27 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The 3D view, and no Vizard download (2026-11-09)
+
+- **Our own 3D view, not another program:** what the user sees must not
+  depend on a third party's build or its telemetry. A view drawn by the
+  app itself is covered by the guard, the interceptor and the audit.
+- **plotly.js, not a new 3D library:** it is already installed and
+  offline, draws WebGL meshes, and the 3D model editor uses it; no new
+  dependency (CLAUDE.md).
+- **Playback in the page:** each frame is computed in JavaScript from
+  arrays sent once, so playback costs the GUI thread nothing.
+- **Follow centred on the spacecraft:** WebGL's single precision cannot
+  show metres 7,000 km from the origin.
+- **Approximate Earth rotation and Sun:** standard closed-form formulas,
+  good to a fraction of a degree, are enough to see; the run's own
+  numbers stay in the plots and exports.
+- **A Results tab, not a dock:** it is a view of the last run, like the
+  plots; the time cursor joins them.
+- **No download and no search for Vizard:** a program the app starts by
+  itself must be one the user chose. Removing the download removes the
+  only network use the app made for a third-party program.
+
 ## Network use, offline mode and the installers' packages (2026-11-09)
 
 - **Enforce, then observe:** a gateway and a guard inside the tool, and

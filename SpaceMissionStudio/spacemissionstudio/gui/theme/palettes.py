@@ -65,6 +65,14 @@ APP_ICON = {
 # every 3D tool uses. They draw geometry, not status.
 AXIS_COLOURS = ("#D62728", "#2CA02C", "#1F77B4")
 
+# The 3D mission view (gui/mission_view_widget.py): Earth shaded by its
+# all-sky albedo (Basilisk's CERES map: mostly cloud), from clear ocean
+# blue to cloud and ice white; the Sun's arrow; a body without an albedo
+# map. Depicted things, not status, so the same in both themes.
+EARTH_COLOURSCALE = [[0.0, "#0B2545"], [0.25, "#1D4E89"], [0.45, "#6F8FAF"], [0.7, "#D9E2EC"], [1.0, "#FFFFFF"]]
+PLAIN_BODY_COLOUR = "#8A8F98"
+SUN_COLOUR = "#F2B705"
+
 
 def ink_on(colour: str) -> str:
     """Black or white, whichever reads on a fill of ``colour`` (a colour

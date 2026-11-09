@@ -12,6 +12,7 @@ downloads off for good, and what is outside the tool's control.
 - [Offline mode](#offline-mode)
 - [How it is enforced](#how-it-is-enforced)
 - [The network log](#the-network-log)
+- [Vizard](#vizard)
 - [What this does not cover](#what-this-does-not-cover)
 - [How it is tested](#how-it-is-tested)
 - [Check it yourself](#check-it-yourself)
@@ -29,10 +30,11 @@ list):
 | Earth orientation files | naif.jpl.nasa.gov | the same, and `earth-orientation --fetch` |
 | Small-body ephemerides (433 Eros) | naif.jpl.nasa.gov | **Download...**, `small-bodies --fetch` |
 | ITU-R P.676 tables | www.itu.int | **Download...**, `gaseous-attenuation --fetch` |
-| The Vizard application | hanspeterschaub.info | **Download Vizard** in the "Vizard not found" dialog |
 
 Everything else stays on your computer: a run, an export, a Monte Carlo
-batch, the GUI's plots and 3D view, the IDM-CIC import. Every file a
+batch, the GUI's plots, the 3D model editor and **Results › 3D View**
+(the run in 3D, drawn by the app's own copy of plotly.js), the IDM-CIC
+import. Every file a
 download fetches can also be installed from disk instead
 ([Reference data](../user-manual/reference-data.md)).
 
@@ -41,8 +43,7 @@ Software-in-the-loop runs talk to your program over a Unix socket or
 
 ## Offline mode
 
-Offline, no download can start: **Download...** and **Download Vizard**
-are off, the start-up card is not shown, and the commands that download
+Offline, no download can start: **Download...** is off, the start-up card is not shown, and the commands that download
 stop with the reason. Everything else works as before; files are
 installed from disk.
 
@@ -88,14 +89,34 @@ download, `web view` for a blocked page request) and the host or address.
 **Settings > Network > Open the network log** opens it. A session that
 downloaded nothing leaves no line.
 
+## Vizard
+
+Vizard, AVS Lab's separate 3D program, is made with Unity. The build AVS
+Lab publishes has Unity Analytics switched on: its project settings
+enable it and start it at launch, and the program contains Unity's
+analytics libraries and AVS Lab's Unity project ID, with Unity's event
+addresses (`cdp.cloud.unity3d.com`). It very likely sends usage data to
+Unity when it runs (inspected 2026-11-09; not run here).
+
+So, since 2026-11-09, SpaceMissionStudio:
+
+- **never downloads Vizard** (the download and its network purpose are
+  removed);
+- **never looks for it**: only a Vizard the user chose in **Settings >
+  Vizard** is started, and a copy an earlier version downloaded into
+  `~/.cache/SpaceMissionStudio/vizard/` is ignored even if remembered;
+- **shows runs in 3D itself:** **Results › 3D View**, drawn in the app's
+  own web view, which loads only the app's files (the interceptor
+  above) and is part of the network audit's GUI session.
+
+Where Vizard is still wanted, use one built from its open source with
+Unity's cloud services and analytics off, and check it with a firewall
+(below).
+
 ## What this does not cover
 
-- **Vizard** is a separate program, started on request. The pre-built
-  Vizard the download fetches is AVS Lab's, built with Unity; its project
-  settings enable Unity Analytics, and whether that build sends anything
-  has not been measured. Until a build of Vizard without analytics ships
-  with SpaceMissionStudio, use Vizard behind a firewall rule, or not at
-  all where that matters.
+- **A Vizard you choose** is a separate program: neither the guard nor
+  the log sees it (above).
 - **Code that is not Python.** The guard sees Python. Basilisk's C++
   modules make no network calls in a run except Vizard's live stream
   (`vizInterface`), which you start, on the address you give it. Chromium
@@ -178,8 +199,10 @@ nothing from this project).** In a virtual machine or a spare computer:
 **Download...** is off and that `spacemissionstudio network` says
 `Offline` and who set it.
 
-**Vizard** is a separate program and is not covered by any of this;
-watch it the same way with the firewall if you use it.
+**Vizard**, if you choose one, is a separate program: the audit script
+does not start it. Watch it the same way with the firewall while it
+shows a run. A build without analytics should show only its stream to
+127.0.0.1.
 
 ---
 

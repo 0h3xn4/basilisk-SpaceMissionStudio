@@ -58,7 +58,8 @@ way it then runs offline:
   a **Fetch or update reference data?** card on Home offers to check
   for newer reference data; **Not now** touches no network. The **Reference data** window's downloads ask
   first, naming the source, the files and the size, and default to No.
-  Vizard downloads only when you click **Download Vizard**. On the
+  Vizard is never downloaded (AVS Lab's build enables Unity Analytics;
+  Results › 3D View is built in). On the
   command line, only `kernels-status`, `earth-orientation --fetch`,
   `small-bodies --fetch`, `gaseous-attenuation --fetch` and
   `spaceweather-download` download.

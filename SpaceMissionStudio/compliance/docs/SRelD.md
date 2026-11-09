@@ -1,9 +1,41 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 30, 2026-11-08. Remediation R14.
+Document: SMS-SRelD, issue 31, 2026-11-09. Remediation R14.
 
-**Status:** release **2.5.0**, published 2026-11-08 (19:29 UTC): thrusters from the
+**Status:** release **2.6.0**, prepared 2026-11-09: the run in 3D inside
+the app in place of the Vizard download (#239, SRS-F-16), network use
+enforced and offline mode (#235, SRS-S-05), the network audit (#236),
+and hash-checked installers with a bill of materials (#237, security
+analysis S-08), with the documentation brought up to 2.5.0 and the 2.5.0
+publication recorded (#234). **Results › 3D View** draws the run from its
+own series with the app's plotly.js: the Earth turning by the IERS Earth
+rotation angle and shaded by Basilisk's albedo map, each spacecraft's
+path and 3D model turned by its attitude, the ground stations and the
+Sun's direction, played back and kept with the shared time cursor; it
+follows one spacecraft at true size with its body axes. The Vizard AVS
+Lab publishes has Unity Analytics switched on (its project settings,
+Unity's analytics libraries, AVS Lab's Unity project ID and Unity's
+event addresses, read from the program, not run), so the tool no longer
+downloads Vizard, no longer looks for one and ignores a copy an earlier
+version downloaded; only a Vizard the user chooses is started (K-32).
+Every download goes through one gateway that knows its hosts; offline
+mode, set by the user or locked by an administrator's policy file,
+switches them all off; a Python audit hook refuses any other network use
+in every process the tool starts, and every use is logged. The network
+audit traces every network call of a full GUI and command-line session
+and fails on any call to another computer (CI on every change; here: 146
+processes, none to another computer). Both installers install every
+package against its recorded SHA-256, from wheels only, and carry a
+CycloneDX 1.6 bill of materials, attached to the release beside them.
+No template, golden file or scenario field changed: every template's
+outputs are as in 2.5.0, and 2.5.0 opens the files 2.6.0 saves (checked
+with 2.5.0's code on the 32 templates as 2.6.0 saves them). The bundled
+space weather is still 1.3.0's: CelesTrak reset the connection again
+(K-13). The release pull request is merged once CI is green; tagging and
+publishing are the user's (the environment cannot push tags).
+
+**Previous release:** 2.5.0, published 2026-11-08 (19:29 UTC): thrusters from the
 IDM-CIC model (#230, SRS-F-28, decision IDM-32) and the JSON page as a
 code editor (#231, #232, SRS-F-15, decisions JE-01 to JE-10), with the
 documentation brought up to 2.4.0 and the 2.4.0 publication recorded
@@ -45,7 +77,7 @@ tagging and publishing were the user's (the environment cannot push tags).
   `SHA256SUMS-linux` `dc4881a3...bbd2`, `SHA256SUMS-windows`
   `4d046517...deac`.
 
-**Previous release:** 2.4.0, published 2026-11-05 (20:58 UTC): each device's axis
+Before it: 2.4.0, published 2026-11-05 (20:58 UTC): each device's axis
 from the IDM-CIC model (#227, SRS-F-28, decision IDM-30), and the body
 frame's origin at the centre of gravity (decision IDM-31, on the release
 branch, asked by the user while it was prepared). The import
@@ -87,7 +119,7 @@ and publishing were the user's (the environment cannot push tags).
   `SHA256SUMS-linux` `ee7cd196...cb81`, `SHA256SUMS-windows`
   `bddb791d...882b`.
 
-Before it: 2.3.0, published 2026-11-05 (16:17 UTC): the satellite's
+Earlier: 2.3.0, published 2026-11-05 (16:17 UTC): the satellite's
 components from IDM-CIC, and a Walker constellation that holds its
 spacing. The IDM-CIC import (SRS-F-28) finds the sensors and actuators an
 IDM-CIC model names (#222), sets the power budget's bus load from the
@@ -375,9 +407,9 @@ internet access and, for the setup program, Python 3.11 on `PATH`
 
 ## 1 Introduction (G.2.1<1>)
 
-This SRelD describes release 2.5.0 of SpaceMissionStudio in
-`0h3xn4/basilisk-SpaceMissionStudio`: what it contains, what changed since 2.4.0
-(commit `ac4b90065`), what is known to be wrong, and how to use it.
+This SRelD describes release 2.6.0 of SpaceMissionStudio in
+`0h3xn4/basilisk-SpaceMissionStudio`: what it contains, what changed since 2.5.0
+(commit `1951a028c`), what is known to be wrong, and how to use it.
 
 ## 2 Applicable and reference documents (G.2.1<2>)
 
@@ -401,65 +433,92 @@ This SRelD describes release 2.5.0 of SpaceMissionStudio in
 | Item | Value |
 |---|---|
 | Configuration item | SpaceMissionStudio (`SpaceMissionStudio/` in the repository) |
-| Baseline | Commit `1951a028c` (`1951a028ce436c6ba0452056da4c4dfed2c05b6c`), tagged `spacemissionstudio-v2.5.0`: `develop` after the 2.5.0 release pull request (#233; the changes of #229 to #232 and the release's records). Previous release: 2.4.0, commit `ac4b90065` (`ac4b9006573dee84f68bcb1cf7800edc2a843544`), tagged `spacemissionstudio-v2.4.0`. |
+| Baseline | `develop` after the 2.6.0 release pull request (the changes of #234 to #239 and the release's records), to be tagged `spacemissionstudio-v2.6.0` by the user. Previous release: 2.5.0, commit `1951a028c` (`1951a028ce436c6ba0452056da4c4dfed2c05b6c`), tagged `spacemissionstudio-v2.5.0`. |
 | Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt`. Bundled with the GUI as files, not packages: Inter 4.1 and JetBrains Mono 2.304 (SIL OFL 1.1) and 45 Lucide icons from lucide-static 1.52.0 (ISC), with versions, sources and checksums in `docs/THIRD_PARTY_ASSETS.md`. The installers also carry CPython 3.14.8 (python-build-standalone 20261013, SHA-256 pinned) with every installed package and the reference data; each build lists them in its `SPACEMISSIONSTUDIO_RUNTIME.json`, and `docs/THIRD_PARTY_ASSETS.md` ("In the installers") gives their licences |
 | Platform | The installers: Linux x86_64 with glibc 2.34 or newer (`.deb`), Windows 10/11 x64; no Python needed. From source: Python 3.14 (3.11 to 3.13 are no longer supported; Basilisk 2.12.0 and PySide6 6.11 do not install on 3.15 yet) |
-| Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_2.5.0_amd64.deb`, the Windows setup program `spacemissionstudio-2.5.0-setup.exe` (not signed, D-13), `SHA256SUMS-linux` and `SHA256SUMS-windows` |
+| Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_2.6.0_amd64.deb`, the Windows setup program `spacemissionstudio-2.6.0-setup.exe` (not signed, D-13), each installer's bill of materials (`spacemissionstudio_2.6.0_amd64.cdx.json`, `spacemissionstudio-2.6.0-setup.cdx.json`, CycloneDX 1.6), `SHA256SUMS-linux` and `SHA256SUMS-windows` |
 | Documentation | SUM and `USER_MANUAL.md`; the documents in `compliance/docs/` |
-| Basilisk framework | No Basilisk source, module or test changed. Since 2.4.0 nothing outside `SpaceMissionStudio/` changed but the repository's front-page `README.md` (this release's badge and version, as the user asked for 2.1.0, and the documentation refresh of #229; `git diff --name-only ac4b90065 develop`). The installers carry Basilisk 2.12.0 from PyPI, not this repository's framework, and add its support data next to the installed package, in the folder its own `dataFetcher` reads |
+| Basilisk framework | No Basilisk source, module or test changed. Since 2.5.0 nothing outside `SpaceMissionStudio/` changed but the repository's front-page `README.md` (this release's badge and version, as the user asked for 2.1.0, and the documentation refresh of #234) and SpaceMissionStudio's own workflows `.github/workflows/spacemissionstudio.yml`, `spacemissionstudio-release.yml` and `spacemissionstudio-windows-installer.yml` (the network audit, the bill of materials; `git diff --name-only 1951a028c develop`). The installers carry Basilisk 2.12.0 from PyPI, not this repository's framework, and add its support data next to the installed package, in the folder its own `dataFetcher` reads |
 
 ## 5 Status of the software configuration item
 
 ### 5.1 Evolution since previous version (G.2.1<5.1>)
 
-`CHANGELOG.md` 2.5.0 lists the changes since 2.4.0 (commit `ac4b90065`);
+`CHANGELOG.md` 2.6.0 lists the changes since 2.5.0 (commit `1951a028c`);
 RD1 has the full story. In summary:
 
-- **The documentation brought up to 2.4.0, and the 2.4.0 publication
-  recorded** (#229): documents and screenshots only.
-- **Thrusters from the IDM-CIC model** (#230, SRS-F-28, design note
-  section 20, decision IDM-32): a thruster's largest cone is its plume;
-  the import adds a massless "EQUIPMENT nozzle" to the 3D model's
-  equipment where the cone starts, its thrust against the plume, its
-  plume half-angle half the cone's angle, its thrust the product's or
-  the mapped property's (new target `thruster.MaxThrust`). Added by
-  default only with a plume cone; the devices record keeps it, so a
-  re-import leaves it as it is; `idm-import --devices` adds it.
-- **The JSON page as a code editor** (#231, #232, SRS-F-15, design note
-  `docs/developer/json-editor.md`, decisions JE-01 to JE-10): Qt's own
-  text editor, extended. Highlighting in five `code.*` theme tokens, line
-  numbers, the current line, the matching bracket, and every problem
-  marked at its place (`problem_location.locate`) with F8 and Shift+F8;
-  completion and help from the schema's records (`schema/fields.py`, the
-  generated `schema/field_help.json`), inside a device's and a mission
-  step's `params` too; rename (F2) through the forms' own functions, go
-  to definition (F12), quick fixes (Ctrl+.), formatting (Shift+Alt+F),
-  and a key an object does not have marked where it is.
+- **The documentation brought up to 2.5.0, and the 2.5.0 publication
+  recorded** (#234): documents and screenshots only.
+- **Network use enforced, and offline mode** (#235, SRS-S-05, security
+  analysis S-18, `docs/reference/network.md`): every download opens its
+  URL through `network.open_url`, which allows a purpose's own `https`
+  hosts only; a Python audit hook, on in the command line, the GUI and
+  every process they start, refuses any lookup, connection or listening
+  socket to another computer outside a download's permit; offline mode
+  (**Settings > Network**, `network --offline on`) switches every
+  download off, and an administrator's `policy.json` or
+  `SPACEMISSIONSTUDIO_OFFLINE` locks it; the web views load only the
+  app's own files (a request interceptor, Chromium's background requests
+  off); every use allowed or refused is logged in
+  `~/.spacemissionstudio/logs/network.log`.
+- **The network audit** (#236): `scripts/network_audit.py` traces every
+  network call of every process of a full GUI and command-line session
+  (`strace`, no network interface) and fails on any call to another
+  computer; CI runs it on every change, and reads the guard's log on
+  Windows. The network page gives a protocol for checking the same with
+  one's own firewall.
+- **Hash-checked installers and a bill of materials** (#237, security
+  analysis S-08): `packaging/constraints-hashes.txt` holds the SHA-256 of
+  every pinned file, generated from `constraints.txt` after following
+  every requirement on Linux and Windows (which found `tzdata` unpinned,
+  now 2026.6); `bundle_python.py` installs with `--require-hashes
+  --only-binary=:all:` and writes `SPACEMISSIONSTUDIO_SBOM.cdx.json`
+  (CycloneDX 1.6: CPython, every package with its licence, file and
+  SHA-256, every data file); the release workflow attaches it beside
+  each installer and lists it in `SHA256SUMS-*`; `install.sh` and
+  `install.ps1` install hash-checked too.
+- **Results › 3D View, and no Vizard download** (#239, SRS-F-16, SRS-A-01,
+  security analysis S-05): `engine/scene3d.py` builds the scene from the
+  run's series (positions on one grid of up to 1,500 frames, the nearest
+  recorded MRP, each spacecraft's 3D model or a 1 m cube, the ground
+  stations, the Earth by the IERS 2010 rotation angle and Basilisk's
+  albedo map, the Sun by the Astronomical Almanac's formula);
+  `gui/mission_view_widget.py` draws it in a lazily created web view
+  under the network guard, plays it back, keeps it with the shared time
+  cursor and follows one spacecraft at true size. The Vizard download,
+  its worker, its network purpose and the search for a Vizard on disk
+  are removed; a remembered Vizard in the former download folder is
+  ignored.
+- **A planning document** (#238): `docs/legal/PHASE1_PLAN.md`, a draft
+  plan, no code.
 
 **Unchanged:** the scenario format (no field added or changed), every
 template and golden file, the exit statuses, what runs compute, and the
 files the tool writes for an existing scenario. **Changed in the
-interface:** a thruster with a plume cone in an IDM-CIC model now adds
-equipment to the 3D model, and `thruster.MaxThrust` is a property target
-(ICD-12); the JSON page's keys (F2, F8, F12, Ctrl+., Ctrl+Space,
-Shift+Alt+F) take precedence over the window's while it has the focus.
+interface:** the `network` command, the policy file and
+`SPACEMISSIONSTUDIO_OFFLINE`, network use outside a download's hosts
+refused and logged, the bill of materials in each installer, and no
+Vizard download (ICD).
 
-**Tests:** 4805 passed on Linux, Python 3.14, on the release's code
-(4688 passed at 2.4.0); none skipped. The added tests cover the
-thrusters (the fixture's plume, its thrust from a product and a property,
-the record, the re-import, the origin, the command and the dialog), the
-places of values in the text, the schema's records and help, completion,
-refactoring and the editor itself. Five existing tests changed their
-expectations (four for the thruster, one counting the editor's
-highlighted regions), logged in `docs/ui/TEST_CHANGES.md`.
+**Tests:** 4835 passed on Linux, Python 3.14, on the release's code
+(4805 passed at 2.5.0); none skipped. The added tests cover the gateway,
+the policy, the guard in the tool's processes, the web views' request
+filter, the audit's parser, the hashed constraints and the bill of
+materials, the 3D scene against published values (the Earth rotation
+angle at J2000.0, the Sun at the 2030 equinox and solstice, the model
+analyses' attitude matrices) and the 3D View itself. Tests of the Vizard
+download and search are removed with them, the download tests patch
+`urlopen` through one module, one dependency test is stricter and one
+lists the new Results tab, all logged in `docs/ui/TEST_CHANGES.md`.
 
 **Still open:** K-19 (about 0.4 s), K-22, K-23 (smaller), K-24, K-25,
-K-26, K-27, K-28, K-30 (2.4.0 and 2.5.0 open each other's files), K-31.
+K-26, K-27, K-28, K-30, K-31, K-32 (2.5.0 and 2.6.0 open each other's
+files).
 
-**Changes users notice:** thrusters with a plume cone added to the 3D
-model by the IDM-CIC import, **Thruster: thrust** among its property
-targets, and the JSON page's colours, problem marks, completion, help
-and refactoring keys.
+**Changes users notice:** the **Results › 3D View** tab, **Settings >
+Network** with **Work offline**, no **Download Vizard** button (the
+"Vizard not found" dialog offers the 3D View), and a bill of materials
+beside each installer.
 
 ### 5.2 Known problems and limitations (G.2.1<5.2>)
 
@@ -479,7 +538,7 @@ and refactoring keys.
 | K-08 | Closed: the PNG/SVG export polled the page with overlapping asynchronous queries; a late timer tick read the cleared state (the CI tracebacks), and several answers could save the file twice. One query at a time now, late answers ignored (F-12) | – | `review_log.md` F-12 |
 | K-09 | Closed (2026-10-19): 1054 of the 2314 unit and integration test functions had no docstring. Every one now has a docstring stating what it checks, read from its body; no test code changed (each file's syntax tree without docstrings equals the one before) | – | `SUITP_test_cases.md`; HISTORY.md |
 | K-12 | The Windows setup program is built, installed silently and the installed tool run on a GitHub Windows runner (1.1.1: with an empty support-data cache, the GUI opened offscreen); the wizard has not been clicked through by hand and the GUI not opened on a real Windows machine, and an upgrade over an installed 1.1.0 has not been tried. The graceful SIL close (M15) has not run on Windows | Unknown for interactive use on Windows | `AUDIT.md` sections 5 and 6; `packaging/README.md` |
-| K-13 | Closed: the bundled CelesTrak space weather (observations to 2025-07-20) was refreshed for this release: observations to 2026-10-11, updated 2026-10-12. Refreshed again on 2026-10-19 for the next release: observations to 2026-10-18, CelesTrak's daily forecast to 2026-12-02, updated 2026-10-19 20:34 UTC. Refreshed for 1.3.0 on 2026-10-26: observations to 2026-10-24, daily forecast to 2026-12-07, updated 2026-10-25 23:32 UTC (CelesTrak revised its values from 2026-09-09 and the monthly forecast's 2027-01 and 2027-02). Results of drag runs dated after 2025-07-20 change, because observed solar activity replaces the earlier forecasts. Not refreshed for 2.0.0, 2.1.0, 2.1.1, 2.2.0, 2.3.0, 2.4.0 nor 2.5.0: on 2026-11-03, twice on 2026-11-04, three times on 2026-11-05 and on 2026-11-08 CelesTrak reset or refused every connection from the environment the release was prepared in, so 2.0.0 to 2.5.0 carry 1.3.0's file (observations to 2026-10-24, forecast to 2026-12-07); users fetch the current one in the app (Home's reference-data card, **Settings > Reference data**) or with `spacemissionstudio spaceweather-download` | Drag on dates after 2026-10-24 uses CelesTrak's forecast until the file is fetched | `spacemissionstudio/data/spaceweather/README.md` |
+| K-13 | Closed: the bundled CelesTrak space weather (observations to 2025-07-20) was refreshed for this release: observations to 2026-10-11, updated 2026-10-12. Refreshed again on 2026-10-19 for the next release: observations to 2026-10-18, CelesTrak's daily forecast to 2026-12-02, updated 2026-10-19 20:34 UTC. Refreshed for 1.3.0 on 2026-10-26: observations to 2026-10-24, daily forecast to 2026-12-07, updated 2026-10-25 23:32 UTC (CelesTrak revised its values from 2026-09-09 and the monthly forecast's 2027-01 and 2027-02). Results of drag runs dated after 2025-07-20 change, because observed solar activity replaces the earlier forecasts. Not refreshed for 2.0.0, 2.1.0, 2.1.1, 2.2.0, 2.3.0, 2.4.0, 2.5.0 nor 2.6.0: on 2026-11-03, twice on 2026-11-04, three times on 2026-11-05, on 2026-11-08 and on 2026-11-09 CelesTrak reset or refused every connection from the environment the release was prepared in, so 2.0.0 to 2.6.0 carry 1.3.0's file (observations to 2026-10-24, forecast to 2026-12-07); users fetch the current one in the app (Home's reference-data card, **Settings > Reference data**) or with `spacemissionstudio spaceweather-download` | Drag on dates after 2026-10-24 uses CelesTrak's forecast until the file is fetched | `spacemissionstudio/data/spaceweather/README.md` |
 | K-14 | Addressed, under watch: platform test failures. On Windows, two tests fail intermittently in CI (PR #64, 2026-10-14; each passed on the same commit in another run). `test_the_altitude_trade_runs_its_altitudes_in_parallel_processes`: a worker hit a Basilisk error whose exception cannot be pickled, so its message is lost (cause not yet known; suspected: the cached space-weather file opened by one worker while another replaces it). `test_a_step_without_deadline_waits_while_earlier_steps_are_still_answered`: its fake flight software went over the 0.3 s step timeout on a loaded runner (a test margin). On macOS (PR #65, 2026-10-14), `test_forms_stay_at_a_readable_width` and `test_a_template_row_keeps_its_customize_button_close` fail their own precondition: Qt's `cocoa` platform fits the 2560 x 1440 test window to the runner's screen, so the page is 618 px wide and there is no wide screen to check (a test set-up problem, not the layout). Fixed on the ROE branch (PR #73, commit `f601576c1`, 2026-10-18): the test window is laid out with `WA_DontShowOnScreen`, which the screen does not constrain, and the fixture asserts its 2560 x 1440 size; macOS CI then passed both (3347 passed, 0 failed, 11 skipped, run 39165811899). On the release commit `f288e0c73` (run 38633749308) Windows passed (3224 passed, 16 skipped) and macOS failed these two (3229 passed, 2 failed, 11 skipped). By the user's decision 1.0.0 is a Linux release; Windows and macOS are fixed and released later. Windows pair addressed on 2026-10-18 (after PR #73): the SIL test's step timeout is 1 s against 30 ms answers (it was 0.3 s against 20 ms), and the altitude trade's lost message is a confirmed bug, now fixed: Basilisk's `BasiliskError` cannot be pickled (its module `_bskLogging` does not import by that name), so any Basilisk error in a worker arrived as a pickling error. Workers now send such an error as a `BudgetError` with its type, message and traceback. The suspected cause is removed too: a complete space-weather file is no longer replaced by a second worker's copy, which on Windows could meet the first worker opening it. The Basilisk error behind the 2026-10-14 failure was never seen, so its cause is not confirmed; if it recurs, its message now shows. macOS, 2026-10-19 (PR #75, run 39218996167): `test_the_keys_work_where_results_has_the_focus` timed out waiting for its window to become active (passed on the PR's previous commit). On macOS activation is per application, and the parallel test workers are separate processes whose windows can keep it from this one; the test now sets Qt's active window itself (`QApplication.setActiveWindow`), which is what the shortcut map checks. Not reproducible on Linux (offscreen activates every shown window); confirmed only by the next macOS CI runs. Windows, 2026-10-19 (PR #76, job 118026573080): `test_thousands_of_dropped_steps_never_block_the_link[tcp]` failed with "the flight software took no STEP for 10 s" at step 16172 of 20000; the other Windows job on the same commit and the one re-run passed. The fake flight software was waiting to read when the link closed, so the simulation side's send found the socket not writable for 10 s, or did not run for that long. Cause not confirmed: not reproduced on Linux in 60 runs under CPU overload. A related defect was confirmed and fixed: `SocketTransport.send` gave up as soon as its time had run out, before trying the socket again, so a stall of the simulation's own process counted as the flight software's silence. The send now counts its time from the last bytes the peer took and tries once more without waiting before it gives up (`test_a_stall_of_this_process_is_not_the_peers_silence`, which fails on the previous code). Whether this was the Windows failure is confirmed only if it does not recur. It recurred on 2026-10-21 (PR #90, job 119083739177, on the 1.1.1 release commit `9dca37d5f`): the same message at step 10907 of 20000, and again the fake flight software was waiting to read when the link closed. So the send's stall handling was not the cause, and the cause is still not known. Not a Basilisk thread holding Python's interpreter lock: a Basilisk run in a second thread let the other thread run at least every 0.03 s (measured on Linux). Only this test has shown it (20000 steps, every one dropped, over TCP on a Windows runner); it may also stop a Windows SIL session that drops thousands of steps, with "the flight software took no STEP for 10 s". Not reproduced since (PR #91, 2026-10-21): the test alone passed 240 times on `windows-latest` (four workers side by side, two processes keeping the CPU busy) and the whole suite passed seven times on Windows (six runs of the new workflow "SpaceMissionStudio SIL stress (Windows)" and the platforms job). On a stall the test now fails with the state of both ends of the link: frames sent and dropped, bytes received and not read, the socket buffer sizes, what the fake flight software last did, when, and its stack, and the last `select()` calls of the send. The next recurrence names its cause. It recurred three times on 2026-10-27 (runs 40526819275 and 40543074495, twice) and named it: every `select()` of the stalled send saw the socket readable and not writable, the fake flight software alive and reading its backlog (12462 frames sent, 4568 read). The send's 10 s limit counted only bytes the peer took, and Windows reopens a full receive window only once the reader has freed much of it, so a peer that was answering looked silent. Fixed in 2.0.0 (#128): bytes the peer sends count too (`SocketTransport.send`); `test_a_peer_that_keeps_answering_is_not_silent` fails without the fix | Windows: an altitude trade with several workers may have failed with an unexplained error; a recurrence now names the error. macOS: the wide-screen layout was not checked in CI until PR #73 | PR #64 and #65 comments |
 | K-15 | Fixed (2026-10-19): a run around, or with a third body, `mars` or `jupiter` passed validation and then failed. The bundled DE430 ephemeris has the Mars and Jupiter system barycentres, not the planets: a `mars` run stopped the whole process with `SPICE(SPKINSUFFDATA)` (the GUI runs in its own process, so the app closed), and Basilisk has no body named `jupiter`. The schema now offers `mars barycenter` and `jupiter barycenter` (Basilisk gives them the planet's mass and radius) and refuses the two old names with the one to use; a test flies every offered body | A scenario with `mars` or `jupiter` could not be run, and in the GUI closed the app; no result was ever produced with them | `tests/test_central_bodies.py`; HISTORY.md |
 | K-16 | Fixed (2026-10-19): a thermal sensor's heat balance used the solar flux at Earth's distance from the Sun on the epoch, whatever the central body. Basilisk's `sensorThermal` assumes 1366 W/m^2 at any distance, and the tool's correction of it took Earth's flux. The flux is now the one at the spacecraft's own distance from the Sun when the run starts (SPICE), for every central body | Thermal sensors around the Sun, Mercury or Venus ran too cold, and around Mars, Jupiter or Eros too hot: around Mars on 2030-01-01 they absorbed 1408 W/m^2 instead of 713 W/m^2. Runs around Earth or the Moon are unchanged | `tests/test_sensor_thermal_flux.py`; HISTORY.md |
@@ -499,6 +558,8 @@ and refactoring keys.
 | K-30 | Limitation (2026-11-05): 2.2.0 does not open a scenario file saved by 2.3.0 in which an IDM-CIC import added devices or set the power budget: its import record's target (`devices`, `power`) is one 2.2.0 does not know ("imports[1].target must be one of ('orbit', 'model')"). Checked with 2.2.0's code on three files saved by 2.3.0 after an IDM-CIC import: the model only (opens), devices added (refused), the power budget set (refused). 2.3.0 opens every 2.2.0 file | A file using them, sent to a 2.2.0 user, does not open | `CHANGELOG.md` 2.3.0, Who should update |
 
 | K-31 | Limitation (2026-11-05): a spacecraft whose body frame origin 2.4.0 put at the centre of gravity (`idm-import --origin cog`) opens and validates in 2.3.0, but a re-import of its IDM-CIC model in 2.3.0, which does not know the recorded origin, puts the model's parts and point masses back in the body element's frame and leaves the other positions (devices, facets, tank) at the centre of gravity's: the spacecraft's positions no longer agree. Checked with 2.3.0's code on the devicesat fixture: after the re-import the centre of mass is 0.447 m from B and the gyro where 2.4.0 put it | A team re-importing in 2.3.0 a file saved by 2.4.0 with the origin at the centre of gravity | `CHANGELOG.md` 2.4.0, Who should update |
+
+| K-32 | Limitation (2026-11-09): the Vizard AVS Lab publishes has Unity Analytics switched on (its project settings, Unity's analytics libraries, AVS Lab's Unity project ID and Unity's event addresses, read from the program on 2026-11-09; it was not run, so what it sends was not measured). 2.6.0 no longer downloads or looks for Vizard and ignores a copy an earlier version downloaded; a Vizard the user chooses in **Settings > Vizard** is still started, as a separate program outside the tool's network rules. A build of Vizard without analytics was prepared (`0h3xn4/vizard`, branch `sms/telemetry-free-build`) and parked: it needs a Unity licence, and **Results › 3D View** replaces the need | A user who starts AVS Lab's Vizard may send usage data to Unity | security analysis S-05; `CHANGELOG.md` 2.6.0, Removed |
 
 **Waivers and deviations:** D-01 to D-13 (RD4). D-08 to D-13 are signed; D-01 to D-07
 are not (decision 14, H08).

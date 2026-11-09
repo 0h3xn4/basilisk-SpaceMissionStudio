@@ -24,7 +24,7 @@ Document: SMS-SUM, issue 1 (draft), 2026-10-08; menu and window names updated 20
 ## 1 Introduction (H.2.1<1>)
 
 This SUM is the entry point to the user documentation of SpaceMissionStudio
-2.5.0. Users should read the UM; this document points to it section by
+2.6.0. Users should read the UM; this document points to it section by
 section and holds the information ECSS-E-ST-40C asks for that the UM does
 not.
 
@@ -83,7 +83,7 @@ The tool lets a mission analyst do the following without writing code:
 | IERS-based Earth orientation files (NAIF PCKs) | `~/.cache/SpaceMissionStudio/earth_orientation/` or the installation's `share/` | Optional. Without them the Earth frame is less accurate and runs say so. `spacemissionstudio earth-orientation --fetch` |
 | 433 Eros ephemeris (NAIF) and shape model | `~/.cache/SpaceMissionStudio/small_bodies/`; the shape in Basilisk's data cache | Optional; only a run around Eros needs them, and it says so without them. `spacemissionstudio small-bodies --fetch` |
 | ITU-R P.676-13 Part 1 data file | `~/.cache/SpaceMissionStudio/itu_p676/` or the installation's `share/` | Optional; only the link budget's gaseous attenuation (`link.atmospheric_loss: itu_r_p676`) needs it. `spacemissionstudio gaseous-attenuation --fetch` |
-| Vizard (optional) | Downloaded on request, or your own installation | 3-D view only |
+| Vizard (optional) | Your own installation only; never downloaded (AVS Lab's build enables Unity Analytics). Results › 3D View needs none | 3-D view in Vizard only |
 | Scenario files (`.json`) | Where you save them | Your data |
 | A scenario's change history (`<name>.history.jsonl`) | Beside the scenario file | Written at each save |
 | Project configuration files (`.yaml`) | Where the scenario's `config_file` names them | Optional; they change the named parameters (HT `project-configuration.md`) |
@@ -278,8 +278,7 @@ in the CLI. An error never closes the application.
 - **Downloads:**
   - These happen only when you agree, and only from the sources in
     section 6.
-  - The Vizard download's SHA-256 is shown and recorded in
-    `download.json` (AD3, S-05).
+  - Vizard is never downloaded (S-05).
 
 ## 10 Reference manual: commands and messages
 
