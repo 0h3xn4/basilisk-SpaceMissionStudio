@@ -8,6 +8,20 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+### Added
+
+- **A licence check for every package.** `packaging/legal/licences.py` lists
+  every file of the wheel and of the installers' bundled Python, ties each to a
+  component with a known licence, and fails the build on an unknown licence, a
+  licence off the allowlist, a missing licence text or a file nobody owns. The
+  wheel now carries `THIRD_PARTY_NOTICES` and the installers carry
+  `THIRD_PARTY_NOTICES.txt` with the text of every licence, including those of
+  the libraries inside the bundled Python (OpenSSL, SQLite, libffi, Tcl/Tk and
+  others), which the Python build ships without. The reference-data terms are in
+  `docs/legal/DATA_TERMS.md`. No calculation, output file or command changed.
+
 ## 2.6.0 (2026-11-09)
 
 The run in 3D inside the app, and the tool's network use enforced and
@@ -24,15 +38,6 @@ changes: every template gives the same results as in 2.5.0.
 
 ### Added
 
-- **A licence check for every package.** `packaging/legal/licences.py` lists
-  every file of the wheel and of the installers' bundled Python, ties each to a
-  component with a known licence, and fails the build on an unknown licence, a
-  licence off the allowlist, a missing licence text or a file nobody owns. The
-  wheel now carries `THIRD_PARTY_NOTICES` and the installers carry
-  `THIRD_PARTY_NOTICES.txt` with the text of every licence, including those of
-  the libraries inside the bundled Python (OpenSSL, SQLite, libffi, Tcl/Tk and
-  others), which the Python build ships without. The reference-data terms are in
-  `docs/legal/DATA_TERMS.md`. No calculation, output file or command changed.
 - **Offline mode, and network use enforced.** **Settings > Network > Work
   offline** (or `spacemissionstudio network --offline on`) switches every
   download off. An administrator can set it for every user of a computer,
