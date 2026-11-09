@@ -93,7 +93,6 @@ earth-orientation --rollback`.
 | Earth orientation | Downloads and imports: `~/.cache/SpaceMissionStudio/earth_orientation/`, used first. The installers also put a copy, as current as the installer, inside the install folder |
 | ITU-R P.676-13 Part 1 | Downloads and imports: `~/.cache/SpaceMissionStudio/itu_p676/`, used first. The installers also put a copy inside the install folder |
 | Eros ephemeris | `~/.cache/SpaceMissionStudio/small_bodies/` (the shape model goes into Basilisk's cache, with the support data) |
-| Vizard download | `~/.cache/SpaceMissionStudio/vizard/` |
 
 **More detail:** User Manual section 7, the **Reference data** paragraph of
 [Reading the results](../../USER_MANUAL.md#7-reading-the-results).

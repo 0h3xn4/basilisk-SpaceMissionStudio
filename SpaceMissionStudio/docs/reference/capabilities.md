@@ -348,10 +348,12 @@ and -- for a `comms_pointing` spacecraft -- a pointing-error bar plus
 GUI telemetry -- all driven by real, already-simulated values, not
 static snapshots, with Vizard's own native live current/max readout on
 every panel), custom 3D models per spacecraft (a file of your own, cosmetic only, or the spacecraft's [3D model](#3d-spacecraft-models)), and a **Launch
-Vizard** action that starts the external application itself (if it
-cannot find Vizard, it offers to download AVS's own pre-built binary
-when you click **Download Vizard**), not just configures what feeds
-it.
+Vizard** action that starts a Vizard you chose (none is downloaded: AVS
+Lab's build enables Unity Analytics). **Results › 3D View** shows a run
+in 3D inside the app without Vizard: the central body, paths, spacecraft
+models turned by their attitude, ground stations and the Sun, played
+back with the shared time cursor, or one spacecraft followed at its true
+size with its body axes.
 
 ### Reusable starting points
 

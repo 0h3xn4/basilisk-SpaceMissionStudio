@@ -41,9 +41,10 @@ from pathlib import Path
 PLOT_PAGE = "spacemissionstudio-plot-"
 COMPARE_PAGE = "sms-compare-"
 MODEL_VIEW_PAGE = "spacemissionstudio_model_view_"
+MISSION_VIEW_PAGE = "spacemissionstudio_mission_view_"
 ICONS = "spacemissionstudio-icons-"
 VIZARD_MODELS = "spacemissionstudio_vizard_models_"
-KINDS = (PLOT_PAGE, COMPARE_PAGE, MODEL_VIEW_PAGE, ICONS, VIZARD_MODELS)
+KINDS = (PLOT_PAGE, COMPARE_PAGE, MODEL_VIEW_PAGE, MISSION_VIEW_PAGE, ICONS, VIZARD_MODELS)
 
 #: A folder named before the process id was in the name cannot be traced
 #: to its process; it is removed once it has not changed for this long.

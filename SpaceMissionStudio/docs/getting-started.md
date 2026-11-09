@@ -238,7 +238,6 @@ builds a scenario in code; [the examples](../examples/README.md) show more.
 | Support data (SPICE, gravity, magnetic model) | Installers: inside the install folder (`.../site-packages/supportData/`). Otherwise Basilisk's cache, for example `~/.cache/bsk_support_data/`. `kernels-status` prints it |
 | Earth orientation | Installers: inside the install folder (`.../share/spacemissionstudio/earth_orientation/`). Files you download go to `~/.cache/SpaceMissionStudio/earth_orientation/` and are used first |
 | Space-weather downloads | `~/.cache/SpaceMissionStudio/spaceweather/` (only if you ask for newer data than the bundled copy) |
-| Vizard, if downloaded | `~/.cache/SpaceMissionStudio/vizard/` |
 
 ## 9. If something goes wrong
 

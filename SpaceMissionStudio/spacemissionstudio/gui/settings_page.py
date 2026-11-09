@@ -55,8 +55,9 @@ _SECTIONS: tuple[tuple[str, str, str], ...] = (
     ("history", "Change history", "Each save records what it changed beside the scenario "
                                   "(mission.history.jsonl), with this name as its author; the command line uses "
                                   "it too. Empty: your user name."),
-    ("vizard", "Vizard", "The Vizard program Launch Vizard and Open in Vizard start. When none is set, it is "
-                         "looked for where the download puts it."),
+    ("vizard", "Vizard", "Optional: a Vizard you built or checked yourself, for Launch Vizard and Open in "
+                         "Vizard. SpaceMissionStudio does not download Vizard (AVS Lab's build has Unity "
+                         "Analytics on); Results › 3D View shows a run without it."),
     ("layout", "Layout", "The navigation rail, the inspector and the Problems panel; Reset Layout puts them "
                          "back as a new window has them."),
     ("keyboard", "Keyboard", "Every command with a shortcut. Ctrl+K finds any command by name."),
@@ -264,7 +265,7 @@ class SettingsPage(QScrollArea):
         self.vizard_browse.clicked.connect(self._on_vizard_browse)
         row.addWidget(self.vizard_browse)
         self.vizard_clear = QPushButton("Clear")
-        self.vizard_clear.setToolTip("Forget it: look for Vizard where the download puts it")
+        self.vizard_clear.setToolTip("Forget it: no Vizard is used until you choose one")
         self.vizard_clear.clicked.connect(self._on_vizard_clear)
         row.addWidget(self.vizard_clear)
         self._layout.addLayout(row)

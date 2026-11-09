@@ -86,14 +86,12 @@ def test_every_download_is_a_purpose_with_https_hosts():
     """The downloads the tool can make, by purpose; the URLs the code uses
     are among each purpose's hosts."""
     from spacemissionstudio.engine import earth_orientation, gaseous_attenuation, small_bodies, spaceweather
-    from spacemissionstudio.gui import vizard_launcher
 
     assert set(network.PURPOSES) == {"support_data", "space_weather", "earth_orientation", "small_bodies",
-                                     "itu_p676", "vizard"}
+                                     "itu_p676"}
     uses = [("space_weather", url) for url in spaceweather.CELESTRAK_URLS.values()]
     uses += [("earth_orientation", earth_orientation.NAIF_PCK_URL), ("itu_p676", gaseous_attenuation.PART1_URL)]
     uses += [("small_bodies", body.spk_url) for body in small_bodies.BODIES.values()]
-    uses += [("vizard", url) for url in vizard_launcher._DOWNLOAD_URLS.values()]
     for purpose, url in uses:
         host = url.split("/")[2]
         assert url.startswith("https://") and host in network.PURPOSES[purpose].hosts, (purpose, url)

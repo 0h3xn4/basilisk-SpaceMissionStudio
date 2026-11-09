@@ -143,7 +143,6 @@ access happens only in these places, each started by you:
 | Installation | Basilisk and the Python packages (PyPI), then the support data once | You run the installer or `pip` |
 | The **Fetch or update reference data?** card on Home at each GUI start (`gui.startup_fetch_dialog.ReferenceDataCard`) | Support data, CelesTrak space weather, Earth orientation files: what you tick | Shown every time; **Not now** touches no network; no "don't ask again" |
 | The **Reference data** dialog's **Download...** (**Settings > Reference data**, or the status bar) | Support data, space weather, Earth orientation, small bodies (433 Eros) or gaseous attenuation (ITU-R P.676-13 Part 1) | Names the source, the files and the size; default No |
-| **Download Vizard** in the "Vizard not found" dialog | AVS's pre-built Vizard | Only on that click; **Browse...** is the alternative |
 | Commands you type | `kernels-status` (missing support data), `earth-orientation --fetch`, `small-bodies --fetch`, `gaseous-attenuation --fetch`, `spaceweather-download` | Running the command is the request |
 
 Everything fetched is stored locally, and every file can also be

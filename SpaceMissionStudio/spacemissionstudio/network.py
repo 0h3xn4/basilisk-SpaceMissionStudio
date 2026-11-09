@@ -48,7 +48,8 @@ Every network use allowed, and every attempt refused, is written to
 
 The guard covers Python code. The web views' Chromium processes are kept
 to the app's own pages by ``gui.webengine_setup``'s request interceptor;
-Vizard is a separate program (``docs/reference/network.md``).
+Vizard is a separate program, never downloaded; the 3D view is built in
+(``docs/reference/network.md``).
 """
 
 from __future__ import annotations
@@ -86,7 +87,6 @@ PURPOSES: dict[str, Purpose] = {p.key: p for p in (
     Purpose("earth_orientation", "Earth orientation files (NAIF)", ("naif.jpl.nasa.gov",)),
     Purpose("small_bodies", "Small-body ephemerides (NAIF)", ("naif.jpl.nasa.gov",)),
     Purpose("itu_p676", "ITU-R P.676 tables (ITU)", ("www.itu.int",)),
-    Purpose("vizard", "The Vizard application (AVS Lab)", ("hanspeterschaub.info",)),
 )}
 
 

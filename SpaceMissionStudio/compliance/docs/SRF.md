@@ -57,7 +57,7 @@ and the conditions of use.
 | PySide6 | Qt 6 GUI, including Qt WebEngine for the plots | The Qt Company | ≥ 6.6 (6.11.2 tested) | LGPL-3.0-only, GPL-2.0-only or GPL-3.0 | C++, Python bindings | Python; a display |
 | plotly | Interactive plots | Plotly, Inc. | ≥ 5.0 (7.1.0 tested) | MIT | Python, JavaScript | Python; Qt WebEngine |
 | Basilisk's own dependencies | Installed with `bsk`: bokeh, colorama, matplotlib, pandas, pillow, pooch, protobuf, requests, tqdm. The tool does not import them directly. | various | as resolved by pip | open-source licences, not reviewed one by one | – | – |
-| Vizard (optional) | 3-D visualisation of runs | AVS Lab | as downloaded by the user | AVS Lab's Vizard licence (not reviewed) | Unity application | Separate process |
+| Vizard (optional) | 3-D visualisation of runs in a separate program; the built-in 3D View needs none | AVS Lab | a build the user chose; never downloaded by the tool (AVS Lab's published build enables Unity Analytics) | ISC (source); the Unity runtime under Unity's terms | Unity application | Separate process |
 
 ### Basilisk modules used
 

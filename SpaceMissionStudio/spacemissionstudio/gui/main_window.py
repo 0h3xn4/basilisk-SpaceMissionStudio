@@ -40,7 +40,7 @@ import time
 import weakref
 from pathlib import Path
 
-from PySide6.QtCore import QElapsedTimer, QEvent, QEventLoop, Qt, QTimer
+from PySide6.QtCore import QElapsedTimer, QEvent, Qt, QTimer
 from PySide6.QtGui import QActionGroup, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
@@ -52,7 +52,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
-    QProgressDialog,
     QScrollArea,
     QDockWidget,
     QStackedWidget,
@@ -101,10 +100,10 @@ from .undo_history import ScenarioHistory
 from .run_history import RunHistory
 from .run_history_view import HistoryEntry, RunHistoryView, run_entry, utc_text
 from .results_overview import ResultsOverview
+from .mission_view_widget import MissionViewWidget
 from .run_page import RunModeControl, RunPage
 from .vizard_launcher import (
     DEFAULT_LIVE_STREAM_ADDRESS,
-    VizardFetchWorker,
     find_vizard_executable,
     launch_vizard,
     remember_vizard_executable,
@@ -346,6 +345,10 @@ class MainWindow(QMainWindow):
         self.results_overview.run_requested.connect(self.on_run)
         self.results_views.addTab(self.results_overview, "Overview")
         self.results_views.addTab(self.results_widget, "Plots")
+        # The run in 3D, inside the app (the web view is made when first shown).
+        self.mission_view_widget = MissionViewWidget()
+        self.mission_view_widget.set_time_cursor(self.time_cursor)
+        self.results_views.addTab(self.mission_view_widget, "3D View")
         self.results_views.addTab(self.mission_dashboard_widget, "Dashboard")
         self.results_views.addTab(self.mission_output_widget, "Output")
         # Added and removed as needed (_update_monte_carlo_tab), never kept
@@ -2127,35 +2130,26 @@ class MainWindow(QMainWindow):
 
     def _locate_vizard(self) -> Path | None:
         """Called only when :func:`find_vizard_executable` came up empty.
-        Offers "Download Vizard" (automatic -- an explicit click, never
-        automatic on its own; see ``gui.vizard_launcher``'s own module
-        docstring on the "closed-off/offline policy" that still gates it)
-        alongside the original manual "Browse...". Returns the resolved,
-        already-``remember_vizard_executable``'d path, or ``None`` if the
-        user cancelled/dismissed both options or a download genuinely
-        failed (an error dialog was already shown in that case) --
-        :meth:`on_launch_vizard` treats that exactly like its own previous
-        "user cancelled the browse prompt" case.
-        """
+        SpaceMissionStudio no longer downloads Vizard: AVS Lab's published
+        build enables Unity Analytics (docs/reference/network.md, Vizard).
+        Offers the built-in 3D view instead, or **Browse...** for a Vizard
+        the user built or vetted themselves. Returns the chosen, remembered
+        executable, or ``None``."""
         box = QMessageBox(self)
         box.setWindowTitle("Vizard not found")
-        box.setText(
-            "Vizard wasn't found automatically. SpaceMissionStudio can download AVS's own pre-built Vizard "
-            "for this platform, or you can browse for an existing install."
-        )
-        download_button = box.addButton("Download Vizard", QMessageBox.ButtonRole.AcceptRole)
-        from .. import network
-
-        if network.policy().offline:
-            download_button.setEnabled(False)
-            download_button.setToolTip(network.policy().describe())
+        box.setText("SpaceMissionStudio does not download Vizard: the build AVS Lab publishes has Unity "
+                    "Analytics switched on. Results › 3D View shows the run inside the app, with nothing sent "
+                    "anywhere. A Vizard you built or checked yourself can still be used.")
+        view_button = box.addButton("Open the 3D View", QMessageBox.ButtonRole.AcceptRole)
         browse_button = box.addButton("Browse...", QMessageBox.ButtonRole.ActionRole)
         box.addButton(QMessageBox.StandardButton.Cancel)
+        box.setDefaultButton(view_button)
         box.exec()
         clicked = box.clickedButton()
 
-        if clicked is download_button:
-            return self._fetch_vizard_with_progress()
+        if clicked is view_button:
+            self.show_view(self.mission_view_widget)
+            return None
 
         if clicked is browse_button:
             path_str, _selected_filter = QFileDialog.getOpenFileName(self, "Locate the Vizard application")
@@ -2165,74 +2159,6 @@ class MainWindow(QMainWindow):
             remember_vizard_executable(executable)
             return executable
 
-        return None
-
-    def _fetch_vizard_with_progress(self) -> Path | None:
-        """Runs :class:`~.vizard_launcher.VizardFetchWorker` on a
-        background thread while blocking THIS method (not the whole
-        event loop -- see below) behind a modal, cancellable progress
-        dialog. Blocking here, rather than connecting to the worker's
-        signals and returning immediately, keeps :meth:`on_launch_vizard`'s
-        existing synchronous ``bool`` return contract (also relied on by
-        :meth:`on_run`'s live-stream gate) unchanged -- see
-        ``VizardFetchWorker``'s own docstring.
-
-        A nested ``QEventLoop`` (not a plain blocking call) is what makes
-        this safe: it keeps pumping Qt's event loop -- repainting the
-        progress dialog, handling the Cancel button -- while genuinely
-        waiting for the worker thread, rather than freezing the whole GUI
-        for the download's duration.
-        """
-        progress = QProgressDialog("Downloading Vizard...", "Cancel", 0, 0, self)
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumDuration(0)
-        progress.setAutoClose(False)
-        progress.setAutoReset(False)
-
-        worker = VizardFetchWorker(parent=self)
-        loop = QEventLoop()
-        outcome: dict = {}
-
-        def on_status(message: str) -> None:
-            progress.setLabelText(message)
-
-        def on_finished_ok(path_str: str) -> None:
-            outcome["path"] = path_str
-            loop.quit()
-
-        def on_failed(message: str) -> None:
-            outcome["error"] = message
-            loop.quit()
-
-        worker.status.connect(on_status)
-        worker.finished_ok.connect(on_finished_ok)
-        worker.failed.connect(on_failed)
-        progress.canceled.connect(worker.request_cancel)  # cooperative -- see VizardFetchWorker's own docstring
-
-        worker.start()
-        progress.show()
-        # QEventLoop.quit() is a no-op if the loop isn't running YET (Qt's
-        # own documented behavior, confirmed the hard way -- a first
-        # version of this method assumed quit()-before-exec() would make
-        # the next exec() return immediately, which hung instead): a real
-        # QThread's start() returns almost instantly, well before its
-        # background run() has a chance to emit finished_ok/failed, so
-        # this only matters for a worker that happens to finish
-        # SYNCHRONOUSLY inside start() itself. Checking outcome first
-        # covers exactly that case without affecting the real one.
-        if not outcome:
-            loop.exec()
-        progress.close()
-        worker.wait()
-
-        if "path" in outcome:
-            executable = Path(outcome["path"])
-            remember_vizard_executable(executable)
-            return executable
-
-        error = outcome.get("error", "download cancelled")
-        if error != "download cancelled":
-            report(self, f"Could not download Vizard: {error}")
         return None
 
     def on_launch_vizard(self) -> bool:
@@ -2667,6 +2593,7 @@ class MainWindow(QMainWindow):
 
         def views() -> None:
             self.mission_dashboard_widget.set_live_result(result, self._last_run_scenario)
+            self.mission_view_widget.set_run(self._last_run_scenario, result, self._scenario_dir())
             self.event_timeline_widget.set_result(result, self._last_run_epoch_utc)
             self._set_shown_run()
             self._offer_vizard_playback()
@@ -2734,6 +2661,7 @@ class MainWindow(QMainWindow):
 
         def views() -> None:
             self.mission_dashboard_widget.set_live_result(partial_result, self._last_run_scenario)
+            self.mission_view_widget.set_run(self._last_run_scenario, partial_result, self._scenario_dir())
             self.event_timeline_widget.set_result(partial_result, self._last_run_epoch_utc)
             self._set_shown_run()
             self._offer_vizard_playback()
@@ -2959,6 +2887,8 @@ class MainWindow(QMainWindow):
             self.run_history.wait_loaded()
             self.run_history.wait_for_saves()  # a run ended just before must be on disk
             self.results_overview.wait_for_worker()
+            self.mission_view_widget.pause()
+            self.mission_view_widget.wait_for_worker()
             self.lifetime_widget.wait_for_worker()  # a few seconds at most; its thread must not be destroyed mid-run
             self.budget_widget.wait_for_worker()
             self.design_checks_widget.wait_for_worker()

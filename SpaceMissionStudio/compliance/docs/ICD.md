@@ -166,7 +166,7 @@ messages (`SimulationBaseClass`, `spacecraft`, `gravityEffector`,
 - **Save file:** a `.bin` file written through `vizSupport`.
 - **Live:** a ZMQ stream to a Vizard process started by the tool or by the
   user.
-- Vizard is downloaded only on consent.
+- Vizard is never downloaded; only a Vizard the user chose is started.
 
 #### 5.3.9 Flight-software export (ICD-09)
 
