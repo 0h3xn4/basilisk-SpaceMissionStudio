@@ -1,0 +1,85 @@
+{
+  "_comment": "Python distributions whose own metadata does not state a usable licence, or where the project chooses one side of an OR. Each entry: the SPDX expression, the evidence (what was read, when), optionally extra_licence_files (patterns relative to the tree root). Keyed by the normalised name, or name==version.",
+  "distributions": {
+    "spacemissionstudio": {
+      "licence": "ISC",
+      "evidence": "pyproject.toml: license = { text = \"ISC\" }; the file LICENSE (replaced by EUPL-1.2 in milestone M2)"
+    },
+    "charset-normalizer": {
+      "licence": "MIT",
+      "evidence": "METADATA field License: MIT; licenses/LICENSE, read 2026-11-09"
+    },
+    "colorama": {
+      "licence": "BSD-3-Clause",
+      "evidence": "METADATA classifier BSD License; licenses/LICENSE.txt read 2026-11-09 (three-clause text)"
+    },
+    "contourpy": {
+      "licence": "BSD-3-Clause",
+      "evidence": "METADATA License field 'BSD 3-Clause License'; LICENSE"
+    },
+    "cycler": {
+      "licence": "BSD-3-Clause",
+      "evidence": "METADATA classifier BSD License; LICENSE read 2026-11-09 (matplotlib project text)"
+    },
+    "fonttools": {
+      "licence": "MIT",
+      "evidence": "METADATA field License: MIT; licenses/LICENSE and LICENSE.external"
+    },
+    "jinja2": {
+      "licence": "BSD-3-Clause",
+      "evidence": "METADATA classifier BSD License; licenses/LICENSE.txt (Pallets, three-clause)"
+    },
+    "kiwisolver": {
+      "licence": "BSD-3-Clause",
+      "evidence": "METADATA classifier BSD License; licenses/LICENSE ('The Kiwi licensing terms')"
+    },
+    "pandas": {
+      "licence": "BSD-3-Clause",
+      "evidence": "METADATA License field 'BSD 3-Clause License'; LICENSE"
+    },
+    "protobuf": {
+      "licence": "BSD-3-Clause",
+      "evidence": "METADATA field License: 3-Clause BSD License; LICENSE"
+    },
+    "pyerfa": {
+      "licence": "BSD-3-Clause",
+      "evidence": "METADATA field License: BSD 3-Clause License; LICENSE.rst"
+    },
+    "tqdm": {
+      "licence": "MPL-2.0 AND MIT",
+      "evidence": "METADATA field License: MPL-2.0 AND MIT; licenses/LICENCE"
+    },
+    "pyside6": {
+      "licence": "LGPL-3.0-only",
+      "evidence": "METADATA field License: 'LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only'; the project chooses the LGPL-3.0 (docs/legal/DATA_TERMS.md \u00a79). The wheel carries no licence text; the bundle adds licenses/LGPL-3.0-only.txt",
+      "extra_licence_files": [
+        "licenses/LGPL-3.0-only.txt",
+        "licenses/QT_NOTICE.txt"
+      ]
+    },
+    "pyside6-essentials": {
+      "licence": "LGPL-3.0-only",
+      "evidence": "METADATA field License: 'LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only'; the project chooses the LGPL-3.0 (docs/legal/DATA_TERMS.md \u00a79). The wheel carries no licence text; the bundle adds licenses/LGPL-3.0-only.txt",
+      "extra_licence_files": [
+        "licenses/LGPL-3.0-only.txt",
+        "licenses/QT_NOTICE.txt"
+      ]
+    },
+    "pyside6-addons": {
+      "licence": "LGPL-3.0-only",
+      "evidence": "METADATA field License: 'LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only'; the project chooses the LGPL-3.0 (docs/legal/DATA_TERMS.md \u00a79). The wheel carries no licence text; the bundle adds licenses/LGPL-3.0-only.txt",
+      "extra_licence_files": [
+        "licenses/LGPL-3.0-only.txt",
+        "licenses/QT_NOTICE.txt"
+      ]
+    },
+    "shiboken6": {
+      "licence": "LGPL-3.0-only",
+      "evidence": "METADATA field License: 'LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only'; the project chooses the LGPL-3.0 (docs/legal/DATA_TERMS.md \u00a79). The wheel carries no licence text; the bundle adds licenses/LGPL-3.0-only.txt",
+      "extra_licence_files": [
+        "licenses/LGPL-3.0-only.txt",
+        "licenses/QT_NOTICE.txt"
+      ]
+    }
+  }
+}

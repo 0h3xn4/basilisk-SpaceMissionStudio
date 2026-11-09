@@ -70,6 +70,12 @@ python3 "$script_dir/bundle_python.py" --platform linux --dest "$staging$install
     --wheel "$wheel" --prefix "$install_dir/python" "${archive_args[@]}"
 bundled_python="$staging$install_dir/python/bin/python3"
 
+# The notices of everything the package redistributes (bundle_python.py
+# writes them with the licence texts into the bundled Python's folder), also
+# where Debian users look for a package's licence files.
+install -D -m 644 "$staging$install_dir/python/THIRD_PARTY_NOTICES.txt" \
+    "$staging/usr/share/doc/spacemissionstudio/THIRD_PARTY_NOTICES.txt"
+
 # The menu icon (gui/icons.py draws it; no bitmap in the repository),
 # rendered now so it is a package file.
 QT_QPA_PLATFORM=offscreen "$bundled_python" -I -c "

@@ -100,8 +100,18 @@ BASILISK_REQUIREMENT = "bsk[all]==2.12.0"
 MANIFEST_NAME = "SPACEMISSIONSTUDIO_RUNTIME.json"
 #: Written next to it: the software bill of materials (CycloneDX JSON).
 SBOM_NAME = "SPACEMISSIONSTUDIO_SBOM.cdx.json"
+#: The licence audit: every file of the bundle owned by a component with a
+#: known licence (packaging/legal/licences.py), and the notices made from it.
+LICENCE_SBOM_NAME = "SPACEMISSIONSTUDIO_LICENCES.cdx.json"
+NOTICES_NAME = "THIRD_PARTY_NOTICES.txt"
 
 _PACKAGING = Path(__file__).resolve().parent
+_LEGAL = _PACKAGING / "legal"
+#: Licence texts of the libraries python-build-standalone links into CPython; its
+#: install_only archives carry none (packaging/legal/texts/.../README.md).
+PBS_LICENCE_TEXTS = _LEGAL / "texts" / "python-build-standalone-20261013"
+#: LGPL-3.0 and a notice for Qt (packaging/legal/texts/qt/README.md).
+QT_LICENCE_TEXTS = _LEGAL / "texts" / "qt"
 
 
 def sha256_of(path: Path) -> str:
@@ -353,8 +363,43 @@ def relocate_earth_orientation(dest: Path, prefix: str) -> None:
         manifest.write_text(json.dumps(entries, indent=2), encoding="utf-8")
 
 
+def licence_gate(platform: str, dest: Path, mode: str) -> None:
+    """Write the licence texts, the licence SBOM and THIRD_PARTY_NOTICES into the bundle, and run
+    the gate (packaging/legal/licences.py check). ``mode`` is ``fail`` (a problem stops the build),
+    ``warn`` (a problem is printed) or ``off``. The Windows component list is not complete yet
+    (docs/legal/OBLIGATIONS.md), so it defaults to ``warn``."""
+    if mode == "off":
+        return
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("smstudio_licences", _LEGAL / "licences.py")
+    licences = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(licences)
+    target = dest / "licenses"
+    target.mkdir(exist_ok=True)
+    for text in sorted(QT_LICENCE_TEXTS.glob("*.txt")):  # PySide6's wheels carry no licence text
+        shutil.copy2(text, target / text.name)
+    if platform == "linux":
+        for text in sorted(PBS_LICENCE_TEXTS.glob("LICENSE.*.txt")):
+            shutil.copy2(text, target / text.name)
+    sbom_data = licences.build_sbom(dest, f"spacemissionstudio-{platform}")
+    (dest / LICENCE_SBOM_NAME).write_text(json.dumps(sbom_data, indent=2) + "\n", encoding="utf-8")
+    licences.write_notices(sbom_data, dest, dest / NOTICES_NAME)
+    lines = licences.check(sbom_data, dest, dest / NOTICES_NAME)
+    failures = [line for line in lines if not line.startswith("WARN")]
+    shown = lines if len(lines) <= 400 else lines[:400]  # a first Windows run lists thousands of files
+    for line in shown:
+        print(line if line.startswith("WARN") else "LICENCE GATE: " + line, flush=True)
+    if len(lines) > len(shown):
+        print(f"LICENCE GATE: ... and {len(lines) - len(shown)} more lines", flush=True)
+    report = os.environ.get("SMS_LICENCE_REPORT")
+    if report:
+        Path(report).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    if failures and mode == "fail":
+        raise SystemExit(f"licence gate: {len(failures)} problems (see above; docs/legal/OBLIGATIONS.md)")
+
+
 def bundle(platform: str, dest: Path, wheel: Path, constraints: Path, cache: Path,
-           archive: Path | None = None, prefix: str | None = None) -> dict:
+           archive: Path | None = None, prefix: str | None = None, licence_mode: str | None = None) -> dict:
     """Unpack the pinned CPython into ``dest``, install Basilisk and the
     wheel and add the reference data."""
     url, expected = PYTHON_BUILDS[platform]
@@ -384,6 +429,7 @@ def bundle(platform: str, dest: Path, wheel: Path, constraints: Path, cache: Pat
         relocate_earth_orientation(dest, prefix)
     (dest / MANIFEST_NAME).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     (dest / SBOM_NAME).write_text(json.dumps(sbom(platform, manifest, report), indent=2) + "\n", encoding="utf-8")
+    licence_gate(platform, dest, licence_mode or ("fail" if platform == "linux" else "warn"))
     return manifest
 
 
@@ -400,9 +446,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--archive", type=Path, help="a CPython archive already on disk (still checked)")
     parser.add_argument("--prefix", help="the folder the installer puts DEST in, when fixed (the .deb: "
                         "/opt/spacemissionstudio/python); the bytecode then names it")
+    parser.add_argument("--licence-gate", choices=("fail", "warn", "off"),
+                        help="what a licence problem does (legal/licences.py): default fail on Linux, warn on Windows")
     args = parser.parse_args(argv)
     manifest = bundle(args.platform, args.dest.resolve(), args.wheel.resolve(), args.constraints.resolve(),
-                      args.cache, args.archive, args.prefix)
+                      args.cache, args.archive, args.prefix, args.licence_gate)
     print(f"Bundled Python {manifest['python']} with SpaceMissionStudio {manifest['spacemissionstudio']} "
           f"and {len(manifest['packages'])} packages in {args.dest}")
     return 0

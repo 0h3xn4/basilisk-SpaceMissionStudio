@@ -2,7 +2,10 @@
 
 The licence report for what the GUI bundles or needs (the brief's
 "SBOM/licence report", `docs/ui/UI_OVERHAUL.md`). Everything listed is
-used offline: nothing is fetched at run time. A change to any row is
+used offline: nothing is fetched at run time. Since milestone M1 of the legal work,
+the packages are also checked by `packaging/legal/licences.py`, which lists
+every file and every licence text (`docs/legal/OBLIGATIONS.md`,
+`docs/legal/DATA_TERMS.md`); this table stays the hand-written overview. A change to any row is
 recorded here and in `docs/DECISIONS.md`.
 
 ## Bundled in the package

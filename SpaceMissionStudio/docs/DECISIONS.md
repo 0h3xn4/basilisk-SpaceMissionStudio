@@ -2770,3 +2770,33 @@ has no installer, so it keeps the install script.
 - **Run-start and run-end log records** (M5) are emitted by the GUI's run
   controller, not the engine.
 - **`docs/DESIGN.md`** is rewritten in M1 (above).
+
+## Legal groundwork, milestone M1 (2026-11-09)
+
+The plan is `docs/legal/PHASE1_PLAN.md`. Not legal advice; a lawyer reviews
+the risk register.
+
+- **One tool decides what ships.** `packaging/legal/licences.py` lists every
+  file of a package, assigns each to a component with a known licence and fails
+  on the rest. Why: the older SBOM (`bundle_python.py`) records where packages
+  came from but not which licence owns which file, nor whether a licence text
+  travels with it.
+- **An unclear licence is left out, not guessed.** A component the tool cannot
+  read stays unknown and the gate fails until a person writes the entry with
+  its evidence. Why: the project must not redistribute on an assumption.
+- **Data with an open redistribution right warns; data a provider restricts
+  fails.** `restricted` has no waiver without a recorded decision. Why: the ITU
+  file is bundled today and ITU says reproduction needs written permission
+  (`docs/legal/DATA_TERMS.md`, D1); the next Linux installer build stops until
+  you decide.
+- **The python-build-standalone library texts are vendored** in
+  `packaging/legal/texts/` (with the source archive's SHA-256), and the bundle
+  copies them to `licenses/`. Why: the `install_only` archive carries no text
+  for OpenSSL, SQLite, libffi, Tcl/Tk and the others it links.
+- **Windows runs the gate in `warn` mode** until the first release build lists
+  its unclaimed files. Why: only the Linux build could be read here.
+- **Wheel notices are generated and committed** (`THIRD_PARTY_NOTICES`),
+  and CI fails when they are stale. Why: a hand-kept list drifts.
+- **`tool.setuptools.license-files` is used** (deprecated in favour of
+  `project.license-files`, which needs an SPDX `license` string). Why: the SPDX
+  string arrives with the licence change in M2.

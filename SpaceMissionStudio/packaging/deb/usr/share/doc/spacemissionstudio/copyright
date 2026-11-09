@@ -10,6 +10,8 @@ Comment:
  /opt/spacemissionstudio/python/lib/python3.14/site-packages; the stanzas
  below say which licence applies to which part (a later stanza is more
  specific and wins).
+ The full list of components, with every licence text, is in
+ THIRD_PARTY_NOTICES.txt in this folder.
 
 Files: *
 Copyright: 2026, Autonomous Vehicle Systems Lab, University of Colorado at Boulder

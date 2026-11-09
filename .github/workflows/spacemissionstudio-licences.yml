@@ -1,0 +1,88 @@
+# SpaceMissionStudio: the licence gate for the wheel (milestone M1,
+# SpaceMissionStudio/docs/legal/PHASE1_PLAN.md). Builds the wheel, lists every
+# file in it, and fails on a component without a known licence, a licence off
+# the allowlist, a missing licence text, a file no component owns, or a
+# THIRD_PARTY_NOTICES that is out of date. The installers run the same gate
+# inside packaging/bundle_python.py when the release workflow builds them.
+name: "SpaceMissionStudio licences"
+
+on:
+  push:
+    paths:
+      - "SpaceMissionStudio/packaging/legal/**"
+      - "SpaceMissionStudio/packaging/bundle_python.py"
+      - "SpaceMissionStudio/pyproject.toml"
+      - "SpaceMissionStudio/THIRD_PARTY_NOTICES"
+      - "SpaceMissionStudio/LICENSE"
+      - "SpaceMissionStudio/spacemissionstudio/gui/assets/**"
+      - "SpaceMissionStudio/spacemissionstudio/data/**"
+      - "SpaceMissionStudio/spacemissionstudio/fsw_export/**"
+      - "SpaceMissionStudio/tests/test_licences_tool.py"
+      - ".github/workflows/spacemissionstudio-licences.yml"
+  pull_request:
+    paths:
+      - "SpaceMissionStudio/packaging/legal/**"
+      - "SpaceMissionStudio/packaging/bundle_python.py"
+      - "SpaceMissionStudio/pyproject.toml"
+      - "SpaceMissionStudio/THIRD_PARTY_NOTICES"
+      - "SpaceMissionStudio/LICENSE"
+      - "SpaceMissionStudio/spacemissionstudio/gui/assets/**"
+      - "SpaceMissionStudio/spacemissionstudio/data/**"
+      - "SpaceMissionStudio/spacemissionstudio/fsw_export/**"
+      - "SpaceMissionStudio/tests/test_licences_tool.py"
+      - ".github/workflows/spacemissionstudio-licences.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wheel:
+    name: "Licences of the wheel"
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: SpaceMissionStudio
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: The tool's own tests
+        run: |
+          python -m pip install -c packaging/constraints.txt -c packaging/constraints-dev.txt -e ".[dev]"
+          python -m pytest tests/test_licences_tool.py -q -p no:cacheprovider
+      - name: Build the wheel
+        run: |
+          python -m pip install build
+          python -m build --wheel --outdir "$RUNNER_TEMP/dist" .
+      - name: List the wheel's files and check every licence
+        run: |
+          python -m zipfile -e "$RUNNER_TEMP"/dist/spacemissionstudio-*.whl "$RUNNER_TEMP/wheelx"
+          python packaging/legal/licences.py sbom --root "$RUNNER_TEMP/wheelx" --name wheel --out "$RUNNER_TEMP/wheel.cdx.json"
+          notices=$(ls "$RUNNER_TEMP"/wheelx/spacemissionstudio-*.dist-info/licenses/THIRD_PARTY_NOTICES)
+          python packaging/legal/licences.py check --sbom "$RUNNER_TEMP/wheel.cdx.json" \
+            --root "$RUNNER_TEMP/wheelx" --notices "$notices"
+      - name: The committed THIRD_PARTY_NOTICES is what the wheel generates
+        run: |
+          python packaging/legal/licences.py notices --sbom "$RUNNER_TEMP/wheel.cdx.json" \
+            --root "$RUNNER_TEMP/wheelx" --out "$RUNNER_TEMP/notices.txt"
+          diff -u THIRD_PARTY_NOTICES "$RUNNER_TEMP/notices.txt" || {
+            echo "THIRD_PARTY_NOTICES is out of date: see packaging/legal/README.md, 'Regenerate the committed notices'" >&2
+            exit 1
+          }
+      - name: The wheel's licence list, for the record
+        if: always()
+        run: |
+          test -f "$RUNNER_TEMP/wheel.cdx.json" && python -c "import json,sys; [print(c['name'], c['version'], c['licenses'][0]['expression'] if c['licenses'] else 'NONE') for c in json.load(open(sys.argv[1]))['components']]" "$RUNNER_TEMP/wheel.cdx.json"
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: licences-wheel
+          path: ${{ runner.temp }}/wheel.cdx.json
