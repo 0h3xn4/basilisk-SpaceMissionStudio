@@ -38,6 +38,7 @@ from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (QFileDialog, QHBoxLayout, QHeaderView, QLabel, QMenu, QMessageBox, QPushButton,
                                QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget)
 
+from .. import network
 from ..engine import reference_data
 from .theme import on_change
 from .theme.items import retint, tint
@@ -285,6 +286,7 @@ class DataPanelWidget(QWidget):
         layout.addLayout(row)
         self._worker: _TaskWorker | None = None
         self.last_changes: list[str] = []
+        self.apply_network_policy()
         if load:
             self.refresh()
         else:
@@ -467,6 +469,16 @@ class DataPanelWidget(QWidget):
     def _enable(self) -> None:
         for button in (self.download_button, self.import_button, self.rollback_button, self.refresh_button):
             button.setEnabled(True)
+        self.apply_network_policy()
+
+    def apply_network_policy(self) -> None:
+        """Offline (``network.policy``), Download is off and says why; Import
+        installs files from disk as before."""
+        current = network.policy()
+        if self._worker is None or not self._worker.isRunning():
+            self.download_button.setEnabled(not current.offline)
+        self.download_button.setToolTip(current.describe() if current.offline else
+                                        "Asks before downloading, naming the source, the files and their size.")
 
     def _on_finished(self) -> None:
         self._enable()

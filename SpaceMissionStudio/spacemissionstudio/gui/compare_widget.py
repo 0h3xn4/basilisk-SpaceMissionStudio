@@ -42,7 +42,9 @@ from pathlib import Path
 import numpy as np
 import plotly.graph_objects as go
 from PySide6.QtCore import QTimer, QUrl, Qt, Signal
-from PySide6.QtWebEngineWidgets import QWebEngineView
+
+from . import webengine_setup  # sets the Chromium flags, before QtWebEngine is imported
+from PySide6.QtWebEngineWidgets import QWebEngineView  # noqa: E402
 from PySide6.QtWidgets import (QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QMessageBox, QPushButton,
                                QSplitter, QTabWidget, QVBoxLayout, QWidget)
 
@@ -165,6 +167,7 @@ class CompareWidget(QWidget):
         self.column_combo.currentIndexChanged.connect(self._draw_plot)
         picks.addWidget(self.column_combo, 1)
         plots_layout.addLayout(picks)
+        webengine_setup.guard_profile()  # the app's own pages only (network.md)
         self.web_view = QWebEngineView()
         plots_layout.addWidget(self.web_view, 1)
         on_change(self._on_theme_changed)

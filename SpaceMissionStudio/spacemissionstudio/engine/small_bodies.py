@@ -45,10 +45,10 @@ import math
 import shutil
 import sys
 import urllib.error
-import urllib.request
 from dataclasses import asdict, dataclass
 from datetime import datetime, UTC
 from pathlib import Path
+from .. import network
 
 _DAF_SPK_MAGIC = b"DAF/SPK "
 _MANIFEST = "manifest.json"
@@ -187,10 +187,10 @@ def fetch(name: str = EROS.name, directory: Path | None = None, timeout_s: float
     directory = Path(directory) if directory else DEFAULT_DIR
     directory.mkdir(parents=True, exist_ok=True)
     part = directory / (small_body.spk_name + ".part")
-    request = urllib.request.Request(small_body.spk_url, headers={"User-Agent": "SpaceMissionStudio"})  # noqa: S310 -- constant https NAIF URL
     try:
         try:
-            with urllib.request.urlopen(request, timeout=timeout_s) as response:  # noqa: S310 -- constant https NAIF URL
+            with network.open_url(small_body.spk_url, "small_bodies", timeout_s=timeout_s,
+                                  headers={"User-Agent": "SpaceMissionStudio"}) as response:
                 data = response.read(_MAX_DOWNLOAD_BYTES + 1)
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             raise SmallBodyError(f"could not fetch {small_body.spk_url}: {exc}") from exc

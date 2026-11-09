@@ -182,6 +182,14 @@ the downlink's Eb/N0 budget at a slant range (no Basilisk needed)
 | `--explain` | how each figure was computed: the equation, the inputs with their units and sources |
 | `--out` | also write the budget as JSON: inputs, figures, traces, the provenance |
 
+## `network`
+
+the network policy: offline or online, what each download may contact, the log; --offline on/off
+
+| Argument | Help |
+|---|---|
+| `--offline {on,off}` | work offline (no downloads) or not; refused while your administrator sets it |
+
 ## `kernels-status`
 
 fetch/check SPICE kernel cache status

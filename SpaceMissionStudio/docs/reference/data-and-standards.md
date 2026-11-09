@@ -153,6 +153,12 @@ installed from disk (**Import file...** in the **Reference data** dialog,
 part is described in [`packaging/README.md`](../../packaging/README.md);
 `tests/test_offline.py` runs with all network access blocked in CI.
 
+Offline mode switches every download off, for you or, by an
+administrator's policy file, for every user of a computer; a guard on all
+Python code and a filter on the web views enforce the rules above, and
+every network use is logged. See
+[Network use, offline mode and telemetry](network.md).
+
 ---
 
 **Next:** [Reference data](../user-manual/reference-data.md) ·

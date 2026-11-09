@@ -76,13 +76,13 @@ import subprocess
 import sys
 import threading
 import urllib.error
-import urllib.request
 import zipfile
 from datetime import datetime, UTC
 from pathlib import Path
 from collections.abc import Callable
 
 from PySide6.QtCore import QSettings, QThread, Signal
+from .. import network
 
 _SETTINGS_KEY = "vizard/executable_path"
 
@@ -250,13 +250,13 @@ def fetch_vizard(dest_dir: Path | None = None, timeout_s: float = 30.0,
 
     if on_status:
         on_status(f"Downloading {url} ...")
-    request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})  # noqa: S310 -- constant https URL
     # Streamed to the .part file chunk by chunk, never held in memory
     # whole (audit H4); renamed onto zip_path only once complete.
     digest = hashlib.sha256()
     total = 0
     try:
-        with urllib.request.urlopen(request, timeout=timeout_s) as response, tmp.open("wb") as part:  # noqa: S310
+        with network.open_url(url, "vizard", timeout_s=timeout_s, headers={"User-Agent": _USER_AGENT}) as response, \
+                tmp.open("wb") as part:
             while True:
                 if should_cancel is not None and should_cancel():
                     raise VizardFetchError("download cancelled")

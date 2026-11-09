@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QFileDialog, QHBoxL
                                QPushButton, QScrollArea, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout,
                                QWidget)
 
-from .. import history
+from .. import history, network
 from . import units, vizard_launcher
 from .widgets import ComboBox
 from .theme import (CONTENT_MAX_WIDTH_PX, SPACE, UI_SCALES, mono_font, reduce_motion, set_reduce_motion, set_role,
@@ -50,6 +50,8 @@ _SECTIONS: tuple[tuple[str, str, str], ...] = (
                                  "start."),
     ("reference_data", "Reference data", "The SPICE kernels, gravity fields, magnetic model, space weather and "
                                          "Earth orientation files, with their sources, dates and checksums."),
+    ("network", "Network", "SpaceMissionStudio reaches the network only for a download you start, and "
+                         "only the addresses listed for it. Offline, no download can start."),
     ("history", "Change history", "Each save records what it changed beside the scenario "
                                   "(mission.history.jsonl), with this name as its author; the command line uses "
                                   "it too. Empty: your user name."),
@@ -181,6 +183,63 @@ class SettingsPage(QScrollArea):
         self.author_note = set_role(QLabel(""), tone="secondary")
         self.author_note.setWordWrap(True)
         self._layout.addWidget(self.author_note)
+
+    def _build_network(self) -> None:
+        self.offline_box = QCheckBox("Work offline: no downloads")
+        self.offline_box.toggled.connect(self._on_offline)
+        self._layout.addWidget(self.offline_box)
+        self.network_note = set_role(QLabel(""), tone="secondary")
+        self.network_note.setWordWrap(True)
+        self._layout.addWidget(self.network_note)
+        hosts = "\n".join(f"{p.label}: {', '.join(p.hosts)}" for p in network.PURPOSES.values())
+        self.network_hosts = set_role(QLabel(hosts), tone="secondary")
+        self.network_hosts.setWordWrap(True)
+        self._layout.addWidget(self.network_hosts)
+        row = QHBoxLayout()
+        row.setSpacing(SPACE["sm"])
+        self.network_log_button = QPushButton("Open the network log")
+        self.network_log_button.setToolTip(f"Every network use allowed or refused: {network.log_path()}")
+        self.network_log_button.clicked.connect(self._open_network_log)
+        row.addWidget(self.network_log_button)
+        row.addStretch(1)
+        self._layout.addLayout(row)
+        self.refresh_network()
+
+    def refresh_network(self) -> None:
+        """Show the policy in effect; the box is locked when an administrator
+        or the environment sets it."""
+        current = network.policy()
+        self.offline_box.blockSignals(True)
+        self.offline_box.setChecked(current.offline)
+        self.offline_box.blockSignals(False)
+        self.offline_box.setEnabled(not current.locked)
+        note = current.describe()
+        if current.locked:
+            note += " You cannot change this here."
+        self.network_note.setText(note)
+
+    def _on_offline(self, offline: bool) -> None:
+        try:
+            network.set_user_offline(offline)
+        except (OSError, PermissionError) as exc:
+            set_role(self.network_note, tone="critical")
+            self.network_note.setText(f"Not changed: {exc}")
+            return
+        set_role(self.network_note, tone="secondary")
+        self.refresh_network()
+        window = self.window()
+        if hasattr(window, "apply_network_policy"):
+            window.apply_network_policy()
+
+    def _open_network_log(self) -> None:
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+
+        path = network.log_path()
+        if not path.exists():
+            self.network_note.setText("Nothing logged yet: no network use was allowed or refused.")
+            return
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
     def _on_author(self) -> None:
         try:

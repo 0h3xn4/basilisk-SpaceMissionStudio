@@ -81,6 +81,7 @@ from collections.abc import Iterable
 
 from Basilisk.utilities.supportDataTools import dataFetcher
 from Basilisk.utilities.supportDataTools.dataFetcher import DataFile, get_path
+from .. import network
 
 # Matches Basilisk's own default kernel set exactly -- see
 # utilities/supportDataTools/spiceKernels.py's DEFAULT_KERNELS and
@@ -154,6 +155,15 @@ def ensure_kernels(kernels: Iterable = ALL_SUPPORT_DATA_FILES) -> list[KernelSta
     network touch, so the default here is what actually gets pre-fetched;
     see this module's own docstring.
     """
+    kernels = list(kernels)
+    try:
+        with network.permit("support_data"):  # Basilisk's own fetch, to the support-data hosts only
+            return _ensure(kernels)
+    except network.NetworkRefused:  # offline: only what is already cached, nothing fetched
+        return cached_statuses(kernels)
+
+
+def _ensure(kernels) -> list[KernelStatus]:
     statuses = []
     for kernel in kernels:
         try:

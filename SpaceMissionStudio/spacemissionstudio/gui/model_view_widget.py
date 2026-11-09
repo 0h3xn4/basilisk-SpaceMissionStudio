@@ -39,7 +39,7 @@ import plotly.graph_objects as go
 from PySide6.QtCore import QUrl
 
 from .. import temp_folders
-from . import webengine_setup  # noqa: F401 -- sets the Chromium flags, before QtWebEngine is imported
+from . import webengine_setup  # sets the Chromium flags, before QtWebEngine is imported
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
@@ -164,6 +164,7 @@ class ModelViewWidget(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        webengine_setup.guard_profile()  # the app's own pages only (network.md)
         self.web_view = QWebEngineView()
         layout.addWidget(self.web_view)
         self._ready = False
