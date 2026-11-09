@@ -1922,3 +1922,4 @@ output file changed.
 | `tests/gui/test_main_window.py`: `test_fetch_vizard_with_progress_success_remembers_and_returns_the_path`, `test_fetch_vizard_with_progress_failure_shows_error_and_returns_none` | the download's progress dialog | removed; `test_the_vizard_not_found_dialog_offers_the_3d_view_and_no_download` | the download is removed |
 | `tests/gui/test_main_window.py::test_locate_vizard_dismissed_returns_none` | docstring names "Download Vizard" | names "Open the 3D View" | the button's name; the assertion is unchanged |
 | `tests/test_network.py::test_every_download_is_a_purpose_with_https_hosts` | the purposes include `vizard` | they do not | the purpose is removed |
+| `tests/gui/test_workspace.py::test_the_areas_and_what_they_hold` | Results tabs: Overview, Plots, Dashboard, Output, Compare | 3D View after Plots | the new tab; the other tabs and their order are unchanged |
