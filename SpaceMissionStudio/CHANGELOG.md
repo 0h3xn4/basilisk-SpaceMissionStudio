@@ -25,6 +25,13 @@ fixes bugs.
   every network use allowed or refused is logged in
   `~/.spacemissionstudio/logs/network.log`. There was and is no telemetry
   ([Network use, offline mode and telemetry](docs/reference/network.md)).
+- **A network audit you can run yourself.** `scripts/network_audit.py`
+  records every network call of every process of a full GUI and
+  command-line session (Linux, `strace`, with no network interface) and
+  fails on any call to another computer; CI runs it on every change, and
+  on Windows reads the guard's log. The network page has a protocol to
+  check the same with your own firewall, without trusting the project's
+  tests.
 
 ## 2.5.0 (2026-11-08)
 

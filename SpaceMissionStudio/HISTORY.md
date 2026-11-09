@@ -14514,6 +14514,39 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The network audit (2026-11-09)
+
+The second part: observing, not only blocking. `scripts/network_audit.py`
+runs a full GUI session (offscreen, as a user would use it, the
+download question unanswered) and a full command-line session under
+`strace -f`, in a network namespace with no interface, and classifies
+every `connect`, `sendto`, `sendmsg` and `bind` of every process,
+Chromium's and the Monte Carlo workers' included. Any address that is
+not this computer's, any DNS query (even to a local resolver), or a
+socket bound for other computers fails it; a self-test first makes a
+deliberate attempt and requires it to be seen. On Windows, with no
+`strace`, the same sessions are checked against the guard's log.
+
+The self-test found a blind spot at once: in this environment all
+traffic goes through a proxy on 127.0.0.1, so the deliberate attempt
+looked local. A connection to a proxy the environment configures is now
+counted as reaching another computer (it would relay it). Without a
+proxy, the attempt shows as a DNS query. It also showed that the guard's
+proxy list read `NO_PROXY` as a proxy (harmless: no real host matched
+it); fixed. And the first CLI session included `kernels-status`, a
+download command, whose permit the Windows method rightly flagged; it is
+not part of a session that must reach nothing.
+
+The first audit: 53 processes and threads in the CLI session, 135 in
+the GUI session (two of them `QtWebEngineProcess`), 34 network calls,
+all to this computer (listed in `docs/reference/network.md`). The page
+also gives a protocol for colleagues: the audit script, or a
+deny-and-log firewall on Windows or Linux, which needs nothing from this
+project.
+
+**Tests:** `tests/test_network_audit.py` (9): the classification of each
+kind of call, a local proxy, records per process.
+
 ## Network use enforced, and offline mode (2026-11-09)
 
 Colleagues of the user raised data security, offline operation and
