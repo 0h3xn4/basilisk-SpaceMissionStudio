@@ -62,6 +62,11 @@ spacemissionstudio = "spacemissionstudio.cli:main"
 requires = ["setuptools>=70.1.0"]
 build-backend = "setuptools.build_meta"
 
+# Both files go into the wheel's .dist-info/licenses/. THIRD_PARTY_NOTICES is
+# generated from the wheel by packaging/legal/licences.py (packaging/legal/README.md).
+[tool.setuptools]
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES"]
+
 [tool.setuptools.packages.find]
 include = ["spacemissionstudio*"]
 

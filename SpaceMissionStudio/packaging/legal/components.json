@@ -1,0 +1,481 @@
+{
+  "components": [
+    {
+      "name": "Inter",
+      "version": "4.1",
+      "licence": "OFL-1.1",
+      "copyright": "2016 The Inter Project Authors (https://github.com/rsms/inter)",
+      "holder": "The Inter Project Authors",
+      "url": "https://github.com/rsms/inter/releases/tag/v4.1",
+      "type": "data",
+      "licence_basis": "docs/THIRD_PARTY_ASSETS.md; OFL.txt in the font folder",
+      "match": [
+        "*spacemissionstudio/gui/assets/fonts/inter/*"
+      ],
+      "licence_match": [
+        "*gui/assets/fonts/inter/OFL.txt"
+      ]
+    },
+    {
+      "name": "JetBrains Mono",
+      "version": "2.304",
+      "licence": "OFL-1.1",
+      "copyright": "2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)",
+      "holder": "The JetBrains Mono Project Authors",
+      "url": "https://github.com/JetBrains/JetBrainsMono/releases/tag/v2.304",
+      "type": "data",
+      "licence_basis": "docs/THIRD_PARTY_ASSETS.md; OFL.txt in the font folder",
+      "match": [
+        "*spacemissionstudio/gui/assets/fonts/jetbrains-mono/*"
+      ],
+      "licence_match": [
+        "*gui/assets/fonts/jetbrains-mono/OFL.txt"
+      ]
+    },
+    {
+      "name": "Lucide icons (lucide-static)",
+      "version": "1.52.0",
+      "licence": "ISC AND MIT",
+      "copyright": "2026 Lucide Icons and Contributors; for the icons derived from Feather: 2013-present Cole Bemis",
+      "holder": "Lucide Icons and Contributors; Cole Bemis (Feather)",
+      "url": "https://www.npmjs.com/package/lucide-static/v/1.52.0",
+      "type": "data",
+      "licence_basis": "LICENSE in the icon folder (ISC, and MIT for the Feather-derived icons)",
+      "match": [
+        "*spacemissionstudio/gui/assets/icons/lucide/*"
+      ],
+      "licence_match": [
+        "*gui/assets/icons/lucide/LICENSE"
+      ]
+    },
+    {
+      "name": "Basilisk sources for the flight-software export",
+      "version": "2.12.0",
+      "licence": "ISC",
+      "copyright": "2016 Autonomous Vehicle Systems Lab, University of Colorado at Boulder",
+      "holder": "Autonomous Vehicle Systems Lab, University of Colorado at Boulder",
+      "url": "https://github.com/AVSLab/basilisk",
+      "type": "data",
+      "licence_basis": "LICENSE inside basilisk_fsw_sources.zip (its first entry); revision in basilisk_fsw_sources.json",
+      "match": [
+        "*spacemissionstudio/fsw_export/basilisk_fsw_sources.*"
+      ],
+      "text_in_zip": "spacemissionstudio/fsw_export/basilisk_fsw_sources.zip!LICENSE"
+    },
+    {
+      "name": "CelesTrak space-weather file SW-All.txt",
+      "version": "2026-10-25",
+      "licence": "LicenseRef-CelesTrak-terms",
+      "copyright": "CelesTrak (Dr. T.S. Kelso); data by NOAA/SWPC and others",
+      "holder": "CelesTrak",
+      "url": "https://celestrak.org/SpaceData/",
+      "type": "data",
+      "licence_basis": "data/spaceweather/README.md quotes CelesTrak; the provider's own page is read in docs/legal/DATA_TERMS.md",
+      "redistribution": "README of the data folder: CelesTrak asks only that its URL is given",
+      "redistribution_status": "open",
+      "text_source": "docs/legal/DATA_TERMS.md",
+      "match": [
+        "*spacemissionstudio/data/spaceweather/SW-All.txt"
+      ]
+    },
+    {
+      "name": "NASA MSFC solar-cycle prediction oct2026f10-prd.txt",
+      "version": "2026-10",
+      "licence": "LicenseRef-NASA-public-work",
+      "copyright": "NASA Marshall Space Flight Center",
+      "holder": "NASA",
+      "url": "https://www.nasa.gov/solar-cycle-progression-and-forecast/",
+      "type": "data",
+      "licence_basis": "data/spaceweather/README.md says: a NASA work, not subject to copyright in the US; NASA's media guidelines to be read",
+      "redistribution_status": "open",
+      "text_source": "docs/legal/DATA_TERMS.md",
+      "match": [
+        "*spacemissionstudio/data/spaceweather/oct2026f10-prd.txt"
+      ]
+    },
+    {
+      "name": "CPython",
+      "version": "3.14.8",
+      "licence": "PSF-2.0 AND Python-2.0 AND CNRI-Python",
+      "holder": "Python Software Foundation",
+      "copyright": "2001-2026 Python Software Foundation",
+      "url": "https://www.python.org/",
+      "type": "application",
+      "licence_basis": "python-build-standalone PYTHON.json lists Python-2.0 and CNRI-Python; the text is lib/python3.14/LICENSE.txt",
+      "match": [
+        "lib/python3.14/*",
+        "bin/*",
+        "include/*",
+        "lib/libpython*",
+        "lib/pkgconfig/*",
+        "share/*",
+        "lib/python3.14/site-packages/README.txt"
+      ],
+      "exclude": [
+        "lib/python3.14/site-packages/*/*",
+        "share/spacemissionstudio/*"
+      ],
+      "licence_match": [
+        "lib/python3.14/LICENSE.txt"
+      ]
+    },
+    {
+      "name": "OpenSSL 3",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "Apache-2.0",
+      "holder": "The OpenSSL Project Authors",
+      "url": "https://www.openssl.org/",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/libpython3.14.so*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.openssl-3.txt"
+      ]
+    },
+    {
+      "name": "SQLite",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "LicenseRef-SQLite-public-domain",
+      "holder": "SQLite authors (public domain)",
+      "url": "https://sqlite.org/",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/libpython3.14.so*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.sqlite.txt"
+      ]
+    },
+    {
+      "name": "libffi",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "MIT",
+      "holder": "Anthony Green, Red Hat, Inc and others",
+      "url": "https://github.com/libffi/libffi",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/libpython3.14.so*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.libffi.txt"
+      ]
+    },
+    {
+      "name": "expat",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "MIT",
+      "holder": "Thai Open Source Software Center Ltd, Clark Cooper, Expat maintainers",
+      "url": "https://libexpat.github.io/",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/libpython3.14.so*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.expat.txt"
+      ]
+    },
+    {
+      "name": "mpdecimal",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "LicenseRef-mpdecimal",
+      "holder": "Stefan Krah",
+      "url": "https://www.bytereef.org/mpdecimal/",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/libpython3.14.so*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.mpdecimal.txt"
+      ]
+    },
+    {
+      "name": "XZ Utils (liblzma)",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "0BSD",
+      "holder": "The XZ Utils authors and contributors",
+      "url": "https://tukaani.org/xz/",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/libpython3.14.so*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.liblzma.txt"
+      ]
+    },
+    {
+      "name": "bzip2",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "bzip2-1.0.6",
+      "holder": "Julian R Seward",
+      "url": "https://sourceware.org/bzip2/",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/libpython3.14.so*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.bzip2.txt"
+      ]
+    },
+    {
+      "name": "zlib",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "Zlib",
+      "holder": "Jean-loup Gailly and Mark Adler",
+      "url": "https://zlib.net/",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/libpython3.14.so*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.zlib.txt"
+      ]
+    },
+    {
+      "name": "zstd",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "BSD-3-Clause",
+      "holder": "Meta Platforms, Inc. and affiliates",
+      "url": "https://github.com/facebook/zstd",
+      "type": "library",
+      "licence_basis": "python-build-standalone links libzstd but its licenses/ folder has no text; the text is the project's LICENSE file (packaging/legal/texts/.../README.md)",
+      "present_if": [
+        "lib/libpython3.14.so*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.zstd.txt"
+      ]
+    },
+    {
+      "name": "libedit",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "LicenseRef-libedit",
+      "holder": "The Regents of the University of California, Christos Zoulas and others",
+      "url": "https://www.thrysoee.dk/editline/",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/libpython3.14.so*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.libedit.txt"
+      ]
+    },
+    {
+      "name": "ncurses",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "LicenseRef-ncurses",
+      "holder": "Thomas E. Dickey; Free Software Foundation, Inc.",
+      "url": "https://invisible-island.net/ncurses/",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/libpython3.14.so*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.ncurses.txt"
+      ]
+    },
+    {
+      "name": "libuuid (util-linux)",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "LicenseRef-libuuid",
+      "holder": "Theodore Ts'o",
+      "url": "https://github.com/util-linux/util-linux",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/libpython3.14.so*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.libuuid.txt"
+      ]
+    },
+    {
+      "name": "Berkeley DB 5.3 (for the dbm module)",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "LicenseRef-Oracle-BDB-5",
+      "holder": "Oracle and/or its affiliates",
+      "url": "https://www.oracle.com/database/technologies/related/berkeleydb.html",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/python3.14/lib-dynload/_dbm*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.bdb.txt"
+      ]
+    },
+    {
+      "name": "Tcl/Tk (with Itcl, Thread, Tix)",
+      "version": "9.0",
+      "licence": "TCL",
+      "holder": "Regents of the University of California, Sun Microsystems, Scriptics, ActiveState and others",
+      "url": "https://www.tcl-lang.org/",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "match": [
+        "lib/tcl9*",
+        "lib/tk9.0/*",
+        "lib/itcl*",
+        "lib/thread*",
+        "lib/libtcl*"
+      ],
+      "present_if": [
+        "lib/python3.14/lib-dynload/_tkinter*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.tcl.txt"
+      ]
+    },
+    {
+      "name": "Tix",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "LicenseRef-Tix",
+      "holder": "Ioi Kim Lam, the Tix Project Group, ActiveState",
+      "url": "https://tix.sourceforge.net/",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/python3.14/lib-dynload/_tkinter*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.tix.txt"
+      ]
+    },
+    {
+      "name": "X11 client libraries (libX11, libXau, libxcb) linked into _tkinter",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "LicenseRef-libX11 AND LicenseRef-libXau AND LicenseRef-libxcb",
+      "holder": "X.Org Foundation, The Open Group, Bart Massey, Jamey Sharp, Josh Triplett and others",
+      "url": "https://www.x.org/",
+      "type": "library",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "present_if": [
+        "lib/python3.14/lib-dynload/_tkinter*"
+      ],
+      "licence_match": [
+        "licenses/LICENSE.libX11.txt",
+        "licenses/LICENSE.libXau.txt",
+        "licenses/LICENSE.libxcb.txt"
+      ]
+    },
+    {
+      "name": "NASA/JPL NAIF SPICE kernels (leap seconds, planetary ephemeris, constants, Earth orientation)",
+      "version": "as fetched at build time",
+      "licence": "LicenseRef-NAIF-terms",
+      "holder": "NASA/JPL Navigation and Ancillary Information Facility",
+      "url": "https://naif.jpl.nasa.gov/naif/rules.html",
+      "type": "data",
+      "match": [
+        "*supportData/EphemerisData/*",
+        "share/spacemissionstudio/earth_orientation/*"
+      ],
+      "redistribution_status": "verified",
+      "redistribution": "NAIF rules: redistribution of unmodified NAIF kernels is permitted; acknowledgement encouraged (citations: Acton 1996; Acton et al. 2017)",
+      "licence_basis": "https://naif.jpl.nasa.gov/naif/rules.html and /naif/credit.html, read 2026-11-09",
+      "text_source": "docs/legal/DATA_TERMS.md",
+      "copyright": "NASA/JPL NAIF; kernels redistributed unmodified. Please cite: Acton, C.H., 1996, Planet. Space Sci. 44(1), 65-70, doi:10.1016/0032-0633(95)00107-7; Acton et al., 2018, Planet. Space Sci. 150, 9-12, doi:10.1016/j.pss.2017.02.013"
+    },
+    {
+      "name": "NOAA/NCEI World Magnetic Model WMM2025 coefficients",
+      "version": "2025.0",
+      "licence": "LicenseRef-NOAA-WMM-terms",
+      "holder": "NOAA NCEI and the British Geological Survey (for NGA and the UK DGC)",
+      "url": "https://www.ncei.noaa.gov/products/world-magnetic-model",
+      "type": "data",
+      "match": [
+        "*supportData/MagneticField/*"
+      ],
+      "redistribution_status": "verified",
+      "redistribution": "NCEI: the WMM source code is in the public domain, not licensed or under copyright, and may be used freely by the public",
+      "licence_basis": "https://www.ncei.noaa.gov/products/world-magnetic-model, read 2026-11-09",
+      "text_source": "docs/legal/DATA_TERMS.md",
+      "copyright": "NOAA NCEI Geomagnetic Modeling Team; British Geological Survey. 2024: World Magnetic Model 2025. doi:10.25921/aqfd-sd83. This work incorporates material produced by U.S. Government agencies, which is not subject to copyright protection (17 U.S.C. 403)."
+    },
+    {
+      "name": "Basilisk support data: gravity fields (GGM03S, GGM2B)",
+      "version": "as in Basilisk 2.12.0 registry",
+      "licence": "LicenseRef-Basilisk-supportData",
+      "holder": "University of Texas Center for Space Research (GGM03S); NASA PDS (GGM2B)",
+      "url": "https://www.csr.utexas.edu/grace/gravity/ggm03/",
+      "type": "data",
+      "match": [
+        "*supportData/LocalGravData/*"
+      ],
+      "redistribution_status": "open",
+      "redistribution": "Provider's terms not yet found; Basilisk's README says only that the data are from public sources",
+      "licence_basis": "docs/legal/DATA_TERMS.md items 6",
+      "text_source": "docs/legal/DATA_TERMS.md"
+    },
+    {
+      "name": "Basilisk support data: albedo maps (CERES, TES)",
+      "version": "as in Basilisk 2.12.0 registry",
+      "licence": "LicenseRef-Basilisk-supportData",
+      "holder": "NASA CERES; Mars Global Surveyor TES (converted by Basilisk)",
+      "url": "https://ceres.larc.nasa.gov/data/",
+      "type": "data",
+      "match": [
+        "*supportData/AlbedoData/*"
+      ],
+      "redistribution_status": "open",
+      "redistribution": "Provider's terms not yet found; Basilisk's README says only that the data are from public sources",
+      "licence_basis": "docs/legal/DATA_TERMS.md items 6",
+      "text_source": "docs/legal/DATA_TERMS.md"
+    },
+    {
+      "name": "Basilisk support data: atmosphere tables (US 1976, EarthGRAM, NRLMSISE-00)",
+      "version": "as in Basilisk 2.12.0 registry",
+      "licence": "LicenseRef-Basilisk-supportData",
+      "holder": "NOAA/NASA/USAF (US 1976); NASA (Earth-GRAM output); NRL via NASA CCMC (NRLMSISE-00 output)",
+      "url": "https://ccmc.gsfc.nasa.gov/modelweb/models/nrlmsise00.php",
+      "type": "data",
+      "match": [
+        "*supportData/AtmosphereData/*"
+      ],
+      "redistribution_status": "open",
+      "redistribution": "Earth-GRAM is NASA software released on request; NRLMSISE-00 output from CCMC ModelWeb; no redistribution term found",
+      "licence_basis": "docs/legal/DATA_TERMS.md items 6",
+      "text_source": "docs/legal/DATA_TERMS.md"
+    },
+    {
+      "name": "ITU-R P.676-13 data file Part 1 (gaseous attenuation)",
+      "version": "P.676-13 (08/2022)",
+      "licence": "LicenseRef-ITU-copyright",
+      "holder": "International Telecommunication Union",
+      "url": "https://www.itu.int/oth/R1101000002/en",
+      "type": "data",
+      "match": [
+        "share/spacemissionstudio/itu_p676/*"
+      ],
+      "redistribution_status": "restricted",
+      "redistribution": "ITU: reproduction needs written permission (jur@itu.int); the data file is an integral part of the Recommendation",
+      "licence_basis": "https://www.itu.int/en/Pages/copyright.aspx and the Recommendation's first page, read 2026-11-09",
+      "text_source": "docs/legal/DATA_TERMS.md",
+      "copyright": "Rec. ITU-R P.676-13, (c) ITU 2022"
+    },
+    {
+      "name": "SpaceMissionStudio build records",
+      "version": "generated",
+      "licence": "ISC",
+      "holder": "SpaceMissionStudio",
+      "type": "data",
+      "licence_basis": "written by packaging/bundle_python.py into the bundle; same licence as the app (changes with it in M2)",
+      "match": [
+        "SPACEMISSIONSTUDIO_RUNTIME.json",
+        "SPACEMISSIONSTUDIO_SBOM.cdx.json",
+        "SPACEMISSIONSTUDIO_LICENCES.cdx.json",
+        "THIRD_PARTY_NOTICES.txt"
+      ],
+      "text_source": "LICENSE of the app, in the package's own dist-info"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+# Licences that SpaceMissionStudio's packages may redistribute.
+# One SPDX id per line. A new id needs a person to read the licence text
+# first: put the date and the reason in a comment, and record the decision in
+# docs/DECISIONS.md. The gate (licences.py check) fails on any other id.
+
+# Permissive
+ISC
+MIT
+MIT-CMU
+BSD-2-Clause
+BSD-3-Clause
+0BSD
+Zlib
+Apache-2.0
+PSF-2.0
+Python-2.0
+CNRI-Python
+HPND
+Unlicense
+BSL-1.0
+bzip2-1.0.6
+TCL
+OFL-1.1
+CC0-1.0
+
+# Weak copyleft. Obligations: docs/legal/OBLIGATIONS.md.
+MPL-2.0
+LGPL-3.0-only
+LGPL-3.0-or-later
+LGPL-2.1-only
+LGPL-2.1-or-later
+Qt-GPL-exception-1.0
+Qt-LGPL-exception-1.1
+
+# Texts read on 2026-11-09, all permissive notice-keeping licences; no SPDX id
+# fits the exact wording of the file. A lawyer should confirm them.
+LicenseRef-libX11
+LicenseRef-libXau
+LicenseRef-libxcb
+LicenseRef-libedit
+LicenseRef-libuuid
+LicenseRef-mpdecimal
+LicenseRef-ncurses
+LicenseRef-Tix
+LicenseRef-Oracle-BDB-5
+LicenseRef-SQLite-public-domain
+
+# Data sets: the licence field names the provider's own terms. Whether
+# redistribution is allowed is tracked per component (redistribution_status)
+# and in docs/legal/DATA_TERMS.md.
+LicenseRef-CelesTrak-terms
+LicenseRef-NASA-public-work
+LicenseRef-NAIF-terms
+LicenseRef-ITU-copyright
+LicenseRef-NOAA-WMM-terms
+LicenseRef-Basilisk-supportData
