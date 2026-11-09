@@ -68,7 +68,7 @@ as in 2.4.0.
 ### Who should update
 
 - **Teams using IDM-CIC models with thrusters:** import the model again
-  (with **Devices** ticked) to get the thrusters whose plume is drawn as a
+  (they are listed on its **Devices found** tab) to get the thrusters whose plume is drawn as a
   cone into the 3D model; give their thrust as a property
   (**Thruster: thrust**) when no catalog product fits. Devices already
   added are left as they are.

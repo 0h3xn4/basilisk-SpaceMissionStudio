@@ -122,6 +122,7 @@ script; CI fails when a generated file is out of date.
 |---|---|---|
 | `USER_MANUAL.md` or its images in `docs/images/` | `python scripts/sync_help.py` | `spacemissionstudio/help/` (the copy the app shows; `tests/gui/test_help.py` checks it) |
 | A template, the schema, or `scripts/_template_descriptions.py` | `python scripts/_generate_templates.py` | `spacemissionstudio/scenarios/templates/*.json` |
+| A field's comment in `spacemissionstudio/schema/scenario.py` (or a record's, or `Command`'s docstring) | `python scripts/build_field_help.py` | `spacemissionstudio/schema/field_help.json`, the JSON page's help (`tests/test_schema_fields.py` checks it) |
 | A parameter declared in `spacemissionstudio/config/` | `python scripts/build_config_defaults.py` | `spacemissionstudio/config/defaults.yaml` (`tests/test_config.py` checks it) |
 | Code, tests or the schema | the five commands below | `compliance/docs/` (ICD schema, component map, test specifications) and `compliance/traceability_matrix.csv` |
 | A compliance assessment | `python compliance/tools/build_matrix.py` | `compliance/compliance_matrix.csv` |
@@ -205,8 +206,9 @@ SIL link test, many times over, on Windows). Basilisk's own workflows (in
   IDM-CIC models (© CNES) reads a model and maps it into a spacecraft,
   and the decisions taken when it was built.
 - [The JSON page as a code editor](json-editor.md): the scenario's text
-  highlighted, with its problems marked where they are, and the steps
-  that follow (completion, refactoring).
+  highlighted, its problems marked where they are, completion and help
+  from the schema, and refactoring (rename, go to definition, quick
+  fixes, format), with the decisions taken.
 - [Analyses built on the 3D model](model-analyses-design.md): the design
   of the design checks and model analyses, with its
   [decision log](model-analyses-decisions.md).

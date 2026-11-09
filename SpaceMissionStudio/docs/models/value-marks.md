@@ -119,7 +119,7 @@ edited, which is what it is.
   place of the old mark.
 - **A renamed spacecraft or station keeps its marks.** A removed one, or
   an orbit given another way (Cartesian, TLE), takes them with it.
-- **Undo, the JSON view and saving** carry the marks with the rest of the
+- **Undo, the JSON page and saving** carry the marks with the rest of the
   scenario.
 
 ## What else marks itself

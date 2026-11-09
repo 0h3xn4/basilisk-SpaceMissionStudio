@@ -204,7 +204,10 @@ In the 3D model editor:
   actuators and RF antenna are listed too: **Mount on the model** gives
   one a place, and a position or boresight left unticked comes from its
   own definition (a thruster's position and direction, a sun sensor's
-  normal). The device itself is still edited in its own form.
+  normal). The device itself is still edited in its own form. An
+  IDM-CIC import adds a thruster whose plume is drawn as a cone here, as
+  a nozzle named after its equipment
+  ([Devices found in the model](idm-cic.md#devices-found-in-the-model)).
 - The view draws each field of view as a translucent cone along its
   boresight and each plume as an amber cone behind its nozzle; the item
   selected in the Equipment tab is drawn stronger.

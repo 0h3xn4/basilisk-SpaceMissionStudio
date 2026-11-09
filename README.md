@@ -76,8 +76,9 @@ A few seconds later **Results > Plots** shows the orbit and the
 
 ## Features
 
-- **Scenarios** as plain JSON, edited in a tree of forms and checked as
-  you type; orbits from elements, position and velocity, or a TLE.
+- **Scenarios** as plain JSON, edited in a tree of forms or as text in a
+  code editor (completion, help, problems marked in place, rename, quick
+  fixes) and checked as you type; orbits from elements, position and velocity, or a TLE.
 - **Orbits:** detailed Earth gravity, Sun and Moon, drag from real space
   weather, solar pressure, measured Earth orientation, runs of up to
   about 10 years.
@@ -99,8 +100,8 @@ A few seconds later **Results > Plots** shows the orbit and the
   of your own; reproduction bundles that run again on another computer.
 - **3D model:** build the spacecraft from shapes, CAD meshes or an
   IDM-CIC model, with its mass properties, surfaces, equipment and stowed
-  configuration (from IDM-CIC also its sensors and actuators, the power
-  budget's bus load and solar panel, and the values your team keeps as
+  configuration (from IDM-CIC also its sensors and actuators, its
+  thrusters from their plume cones, the power budget's bus load and solar panel, and the values your team keeps as
   properties); design checks (fields of view, thrusters, mass budget,
   launcher fit) and analyses after a run (disturbance torques, blinding,
   shading, exposure, brightness, a preliminary re-entry estimate).

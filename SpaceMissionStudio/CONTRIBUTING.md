@@ -37,7 +37,8 @@ with:
    git diff --exit-code -- compliance/docs
    ```
 
-   After editing `USER_MANUAL.md`, also run `python scripts/sync_help.py`.
+   After editing `USER_MANUAL.md`, also run `python scripts/sync_help.py`;
+   after changing a scenario field's comment, `python scripts/build_field_help.py`.
 5. Open a pull request into `develop` using the
    [pull request template](../.github/pull_request_template.md).
 

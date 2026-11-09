@@ -62,7 +62,7 @@ The objectives, in order:
 No project master schedule exists. Development is continuous and driven by
 the user's requests. Releases are made when the user decides, tagged, not
 signed (decision 11). The current release is 2.5.0, the JSON page as
-a code editor and IDM-CIC thrusters on the 3D model (prepared
+a code editor and IDM-CIC thrusters on the 3D model (published
 2026-11-08); before it 2.4.0, device axes from the IDM-CIC model's
 shapes and the body frame's origin at the centre of gravity (published
 2026-11-05), 2.3.0, the

@@ -70,9 +70,10 @@ Files in the package:
 
 No new run-time dependency came with the new look (1.1.0) or the new
 interface (1.3.0): the fonts and icons are files, not packages. Nor with
-the 3D model's analyses and the IDM-CIC import (2.1.0 to 2.4.0): the
+the 3D model's analyses and the IDM-CIC import (2.1.0 to 2.5.0): the
 IDM-CIC reader uses Python's own `zipfile` and `xml.etree`, and no CNES
-software is bundled. `plotly.min.js` is not copied into the
+software is bundled. Nor with the JSON page's code editor (2.5.0): it is
+Qt's own text editor (`QPlainTextEdit`), not a bundled web editor. `plotly.min.js` is not copied into the
 package (it already ships with plotly; a copy would add 4.8 MB).
 
 ## In the installers (the bundled Python)

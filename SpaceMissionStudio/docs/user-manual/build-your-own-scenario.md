@@ -61,6 +61,16 @@ Run after each step, so that when a result changes you know why.
 
 Template 23 is this process, finished.
 
+## As text instead
+
+**Form · JSON**, at the top of the Scenario area, shows the scenario as
+the file it is saved as, and edits it. Press `Ctrl+Space` for the fields
+an object can still have, each with its default, and the choices or names
+a field takes; the key under the cursor is described under the text.
+Every problem is underlined where it is, `Ctrl+.` offers a fix, and `F2`
+renames a spacecraft, ground station or part everywhere
+([the JSON page](../../USER_MANUAL.md#6-a-tour-of-the-scenario-editor)).
+
 ## From Python instead
 
 [`examples/build_a_scenario.py`](../../examples/build_a_scenario.py)

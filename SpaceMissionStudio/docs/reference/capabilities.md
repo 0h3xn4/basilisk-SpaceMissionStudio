@@ -137,11 +137,14 @@ the file's SHA-256 and the source object's identifier, and a re-import
 that keeps the user's edits (`idm-import`, `idm-info`, the editor's
 **Import IDM-CIC model...**). The import can also add the sensors and
 actuators the model's equipment names (star trackers, gyros, sun
-sensors, magnetometers, reaction wheels, magnetorquers; thrusters, solar
-arrays and batteries are listed only), each placed as its equipment and
-along the axis its shapes show (a field-of-view cone, a wheel's or
+sensors, magnetometers, reaction wheels, magnetorquers; solar arrays and
+batteries are listed only), each placed as its equipment and along the
+axis its shapes show (a field-of-view cone, a wheel's or
 magnetorquer's cylinder), with a catalog product's values or those of
-the team's properties mapped to it; set the power budget's bus load from
+the team's properties mapped to it; add the thrusters whose plume is
+drawn as a cone to the 3D model's equipment, for the design checks
+(placed where the plume starts, pushing against it, with its half-angle
+and a product's or mapped property's thrust); set the power budget's bus load from
 one of the model's system modes or the duty-cycle average, and its panel
 from the solar arrays' panels; and put the body frame's origin at the
 model's centre of gravity, everything on the spacecraft moving with it.
@@ -423,8 +426,10 @@ reproduced from the files it was exported with (2.0.0;
 
 ### GUI & CLI
 
-A full PySide6 desktop shell (scenario editor,
-Monte Carlo, live progress feedback, a real visual theme and icons, a
+A full PySide6 desktop shell (scenario editor, with the scenario's text
+as a code editor beside the forms: colours, problems marked in place,
+completion and help from the schema, rename, go to definition, quick
+fixes; Monte Carlo, live progress feedback, a real visual theme and icons, a
 navigation rail and a command palette) and an equivalent headless CLI (34 commands; see
 [Use the command line](../user-manual/command-line.md)), both built on
 the exact same `schema`/`engine` layer -- neither is a thin wrapper

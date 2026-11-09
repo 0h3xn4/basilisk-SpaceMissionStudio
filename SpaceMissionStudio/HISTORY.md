@@ -14514,6 +14514,57 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The documentation brought up to 2.5.0 (2026-11-08)
+
+After 2.5.0 was published the user asked for all documentation to be
+updated again: the READMEs, the user manuals, the how-tos and anything
+else stale. The refresh after 2.4.0 was two days old, so every page was
+checked against what changed since: thrusters from IDM-CIC (#230) and
+the JSON page as a code editor (#231, #232). The pull requests had
+updated the manual's own sections; the pages around them had not.
+
+- **Front pages and reference:** both READMEs' feature lists name the
+  code editor and the thrusters; the capabilities page no longer says
+  IDM-CIC thrusters are only listed; the FAQ, a glossary entry for the
+  JSON page, and the Software User Manual (a quick-reference row, the
+  help method).
+- **How-tos:** the index's "edit the scenario as text" row, an "As text
+  instead" section in Build your own scenario, the thrusters on the 3D
+  model and model-analyses pages and in `idm-import --devices`, the
+  change history recording a rename made on the JSON page.
+- **Tips:** a table of the JSON page's keys. **Settings > Keyboard**
+  lists only the commands' shortcuts, so the page now says the
+  editor's keys are in its right-click menu.
+- **Developer docs:** the architecture's package table (the editor's
+  modules, `schema/fields.py` and its generated help), the developer
+  guide's and CONTRIBUTING's step to run `scripts/build_field_help.py`,
+  the design note's fourth step (JE-10) and its release, and the two
+  decisions JE-10 and IDM-32 superseded (JE-04, IDM-21) marked so.
+- **Screenshots:** `json_page.png` added (template 22 with a key
+  misspelt: the underline and the message at the cursor), taken by
+  `scripts/capture_screenshots.py`'s new `capture_json_page`;
+  `idm_import.png` retaken, scrolled to the thruster, whose row now
+  says it goes to the 3D model.
+
+The publication of 2.5.0 is recorded in the same pull request (below).
+
+## Release 2.5.0 published (2026-11-08)
+
+#233 was merged once CI was green. The user tagged
+`spacemissionstudio-v2.5.0` on its merge commit `1951a028c` and published
+the release at 19:29:07 UTC with notes written for it (prepared with the
+assistant in the structure of the 2.1.0 to 2.2.0 notes: what is new, the
+earlier releases, who should update, downloads, install, how it was
+checked, known limits). The release workflow
+([run 42515265320](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/42515265320))
+started a second later; it ran the whole suite on the tagged commit on
+Linux and Windows, built, installed and checked the six files and
+attached them at 20:01, keeping the notes. So the release was public
+without files for 33 minutes, the tenth release so (`releasing.md`).
+SRelD issue 30, the SDP, H05 and `releasing.md` record the tag, the run
+and the files' digests. The CHANGELOG's "with **Devices** ticked" is
+corrected: the dialog's tab is **Devices found**.
+
 ## Release 2.5.0 prepared (2026-11-08)
 
 A minor release: it adds features. The standing instruction is to

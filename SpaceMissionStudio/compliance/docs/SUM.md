@@ -217,7 +217,7 @@ operating-system rights. See 9.9.
 | Task | UM section |
 |---|---|
 | Choose a template, tweak it | 4, 5 |
-| Edit a scenario | 6 (each field has a tooltip with its meaning and unit) |
+| Edit a scenario | 6 (each field has a tooltip with its meaning and unit; **Form · JSON** edits the file's text, with completion, each key's help, problems marked in place, rename and quick fixes) |
 | Read the results; plots, epoch and elapsed time | 7 |
 | Save and open | 8 |
 | Vizard | 9 |
@@ -294,13 +294,16 @@ in the CLI. An error never closes the application.
 | Earth orientation files | the reference-data card on Home; **Settings > Reference data** | `spacemissionstudio earth-orientation [--fetch \| --import FILES \| --rollback]` |
 | CCSDS | **Import CCSDS OPM/OMM...** (a spacecraft's Orbit / mass page); **Export Orbits as CCSDS...** and **Check a CCSDS File...** (`Ctrl+K`); **Results > Plots > Export all... > CCSDS ephemeris (OEM)...** | `ccsds-validate`, `ccsds-export`, `ccsds-import`, `run --oem` |
 | IDM-CIC model | **3D Model... > Import IDM-CIC model...** | `idm-info FILE.idm`, `idm-import FILE.idm SCENARIO --spacecraft NAME` |
+| Edit the scenario as text | **Form · JSON** (Scenario area): `Ctrl+Space` completion, `Ctrl+Shift+Space` a key's help, `F8` the next problem, `F2` rename, `F12` definition, `Ctrl+.` quick fixes, `Shift+Alt+F` format | any text editor; `spacemissionstudio validate FILE` |
 | Design checks | **Run > Design Checks** | `spacemissionstudio check-design FILE` |
 | Model analyses | **Results > Model Analyses** | `spacemissionstudio model-analyses FILE` |
 | Re-entry casualty estimate | **Run > End of Life** | `spacemissionstudio reentry FILE` |
 
 ### 10.2 Help method (H.2.1<10.2>)
 
-- Every field has a tooltip: meaning, unit, range.
+- Every field has a tooltip: meaning, unit, range. On the JSON page, the
+  key at the cursor is described under the text (type, default, unit,
+  meaning), and `Ctrl+Space` lists what can be typed there.
 - Validation messages name the field.
 - Explain (**Scenario › Overview**) summarises what the scenario models.
 - `spacemissionstudio <command> --help` lists the arguments.
