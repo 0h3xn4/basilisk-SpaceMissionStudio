@@ -56,8 +56,9 @@ jobs:
           python-version: "3.14"
       - name: The tool's own tests
         run: |
-          python -m pip install -c packaging/constraints.txt -c packaging/constraints-dev.txt -e ".[dev]"
-          python -m pytest tests/test_licences_tool.py -q -p no:cacheprovider
+          # Only what tests/conftest.py imports: no Qt, no pytest-qt.
+          python -m pip install -c packaging/constraints.txt -c packaging/constraints-dev.txt pytest numpy sgp4 pyerfa PyYAML
+          python -m pytest tests/test_licences_tool.py -q -p no:cacheprovider --rootdir=. -c /dev/null
       - name: Build the wheel
         run: |
           python -m pip install build
