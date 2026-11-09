@@ -87,13 +87,20 @@ if [[ -z "$spacemissionstudio_wheel" ]]; then
 fi
 
 echo "Installing spacemissionstudio (+ gui extra) from $spacemissionstudio_wheel ..."
-# The tested dependency versions (constraints.txt, audit M14).
-python3 -m pip install --quiet -c "$script_dir/constraints.txt" "${spacemissionstudio_wheel}[gui]"
+# The tested dependency versions, each file checked against the SHA-256
+# recorded in constraints-hashes.txt (audit M14; packaging/README.md,
+# "Pinned and hash-checked dependencies"); the wheel with its own SHA-256.
+wheel_uri=$(python3 -c 'import pathlib, sys; print(pathlib.Path(sys.argv[1]).resolve().as_uri())' "$spacemissionstudio_wheel")
+wheel_sha256=$(python3 -c 'import hashlib, sys; print(hashlib.file_digest(open(sys.argv[1], "rb"), "sha256").hexdigest())' "$spacemissionstudio_wheel")
+requirement_file="$prefix/spacemissionstudio-requirement.txt"
+printf 'spacemissionstudio[gui] @ %s --hash=sha256:%s\n' "$wheel_uri" "$wheel_sha256" > "$requirement_file"
+python3 -m pip install --quiet --require-hashes -c "$script_dir/constraints-hashes.txt" -r "$requirement_file"
 
 if [[ -n "$basilisk_wheel" ]]; then
     echo "Installing vendored Basilisk wheel from $basilisk_wheel ..."
     # Basilisk's own dependencies at the tested versions (constraints.txt,
     # audit M14), but not its bsk pins, so any Basilisk wheel is accepted.
+    # Not hash-checked: a wheel you supply is your own build.
     deps_constraints="$prefix/constraints-without-bsk.txt"
     grep -v -i '^bsk' "$script_dir/constraints.txt" > "$deps_constraints"
     python3 -m pip install --quiet -c "$deps_constraints" "$basilisk_wheel"

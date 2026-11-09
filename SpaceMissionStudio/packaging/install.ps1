@@ -91,8 +91,15 @@ if (-not $SpaceMissionStudioWheel) {
 }
 
 Write-Host "Installing spacemissionstudio (+ gui extra) from $SpaceMissionStudioWheel ..."
-# The tested dependency versions (constraints.txt, audit M14).
-& $VenvPython -m pip install --quiet -c (Join-Path $ScriptDir "constraints.txt") "$SpaceMissionStudioWheel[gui]"
+# The tested dependency versions, each file checked against the SHA-256
+# recorded in constraints-hashes.txt (audit M14; packaging/README.md,
+# "Pinned and hash-checked dependencies"); the wheel with its own SHA-256.
+$WheelItem = Get-Item $SpaceMissionStudioWheel
+$WheelUri = ([System.Uri]$WheelItem.FullName).AbsoluteUri
+$WheelSha256 = (Get-FileHash $WheelItem.FullName -Algorithm SHA256).Hash.ToLower()
+$RequirementFile = Join-Path $Prefix "spacemissionstudio-requirement.txt"
+Set-Content -Encoding ascii -Path $RequirementFile -Value "spacemissionstudio[gui] @ $WheelUri --hash=sha256:$WheelSha256"
+& $VenvPython -m pip install --quiet --require-hashes -c (Join-Path $ScriptDir "constraints-hashes.txt") -r $RequirementFile
 if ($LASTEXITCODE -ne 0) {
     throw "pip install spacemissionstudio failed (exit code $LASTEXITCODE)"
 }
@@ -101,6 +108,7 @@ if ($BasiliskWheel) {
     Write-Host "Installing vendored Basilisk wheel from $BasiliskWheel ..."
     # Basilisk's own dependencies at the tested versions (constraints.txt,
     # audit M14), but not its bsk pins, so any Basilisk wheel is accepted.
+    # Not hash-checked: a wheel you supply is your own build.
     $DepsConstraints = Join-Path $Prefix "constraints-without-bsk.txt"
     Get-Content (Join-Path $ScriptDir "constraints.txt") | Where-Object { $_ -notmatch '^bsk' } | Set-Content -Encoding utf8 $DepsConstraints
     & $VenvPython -m pip install --quiet -c $DepsConstraints $BasiliskWheel

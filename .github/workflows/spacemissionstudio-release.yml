@@ -19,8 +19,11 @@
 #                    installed silently and the tool run.
 #   Both installers are self-contained: a private Python with Basilisk,
 #   that wheel, every package and the support data
-#   (SpaceMissionStudio/packaging/bundle_python.py). macOS is not
-#   supported (removed on 2026-10-21 by the user's decision).
+#   (SpaceMissionStudio/packaging/bundle_python.py), every package
+#   installed hash-checked (packaging/constraints-hashes.txt). Each
+#   installer's software bill of materials (CycloneDX JSON, *.cdx.json)
+#   is attached beside it. macOS is not supported (removed on 2026-10-21
+#   by the user's decision).
 name: "SpaceMissionStudio release"
 
 on:
@@ -144,11 +147,23 @@ jobs:
           # An empty support-data cache too: the kernels must come from the package.
           sudo unshare --net sudo -u "$USER" env HOME="$HOME" RUNNER_TEMP="$RUNNER_TEMP" VERSION="$VERSION" \
             BSK_SUPPORT_DATA_CACHE="$RUNNER_TEMP/empty-support-data-cache" QT_QPA_PLATFORM=offscreen bash installed_check.sh
-      - name: SHA256SUMS-linux
+      # The bill of materials bundle_python.py wrote into the .deb's Python.
+      - name: The .deb's bill of materials, and SHA256SUMS-linux
         run: |
           cd dist
+          sbom="spacemissionstudio_${VERSION}_amd64.cdx.json"
+          dpkg-deb --fsys-tarfile "spacemissionstudio_${VERSION}_amd64.deb" \
+            | tar -xO ./opt/spacemissionstudio/python/SPACEMISSIONSTUDIO_SBOM.cdx.json > "$sbom"
+          python3 - "$sbom" <<'EOF'
+          import json, sys
+          bom = json.load(open(sys.argv[1], encoding="utf-8"))
+          libraries = [c for c in bom["components"] if c["type"] == "library"]
+          print(bom["bomFormat"], bom["specVersion"], len(libraries), "packages")
+          assert bom["bomFormat"] == "CycloneDX" and len(libraries) >= 30, "the bill of materials is incomplete"
+          assert all(c.get("hashes") for c in libraries), "a package without its SHA-256"
+          EOF
           sha256sum "spacemissionstudio-$VERSION-py3-none-any.whl" "spacemissionstudio-$VERSION.tar.gz" \
-            "spacemissionstudio_${VERSION}_amd64.deb" > SHA256SUMS-linux
+            "spacemissionstudio_${VERSION}_amd64.deb" "$sbom" > SHA256SUMS-linux
           cat SHA256SUMS-linux
       - uses: actions/upload-artifact@v6
         with:
@@ -158,6 +173,7 @@ jobs:
             SpaceMissionStudio/dist/*.whl
             SpaceMissionStudio/dist/*.tar.gz
             SpaceMissionStudio/dist/*.deb
+            SpaceMissionStudio/dist/*.cdx.json
             SpaceMissionStudio/dist/SHA256SUMS-linux
 
   windows:
@@ -213,8 +229,16 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
           $exe = Get-ChildItem packaging\windows\Output\spacemissionstudio-*-setup.exe | Select-Object -First 1
           $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
-          # LF line ending, so sha256sum -c reads it on Linux.
-          [IO.File]::WriteAllText((Join-Path $PWD "packaging\windows\Output\SHA256SUMS-windows"), "$hash  $($exe.Name)`n")
+          # The bill of materials bundle_python.py wrote into the setup's Python.
+          $sbom = "spacemissionstudio-$env:VERSION-setup.cdx.json"
+          $sbomPath = Join-Path $PWD "packaging\windows\Output\$sbom"
+          Copy-Item (Join-Path $env:PYTHON_DIR "SPACEMISSIONSTUDIO_SBOM.cdx.json") $sbomPath
+          $bom = Get-Content $sbomPath -Raw | ConvertFrom-Json
+          $libraries = @($bom.components | Where-Object { $_.type -eq "library" })
+          if ($bom.bomFormat -ne "CycloneDX" -or $libraries.Count -lt 30) { throw "the bill of materials is incomplete" }
+          $sbomHash = (Get-FileHash $sbomPath -Algorithm SHA256).Hash.ToLower()
+          # LF line endings, so sha256sum -c reads it on Linux.
+          [IO.File]::WriteAllText((Join-Path $PWD "packaging\windows\Output\SHA256SUMS-windows"), "$hash  $($exe.Name)`n$sbomHash  $sbom`n")
           Get-Content packaging\windows\Output\SHA256SUMS-windows
       - name: Install it silently, as a user would
         run: |
@@ -271,6 +295,7 @@ jobs:
           if-no-files-found: error
           path: |
             SpaceMissionStudio/packaging/windows/Output/*.exe
+            SpaceMissionStudio/packaging/windows/Output/*.cdx.json
             SpaceMissionStudio/packaging/windows/Output/SHA256SUMS-windows
       - uses: actions/upload-artifact@v6
         if: always()
@@ -324,6 +349,8 @@ jobs:
           shopt -s nullglob
           packages=(./*.whl ./*.tar.gz ./*.deb ./*-setup.exe)
           test "${#packages[@]}" = 4
+          sboms=(./*.cdx.json)
+          test "${#sboms[@]}" = 2
       - name: Release notes from the CHANGELOG and the built files
         # Summary, who should update, downloads with sizes, install, the
         # installers' SHA-256, what is new, contents, checks and known
@@ -335,7 +362,8 @@ jobs:
       - name: Attach to the release (a missing release is created as a draft)
         run: |
           version="$VERSION"
-          files=(../release/*.whl ../release/*.tar.gz ../release/*.deb ../release/*-setup.exe ../release/SHA256SUMS-linux ../release/SHA256SUMS-windows)
+          files=(../release/*.whl ../release/*.tar.gz ../release/*.deb ../release/*-setup.exe ../release/*.cdx.json \
+            ../release/SHA256SUMS-linux ../release/SHA256SUMS-windows)
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "${files[@]}" --clobber
             if [ -z "$(gh release view "$TAG" --json body --jq .body)" ]; then

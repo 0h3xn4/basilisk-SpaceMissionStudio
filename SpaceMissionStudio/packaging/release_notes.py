@@ -179,6 +179,13 @@ def _release_files(files: Path, version: str) -> dict[str, Path]:
     return found
 
 
+def sbom_files(files: Path, version: str) -> list[str]:
+    """The installers' bills of materials the release carries (CycloneDX
+    JSON from ``bundle_python.py``), when built."""
+    names = (f"spacemissionstudio_{version}_amd64.cdx.json", f"spacemissionstudio-{version}-setup.cdx.json")
+    return [name for name in names if (files / name).is_file()]
+
+
 def bundled_versions(root: Path = ROOT) -> dict[str, str]:
     """CPython, Basilisk and PySide6 as the installers ship them, read from
     ``packaging/bundle_python.py`` and ``packaging/constraints.txt``."""
@@ -220,6 +227,7 @@ def render(version: str, files: Path, run_url: str, changelog: str, root: Path =
     installed = _installed_size(paths["deb"])
     versions = bundled_versions(root)
     deb, setup = paths["deb"].name, paths["setup"].name
+    sboms = sbom_files(files, version)
 
     out: list[str] = []
     add = out.append
@@ -241,6 +249,8 @@ def render(version: str, files: Path, run_url: str, changelog: str, root: Path =
     add(f"| Windows 10 or 11, x64 | `{setup}` | {_size(sizes['setup'])} |")
     add(f"| Python developers (Linux, Windows) | `{paths['wheel'].name}`, `{paths['sdist'].name}` "
         f"| {_size(sizes['wheel'])}, {_size(sizes['sdist'])} |")
+    if sboms:
+        add("| Software bill of materials (CycloneDX 1.6) | " + ", ".join(f"`{name}`" for name in sboms) + " | |")
     add("| Checksums | `SHA256SUMS-linux`, `SHA256SUMS-windows` | |")
     add("")
 
@@ -290,6 +300,10 @@ def render(version: str, files: Path, run_url: str, changelog: str, root: Path =
     add(f"  - Python {versions['python']} (python-build-standalone);")
     add(f"  - Basilisk {versions['basilisk']}, the version the app is verified against;")
     add(f"  - PySide6 {versions['pyside6']} and every other package, at the versions the tests ran with.")
+    if sboms:
+        add("  - Every package was installed hash-checked: each file had to match the SHA-256 recorded in "
+            "`packaging/constraints-hashes.txt`, and none was built from source. The bills of materials list "
+            "each package, the file installed and its SHA-256, and each data file.")
     add("- **Reference data:**")
     add("  - the SPICE kernels;")
     add("  - the Earth and Mars gravity fields;")

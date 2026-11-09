@@ -14514,6 +14514,41 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Hash-checked installer packages and a bill of materials (2026-11-09)
+
+The third part: what the installers contain. The versions were already
+pinned (`packaging/constraints.txt`), but pip took whatever file PyPI
+served for each version; the security analysis (S-08) had proposed hash
+checking since the first audit. `packaging/hash_constraints.py` now
+writes `constraints-hashes.txt`: each pin with the SHA-256 of every file
+PyPI publishes for it that Python 3.14 can install. The installers'
+Python is built with `pip install --require-hashes --only-binary=:all:`
+against it, so a file that is not the recorded one, a package that is
+not pinned, or a build script stops the build; the build then checks
+every installed package against the pins. `install.sh` and
+`install.ps1` install the same way.
+
+Writing the script found a gap at once: before writing, it follows every
+requirement on Linux and Windows, and pandas needs `tzdata` on Windows
+only, which was not pinned; the Windows installer had taken whatever
+version was newest that day. It is pinned now (2026.6).
+
+Each installer now carries a software bill of materials,
+`SPACEMISSIONSTUDIO_SBOM.cdx.json` (CycloneDX 1.6): the CPython build,
+every package with its licence, the file installed and its SHA-256 (from
+pip's own installation report), and every data file with its SHA-256.
+The release attaches both, listed in the checksum files. Built here on
+Linux, it validated against the CycloneDX schema with 38 packages and 19
+data files. CI's development install keeps the plain pins: an editable
+install cannot be hash-checked.
+
+**Tests:** `tests/test_hashed_installs.py` (13): the hashed file agrees
+with the pins, a changed pin is reported, which files are recorded, a
+package reached but not pinned is found, the install's options, a
+package not pinned stops the build, the bill of materials.
+`tests/test_release_notes.py` (1 new): the bills of materials in the
+notes. One test changed (`docs/ui/TEST_CHANGES.md`).
+
 ## The network audit (2026-11-09)
 
 The second part: observing, not only blocking. `scripts/network_audit.py`

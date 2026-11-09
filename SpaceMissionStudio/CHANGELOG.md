@@ -32,6 +32,19 @@ fixes bugs.
   on Windows reads the guard's log. The network page has a protocol to
   check the same with your own firewall, without trusting the project's
   tests.
+- **Hash-checked installers, with a bill of materials.** The `.deb` and
+  the Windows setup program are built with every package checked against
+  the SHA-256 recorded for it (`packaging/constraints-hashes.txt`), and
+  nothing built from source; a file that differs, or a package that is
+  not pinned, stops the build. `install.sh` and `install.ps1` install the
+  same way. Each installer carries a software bill of materials
+  (CycloneDX 1.6: every package, the file installed and its SHA-256,
+  every data file), attached to the release beside it.
+
+### Fixed
+
+- **The Windows installer took the newest `tzdata`.** pandas needs it on
+  Windows only, and it was not pinned; it is now (2026.6).
 
 ## 2.5.0 (2026-11-08)
 
