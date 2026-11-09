@@ -170,15 +170,42 @@ VERIFIED 2026-11-09 from `docs.codeberg.org` and `codeberg.org/codeberg/org` (Te
 
 ### 7.2 German alternative
 
-*Filled in below when the research finishes.* See §7.3.
+Two German providers were read by a helper agent on 2026-11-09 from the providers' own pages (plain requests; one bot challenge at netcup was not bypassed, so netcup is OPEN). I spot-checked the Uberspace log statements. Facts only; no recommendation.
 
 ### 7.3 Facts on a German static host
 
-PENDING_HOSTING_RESEARCH
+**Uberspace** (`uberspace.de`)
+
+| Fact | Value | Source / status |
+|---|---|---|
+| Operator | Jonas Pasche, Kaiserstr. 15, 55116 Mainz; "formally a sole proprietorship" | `uberspace.de/en/about/imprint/`, `/en/about/` VERIFIED |
+| Data centre location | Not stated on the pages read. "We own and maintain all of our server hardware ourselves." | OPEN |
+| Price | Pay-what-you-want: reference prices 6 / 9 / 12 EUR per month (72 / 108 / 144 EUR per year); prepaid, cancel any month; first month free | `uberspace.de/en/product/`, `u8manual.uberspace.de/billing_general/` VERIFIED; VAT inclusion OPEN |
+| Domain | Not required: `$USER.uber.space` with Let's Encrypt is included | `u8manual.uberspace.de/web_domains/` VERIFIED |
+| Deployment | SSH with keys, SFTP on port 22; document root `/var/www/virtual/<user>/html`. A documented rsync-over-SSH CI recipe: OPEN | `u8manual.uberspace.de/basics_ssh/`, `basics_sftp/`, `web_documentroot/` VERIFIED |
+| Logs, Uberspace 8 | "Access logging is always on. There is currently no way to disable this log." IPv4 kept to the first 16 bits, IPv6 to the first 32 bits. Retention: not stated | `u8manual.uberspace.de/web_logs/` VERIFIED (I read it myself); retention OPEN |
+| Logs, Uberspace 7 | Disabled by default; can be switched on or off; when on, same IP truncation; "deleted after 7 days of retention" | `manual.uberspace.de/web-logs/` VERIFIED (I read it myself) |
+| Generation for new sign-ups | Uberspace 8 is called "in beta"; which generation a new customer gets today: OPEN | `u8manual.uberspace.de/landingpage_features/` |
+| Privacy policy scope | It does not cover content that users publish under `*.uber.space`; "published by our users under their own responsibility" | `uberspace.de/en/about/privacy/` VERIFIED. You stay responsible for the site's data processing. |
+
+**DomainFactory Starter** (`df.eu`; the cheapest plan read, not a favourite)
+
+| Fact | Value | Source / status |
+|---|---|---|
+| Operator | DomainFactory GmbH, Neuturmstrasse 5, 80331 München; HRB 150294 | `df.eu/de/impressum/` VERIFIED |
+| Server location | You choose "Europa, Singapur oder USA"; the EU country is not named | `df.eu/de/webhosting/starter/` VERIFIED; country OPEN |
+| Price | 0.99 EUR per month in year 1, then 2.99 EUR per month (11.88 and 35.88 EUR per year), incl. VAT per the site footnote; monthly cPanel tariffs have a one-time setup fee of 9.99 EUR | `df.eu/de/webhosting/starter/` VERIFIED; first-year total with fee OPEN |
+| Domain | One .de domain free for 12 months | VERIFIED |
+| Logs | Apache log files "werden 14 Tage vorgehalten", with the visitor IP; the FAQ says they cannot be switched off in cPanel; no IP anonymisation found | `df.eu/de/support/df-faq/webhosting-webhosting-plus/cpanel-administration/` VERIFIED; applies to Starter by inference |
+| Deployment | SSH listed for Starter; SFTP and rsync on Starter: OPEN | |
+
+**Hetzner Webhosting S** (looked at before choosing): Hetzner Online GmbH, Gunzenhausen; servers in Nuremberg; 1.90 EUR per month incl. VAT plus a 9.90 EUR setup fee; no domain included; SSH only on plans L and XL; docs say "IP addresses are anonymized" in HTTP logs; retention and switch-off OPEN. **netcup, all-inkl and mittwald:** not examined (netcup blocked by a bot challenge, not bypassed).
+
+**What this means for `DATA_FACTS.md`:** on Uberspace 8 the host keeps a truncated IP address for an unstated time; on Uberspace 7 logs can be off, or kept 7 days truncated; on DomainFactory Starter the full IP address is kept 14 days. The facts for your privacy text depend on which one you pick, and Uberspace's own privacy policy does not cover your site.
 
 ### 7.4 My advice
 
-Do not rely on Codeberg. Use a German host with logging off (or IPs not stored). Ask Codeberg's board (via `contact@codeberg.org`) whether the rule would apply to a repository that holds only the generated HTML, if you want Codeberg anyway; do not deploy before you have the answer in writing.
+Do not rely on Codeberg. From the facts above, Uberspace is the closest to "as little visitor data as possible" (truncated IPs; on generation 7 logging can be off), but its data centre location and log retention on generation 8 are still OPEN, and I cannot yet say which generation a new account gets. I would read those two points with Uberspace support (in writing) before you decide. Price: about 72 to 144 EUR per year. Ask Codeberg's board (via `contact@codeberg.org`) whether the rule would apply to a repository that holds only the generated HTML, if you want Codeberg anyway; do not deploy before you have the answer in writing.
 
 ## 8. Official sources: what is verified and what is open
 
