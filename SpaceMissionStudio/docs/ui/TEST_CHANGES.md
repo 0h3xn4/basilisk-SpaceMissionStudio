@@ -1884,3 +1884,16 @@ underline, so one test that counted them now checks what they mark:
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `tests/gui/test_json_view.py::test_text_that_is_not_json_is_marked_and_blocks_the_run` | exactly one extra selection while the text is broken, none once fixed | the error line is 2 and the one problem marked is the parser's reason ("Expecting ':' delimiter") on that line; once fixed, no error line and no such mark | The editor now also draws the current line and the matched bracket as extra selections, and underlines the error's place; the test checks the error's line and place instead of a count |
+
+## Network use through one gateway (2026-11-09)
+
+No test removed, no assertion weakened, no golden or output file
+changed. The downloads now open their URL through `network.open_url`,
+so the modules no longer import `urllib.request` themselves; the tests
+that fake a download patch the same `urlopen`, by its module instead of
+through each downloading module:
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/test_spaceweather.py` (9 tests), `tests/test_small_bodies.py` (2), `tests/test_gaseous_attenuation.py` (2), `tests/gui/test_vizard_launcher.py` (13) | `monkeypatch.setattr(sw.urllib.request, "urlopen", ...)` (and `sb.`, `gases.`, `vizard_launcher.`) | `monkeypatch.setattr(urllib.request, "urlopen", ...)` | The same function is replaced; only the path to it changed |
+| `tests/gui/test_vizard_launcher.py::test_a_cancelled_or_oversized_download_leaves_no_partial_file` | the download folder is empty afterwards | the download folder holds nothing but `.spacemissionstudio` | The test's home folder is that folder (`conftest.py`), so the network log written there is not a partial download; no `.part` or zip file may remain, as before |

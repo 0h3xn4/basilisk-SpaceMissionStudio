@@ -70,6 +70,9 @@ def main(argv: list | None = None) -> int:
     # own module docstring for why (direct user feedback: a crash whose
     # only information anywhere was one bare line in a GUI error dialog).
     configure_logging()
+    from .. import network
+
+    network.install_guard()  # no other computer is reached but for a download the user asks for
     # In the background: after a crash there can be hundreds of folders.
     threading.Thread(target=remove_left_behind_folders, name="left-behind-folders", daemon=True).start()
     apply_ui_scale()

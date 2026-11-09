@@ -14514,6 +14514,48 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Network use enforced, and offline mode (2026-11-09)
+
+Colleagues of the user raised data security, offline operation and
+telemetry. The tool already downloaded only when asked, and
+`tests/test_offline.py` showed it works with the network blocked; but a
+test that blocks the network proves the tool works without it, not that
+nothing tries, the web views' Chromium processes were not looked at, and
+each of the six downloads opened its URL in its own module. Asked how to
+improve it, the assistant proposed making the rules enforced rather than
+tested, observing a full session's traffic, a protocol colleagues can
+run, and hash-pinned installers; the user asked for all of it, then for
+Vizard to be built and shipped with the tool. This is the first part.
+
+`network.py` (security analysis S-18, SRS-S-05, `docs/reference/network.md`):
+each download is a purpose with its only hosts; `open_url` is the only
+place the tool opens a URL (https, a purpose's host, under its permit);
+Basilisk's support-data fetch runs under `permit("support_data")`. A
+Python audit hook (PEP 578), turned on by the command line and the GUI
+and inherited by the processes they start through an environment
+variable, refuses every name lookup, connection and listening socket of
+any Python code to another computer unless a permit for that host is
+open on that thread; offline, no permit opens. The policy: the user's
+choice (**Settings > Network**, `spacemissionstudio network --offline`),
+or, locked, an administrator's policy file or `SPACEMISSIONSTUDIO_OFFLINE`.
+The web views get a request interceptor that blocks anything but local
+files, and Chromium's background requests are switched off by flags.
+Every network use allowed or refused is logged.
+
+Found while building it: `ensure_kernels` would have let Basilisk's
+`pooch` download in offline mode without the guard (a script using the
+API); offline it now reads the cache only. The hosts were taken from the
+code (Basilisk 2.12.0's `dataFetcher`: raw.githubusercontent.com, NAIF,
+lambda.gsfc.nasa.gov, the hanspeterschaub.info backup) and the download
+URLs checked for redirects to other hosts (none). A real Earth
+orientation download through the guard and this environment's proxy
+worked and was logged.
+
+**Tests:** `tests/test_network.py` (10), one more in
+`tests/test_offline.py` (a guarded run leaves the network log empty),
+`tests/gui/test_network_gui.py` (4). Five test files changed how they
+fake a download (logged in `docs/ui/TEST_CHANGES.md`).
+
 ## The documentation brought up to 2.5.0 (2026-11-08)
 
 After 2.5.0 was published the user asked for all documentation to be

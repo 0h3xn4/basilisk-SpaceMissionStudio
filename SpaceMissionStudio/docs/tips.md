@@ -133,6 +133,8 @@ app (the JSON page's keys are in its right-click menu), and
 | Flight software | A C project with CMake, `ICD.md`, `TRACEABILITY.md`, `manifest.json` | Reports > Flight Software > Export..., `export-fsw` |
 | SIL report | JSON and CSV | Reports > Flight Software > Save report..., `sil --report` |
 | Logs | Text | `~/.spacemissionstudio/logs/` |
+| Network log | Text, one line per network use allowed or refused | `~/.spacemissionstudio/logs/network.log` |
+| Offline choice | JSON | `~/.spacemissionstudio/network.json` (**Settings > Network**) |
 
 ## Other tools
 

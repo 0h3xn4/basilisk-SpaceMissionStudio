@@ -58,10 +58,10 @@ import math
 import shutil
 import sys
 import urllib.error
-import urllib.request
 from dataclasses import asdict, dataclass
 from datetime import datetime, UTC
 from pathlib import Path
+from .. import network
 
 CHOICE = "link.atmospheric_loss"
 RECOMMENDATION = "Recommendation ITU-R P.676-13 (08/2022), Attenuation by atmospheric gases and related effects"
@@ -351,10 +351,10 @@ def fetch(directory: Path | None = None, timeout_s: float = 120.0) -> InstalledF
     directory = Path(directory) if directory else DEFAULT_DIR
     directory.mkdir(parents=True, exist_ok=True)
     part = directory / (PART1_NAME + ".part")
-    request = urllib.request.Request(PART1_URL, headers={"User-Agent": "SpaceMissionStudio"})  # noqa: S310 -- constant https ITU URL
     try:
         try:
-            with urllib.request.urlopen(request, timeout=timeout_s) as response:  # noqa: S310 -- constant https ITU URL
+            with network.open_url(PART1_URL, "itu_p676", timeout_s=timeout_s,
+                                  headers={"User-Agent": "SpaceMissionStudio"}) as response:
                 data = response.read(_MAX_DOWNLOAD_BYTES + 1)
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             raise GaseousAttenuationError(f"could not fetch {PART1_URL}: {exc}") from exc

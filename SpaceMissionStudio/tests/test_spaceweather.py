@@ -6,6 +6,7 @@ gui.startup_fetch_dialog's consent-gated prompt) is tested with
 urllib.request.urlopen mocked.
 """
 
+import urllib.request
 import csv
 from datetime import date, datetime
 from pathlib import Path
@@ -349,7 +350,7 @@ def test_fetch_downloads_and_caches(tmp_path, monkeypatch):
     """fetch saves the downloaded SW-All file in the cache folder unchanged
     (network mocked)."""
     fake_csv = _celestrak_csv()
-    monkeypatch.setattr(sw.urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(fake_csv))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(fake_csv))
 
     path = sw.fetch(dataset="SW-All", cache_dir=tmp_path)
 
@@ -360,7 +361,7 @@ def test_fetch_downloads_and_caches(tmp_path, monkeypatch):
 def test_fetch_is_a_cache_hit_without_force(tmp_path, monkeypatch):
     """fetch with a cached file returns it without touching the network."""
     calls = []
-    monkeypatch.setattr(sw.urllib.request, "urlopen",
+    monkeypatch.setattr(urllib.request, "urlopen",
                          lambda *a, **k: calls.append(1) or _FakeFetchResponse(b"x"))
 
     dest = tmp_path / "SW-All.csv"
@@ -376,7 +377,7 @@ def test_fetch_is_a_cache_hit_without_force(tmp_path, monkeypatch):
 def test_fetch_force_redownloads_even_if_cached(tmp_path, monkeypatch):
     """fetch with force replaces a cached file with a new download."""
     fake_csv = _celestrak_csv(days=5)
-    monkeypatch.setattr(sw.urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(fake_csv))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(fake_csv))
 
     dest = tmp_path / "SW-All.csv"
     dest.write_bytes(b"stale")
@@ -397,7 +398,7 @@ def test_fetch_reports_network_failure(tmp_path, monkeypatch):
     def _raise(*args, **kwargs):
         raise OSError("boom")
 
-    monkeypatch.setattr(sw.urllib.request, "urlopen", _raise)
+    monkeypatch.setattr(urllib.request, "urlopen", _raise)
 
     with pytest.raises(sw.SpaceWeatherError, match="could not fetch"):
         sw.fetch(dataset="SW-All", cache_dir=tmp_path)
@@ -409,7 +410,7 @@ def test_fetch_reports_a_disk_write_failure(tmp_path, monkeypatch):
     OSError the caller (gui.startup_fetch_dialog's worker, in practice)
     would need its own special handling for.
     """
-    monkeypatch.setattr(sw.urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(b"data"))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(b"data"))
 
     from pathlib import Path as _Path
 
@@ -443,7 +444,7 @@ def test_cached_fetch_path_is_none_when_nothing_fetched(tmp_path):
 
 def test_cached_fetch_path_finds_a_real_fetch(tmp_path, monkeypatch):
     """After a fetch, the cached fetch path is the fetched file."""
-    monkeypatch.setattr(sw.urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(_celestrak_csv()))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(_celestrak_csv()))
     fetched = sw.fetch(dataset="SW-All", cache_dir=tmp_path)
 
     assert sw.cached_fetch_path(cache_dir=tmp_path) == fetched
@@ -525,7 +526,7 @@ def test_a_download_that_is_not_celestrak_data_is_refused_and_keeps_the_old_file
     """UX step 2: every download is checked before it replaces anything."""
     dest = tmp_path / "SW-All.csv"
     dest.write_bytes(_celestrak_csv())
-    monkeypatch.setattr(sw.urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(b"<html>error</html>"))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(b"<html>error</html>"))
     with pytest.raises(sw.SpaceWeatherError, match="not a usable CelesTrak"):
         sw.fetch(dataset="SW-All", cache_dir=tmp_path, force=True)
     assert dest.read_bytes() == _celestrak_csv()
@@ -537,9 +538,9 @@ def test_a_download_records_its_source_and_checksum_and_keeps_the_previous_file(
     import hashlib
 
     first, second = _celestrak_csv(days=3), _celestrak_csv(days=6, f107=180.0)
-    monkeypatch.setattr(sw.urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(first))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(first))
     sw.fetch(dataset="SW-All", cache_dir=tmp_path, force=True)
-    monkeypatch.setattr(sw.urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(second))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(second))
     sw.fetch(dataset="SW-All", cache_dir=tmp_path, force=True)
     record = sw.installed_record(cache_dir=tmp_path)
     assert record["source"] == sw.CELESTRAK_URLS["SW-All"]

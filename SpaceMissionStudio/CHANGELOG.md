@@ -8,6 +8,24 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+### Added
+
+- **Offline mode, and network use enforced.** **Settings > Network > Work
+  offline** (or `spacemissionstudio network --offline on`) switches every
+  download off. An administrator can set it for every user of a computer,
+  locked, with the file `/etc/spacemissionstudio/policy.json` (Linux) or
+  `%ProgramData%\SpaceMissionStudio\policy.json` (Windows) containing
+  `{"offline": true}`, or with `SPACEMISSIONSTUDIO_OFFLINE=1`. Online, a
+  download contacts only the hosts listed for it (`spacemissionstudio
+  network` lists them); any other network use of the tool's Python code,
+  Basilisk's or a plugin's is refused, in every process the tool starts;
+  the plots and the 3D view load nothing but the app's own pages; and
+  every network use allowed or refused is logged in
+  `~/.spacemissionstudio/logs/network.log`. There was and is no telemetry
+  ([Network use, offline mode and telemetry](docs/reference/network.md)).
+
 ## 2.5.0 (2026-11-08)
 
 Thrusters from the IDM-CIC model, and the JSON page as a code editor.

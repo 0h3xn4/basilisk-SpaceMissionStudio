@@ -20,6 +20,7 @@
 checks, the schema's small-body rules, and the CLI status. No test touches
 the network (the download is tested with a stub)."""
 
+import urllib.request
 import dataclasses
 import hashlib
 import io
@@ -90,10 +91,10 @@ def test_fetch_downloads_from_naif_and_checks_the_file(fake_eros, tmp_path, monk
         asked.append(request.full_url)
         return io.BytesIO(_KERNEL)
 
-    monkeypatch.setattr(sb.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
     kernel = sb.fetch("eros", tmp_path / "sb")
     assert asked == [sb.EROS.spk_url] and kernel.source == sb.EROS.spk_url
-    monkeypatch.setattr(sb.urllib.request, "urlopen", lambda request, timeout: io.BytesIO(b"<html>"))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda request, timeout: io.BytesIO(b"<html>"))
     with pytest.raises(sb.SmallBodyError, match="DAF/SPK"):
         sb.fetch("eros", tmp_path / "other")
     assert sb.installed("eros", tmp_path / "other") is None

@@ -142,7 +142,7 @@ import urllib.parse
 # PySide6.QtWebEngineWidgets is imported below (env var read at that
 # module's own native init time; setting it any later has no effect).
 from . import export_log
-from . import webengine_setup  # noqa: F401 -- importing it sets the flags
+from . import webengine_setup  # importing it sets the flags
 
 import json
 import time
@@ -761,6 +761,7 @@ class ResultsWidget(QWidget):
         self.catalog = PlotCatalog()
         self.catalog.activated.connect(self.show_series)
         self.catalog.toggled.connect(self._on_catalog_toggled)
+        webengine_setup.guard_profile()  # the app's own pages only (network.md)
         self.web_view = QWebEngineView()
         self.web_view.titleChanged.connect(self._on_page_title)
         self.web_view.loadFinished.connect(self._on_shell_loaded)

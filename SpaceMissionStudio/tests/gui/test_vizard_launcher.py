@@ -7,6 +7,7 @@ is only ever reached via an explicit user click, never automatically;
 see that function's own docstring).
 """
 
+import urllib.request
 import io
 import os
 import zipfile
@@ -256,7 +257,7 @@ def test_fetch_vizard_downloads_extracts_and_finds_the_executable(tmp_path, monk
     zip_name = tmp_path / "staging.zip"
     _make_vizard_zip(zip_name, executable_name="Vizard.x86_64")
     zip_buf.write(zip_name.read_bytes())
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
+    monkeypatch.setattr(urllib.request, "urlopen",
                          lambda *a, **k: _FakeUrlResponse(zip_buf.getvalue()))
 
     executable = vizard_launcher.fetch_vizard(dest_dir=tmp_path)
@@ -283,12 +284,12 @@ def test_fetch_vizard_sends_a_browser_like_user_agent(tmp_path, monkeypatch):
         captured["request"] = request
         return _FakeUrlResponse(zip_name.read_bytes())
 
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen", _fake_urlopen)
+    monkeypatch.setattr(urllib.request, "urlopen", _fake_urlopen)
 
     vizard_launcher.fetch_vizard(dest_dir=tmp_path)
 
     sent_request = captured["request"]
-    assert isinstance(sent_request, vizard_launcher.urllib.request.Request)
+    assert isinstance(sent_request, urllib.request.Request)
     user_agent = sent_request.get_header("User-agent")  # urllib title-cases header names internally
     assert user_agent
     assert "python-urllib" not in user_agent.lower()
@@ -302,7 +303,7 @@ def test_fetch_vizard_sets_the_executable_bit_on_non_windows(tmp_path, monkeypat
     _as_linux_build(monkeypatch, vizard_launcher)
     zip_name = tmp_path / "staging.zip"
     _make_vizard_zip(zip_name, executable_name="Vizard.x86_64")
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
+    monkeypatch.setattr(urllib.request, "urlopen",
                          lambda *a, **k: _FakeUrlResponse(zip_name.read_bytes()))
 
     requested = []
@@ -328,7 +329,7 @@ def test_fetch_vizard_reports_network_failure(tmp_path, monkeypatch):
     def _raise(*args, **kwargs):
         raise OSError("boom")
 
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen", _raise)
+    monkeypatch.setattr(urllib.request, "urlopen", _raise)
 
     with pytest.raises(vizard_launcher.VizardFetchError, match="could not download"):
         vizard_launcher.fetch_vizard(dest_dir=tmp_path)
@@ -338,7 +339,7 @@ def test_fetch_vizard_reports_a_corrupt_zip(tmp_path, monkeypatch):
     """A download that is not a zip file is reported as such."""
     from spacemissionstudio.gui import vizard_launcher
 
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
+    monkeypatch.setattr(urllib.request, "urlopen",
                          lambda *a, **k: _FakeUrlResponse(b"not a real zip file"))
 
     with pytest.raises(vizard_launcher.VizardFetchError, match="not a valid zip file"):
@@ -354,7 +355,7 @@ def test_fetch_vizard_reports_a_zip_with_no_recognizable_executable(tmp_path, mo
     zip_name = tmp_path / "staging.zip"
     with zipfile.ZipFile(zip_name, "w") as zf:
         zf.writestr("readme.txt", b"no executable in here")
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
+    monkeypatch.setattr(urllib.request, "urlopen",
                          lambda *a, **k: _FakeUrlResponse(zip_name.read_bytes()))
 
     with pytest.raises(vizard_launcher.VizardFetchError, match="could not find"):
@@ -366,7 +367,7 @@ def test_fetch_vizard_honors_cooperative_cancellation(tmp_path, monkeypatch):
     so."""
     from spacemissionstudio.gui import vizard_launcher
 
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
+    monkeypatch.setattr(urllib.request, "urlopen",
                          lambda *a, **k: _FakeUrlResponse(b"x" * 10))
 
     with pytest.raises(vizard_launcher.VizardFetchError, match="cancelled"):
@@ -379,11 +380,12 @@ def test_a_cancelled_or_oversized_download_leaves_no_partial_file(tmp_path, monk
     from spacemissionstudio.gui import vizard_launcher
 
     monkeypatch.setattr(vizard_launcher, "_MAX_DOWNLOAD_BYTES", 10)
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
+    monkeypatch.setattr(urllib.request, "urlopen",
                          lambda *a, **k: _FakeUrlResponse(b"x" * 100))
     with pytest.raises(vizard_launcher.VizardFetchError, match="exceeded"):
         vizard_launcher.fetch_vizard(dest_dir=tmp_path)
-    assert list(tmp_path.iterdir()) == []
+    # The home folder is tmp_path here: the network log (.spacemissionstudio/logs) is not a download.
+    assert [p for p in tmp_path.iterdir() if p.name != ".spacemissionstudio"] == []
 
 
 def test_fetch_vizard_reports_a_folder_it_cannot_create(tmp_path):
@@ -405,7 +407,7 @@ def test_fetch_vizard_reports_progress_status(tmp_path, monkeypatch):
     _as_linux_build(monkeypatch, vizard_launcher)
     zip_name = tmp_path / "staging.zip"
     _make_vizard_zip(zip_name, executable_name="Vizard.x86_64")
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
+    monkeypatch.setattr(urllib.request, "urlopen",
                          lambda *a, **k: _FakeUrlResponse(zip_name.read_bytes()))
 
     statuses = []
@@ -428,7 +430,7 @@ def test_fetch_vizard_records_the_download_with_its_sha256(tmp_path, monkeypatch
     zip_name = tmp_path / "staging.zip"
     _make_vizard_zip(zip_name, executable_name="Vizard.x86_64")
     data = zip_name.read_bytes()
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen", lambda *a, **k: _FakeUrlResponse(data))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _FakeUrlResponse(data))
 
     statuses = []
     vizard_launcher.fetch_vizard(dest_dir=tmp_path, on_status=statuses.append)
@@ -448,7 +450,7 @@ def test_fetch_vizard_finds_the_executable_inside_a_same_named_wrapper_folder(tm
     _as_linux_build(monkeypatch, vizard_launcher)
     zip_name = tmp_path / "staging.zip"
     _make_vizard_zip(zip_name, executable_name="Vizard.x86_64", wrapper_folder="Vizard_Linux")
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
+    monkeypatch.setattr(urllib.request, "urlopen",
                          lambda *a, **k: _FakeUrlResponse(zip_name.read_bytes()))
 
     executable = vizard_launcher.fetch_vizard(dest_dir=tmp_path)
@@ -466,7 +468,7 @@ def test_fetch_vizard_clears_stale_files_from_an_earlier_extraction(tmp_path, mo
 
     old_zip = tmp_path / "old.zip"
     _make_vizard_zip(old_zip, executable_name="Vizard.x86_64", wrapper_folder="Vizard_Linux_Old")
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
+    monkeypatch.setattr(urllib.request, "urlopen",
                          lambda *a, **k: _FakeUrlResponse(old_zip.read_bytes()))
     vizard_launcher.fetch_vizard(dest_dir=tmp_path)
     stale_marker = tmp_path / "extracted" / "Vizard_Linux_Old"
@@ -474,7 +476,7 @@ def test_fetch_vizard_clears_stale_files_from_an_earlier_extraction(tmp_path, mo
 
     new_zip = tmp_path / "new.zip"
     _make_vizard_zip(new_zip, executable_name="Vizard.x86_64", wrapper_folder="Vizard_Linux_New")
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
+    monkeypatch.setattr(urllib.request, "urlopen",
                          lambda *a, **k: _FakeUrlResponse(new_zip.read_bytes()))
     executable = vizard_launcher.fetch_vizard(dest_dir=tmp_path)
 
@@ -491,7 +493,7 @@ def test_fetch_vizard_rejects_a_zip_slip_entry(tmp_path, monkeypatch):
     zip_name = tmp_path / "staging.zip"
     with zipfile.ZipFile(zip_name, "w") as zf:
         zf.writestr("../escaped.txt", b"zip-slip payload")
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
+    monkeypatch.setattr(urllib.request, "urlopen",
                          lambda *a, **k: _FakeUrlResponse(zip_name.read_bytes()))
 
     with pytest.raises(vizard_launcher.VizardFetchError, match="unsafe entry"):

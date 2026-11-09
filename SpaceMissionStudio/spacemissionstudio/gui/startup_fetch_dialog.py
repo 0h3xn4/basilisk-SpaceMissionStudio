@@ -384,7 +384,13 @@ class ReferenceDataCard(QFrame):
 
     def ask(self) -> None:
         """Show the card with its choices (read when asked: the Earth
-        orientation default depends on the files installed now)."""
+        orientation default depends on the files installed now). Offline
+        (``network.policy``), there is nothing to ask."""
+        from .. import network
+
+        if network.policy().offline:
+            self.setVisible(False)
+            return
         if not self._built:
             self.checkboxes = choice_boxes()
             for checkbox in self.checkboxes:

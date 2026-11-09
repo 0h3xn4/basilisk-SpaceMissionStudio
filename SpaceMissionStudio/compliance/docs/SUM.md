@@ -91,6 +91,7 @@ The tool lets a mission analyst do the following without writing code:
 | Results (`.csv`, `provenance.json`, `.oem`) | The output folder you choose | Your data |
 | Saved runs | `~/.spacemissionstudio/runs/` | **Run > History** and **Results > Compare** read them |
 | Log file | `~/.spacemissionstudio/logs/` | For problem reports |
+| Network log, offline choice | `~/.spacemissionstudio/logs/network.log`, `~/.spacemissionstudio/network.json`; an administrator's `/etc/spacemissionstudio/policy.json` or `%ProgramData%\SpaceMissionStudio\policy.json` | Every network use allowed or refused; **Settings > Network** (`docs/reference/network.md`) |
 
 **Security and privacy:**
 - The tool sends nothing about you or your work anywhere.
@@ -295,6 +296,7 @@ in the CLI. An error never closes the application.
 | CCSDS | **Import CCSDS OPM/OMM...** (a spacecraft's Orbit / mass page); **Export Orbits as CCSDS...** and **Check a CCSDS File...** (`Ctrl+K`); **Results > Plots > Export all... > CCSDS ephemeris (OEM)...** | `ccsds-validate`, `ccsds-export`, `ccsds-import`, `run --oem` |
 | IDM-CIC model | **3D Model... > Import IDM-CIC model...** | `idm-info FILE.idm`, `idm-import FILE.idm SCENARIO --spacecraft NAME` |
 | Edit the scenario as text | **Form · JSON** (Scenario area): `Ctrl+Space` completion, `Ctrl+Shift+Space` a key's help, `F8` the next problem, `F2` rename, `F12` definition, `Ctrl+.` quick fixes, `Shift+Alt+F` format | any text editor; `spacemissionstudio validate FILE` |
+| Offline mode | **Settings > Network > Work offline** | `spacemissionstudio network --offline on` |
 | Design checks | **Run > Design Checks** | `spacemissionstudio check-design FILE` |
 | Model analyses | **Results > Model Analyses** | `spacemissionstudio model-analyses FILE` |
 | Re-entry casualty estimate | **Run > End of Life** | `spacemissionstudio reentry FILE` |

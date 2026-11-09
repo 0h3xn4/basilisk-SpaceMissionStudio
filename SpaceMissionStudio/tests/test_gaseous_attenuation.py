@@ -27,6 +27,7 @@ attenuation at 1013.25 hPa, 15 deg C, 7.5 g/m^3) and sheet
 not part of this repository: the slant-path tests use the two rows of it
 that sheet lists for its frequencies, 38.5 and 39.5 GHz."""
 
+import urllib.request
 import dataclasses
 import hashlib
 import json
@@ -204,10 +205,10 @@ def test_fetch_downloads_from_the_itu_and_checks_the_file(monkeypatch, stand_in_
         def read(self, _limit):
             return self.body
 
-    monkeypatch.setattr(gases.urllib.request, "urlopen",
+    monkeypatch.setattr(urllib.request, "urlopen",
                         lambda request, timeout: requested.append(request.full_url) or Response(data))
     assert gases.fetch().sha256 == gases.PART1_SHA256 and requested == [gases.PART1_URL]
-    monkeypatch.setattr(gases.urllib.request, "urlopen", lambda request, timeout: Response(b"not it"))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda request, timeout: Response(b"not it"))
     with pytest.raises(gases.GaseousAttenuationError, match="is not the ITU's"):
         gases.fetch()
 

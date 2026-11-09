@@ -88,6 +88,24 @@ def test_a_run_with_real_space_weather_and_its_exports_need_no_network(no_networ
     assert no_network == []
 
 
+@pytest.mark.requires_basilisk
+def test_a_guarded_run_tries_to_reach_nothing(tmp_path):
+    """The command line turns the network guard on (``network.py``): a run
+    and its exports leave the network log empty, so no Python code (the
+    tool's, Basilisk's) tried to reach another computer, not even to be
+    refused."""
+    from spacemissionstudio import network
+
+    template = sorted(_templates().glob("18_*.json"))[0]
+    scenario = json.loads(template.read_text(encoding="utf-8"))
+    scenario["sim_settings"]["duration_days"] = 0.05  # [day]
+    path = tmp_path / "short.json"
+    path.write_text(json.dumps(scenario), encoding="utf-8")
+    assert cli.main(["run", str(path), "--out-dir", str(tmp_path / "out"), "--oem"]) == 0
+    assert network.guard_active()
+    assert not network.log_path().exists() or network.log_path().read_text(encoding="utf-8") == ""
+
+
 def test_gui_start_up_with_the_download_prompt_declined_needs_no_network(no_network, qtbot, monkeypatch):
     """The main window as a user starts it, with the startup download
     prompt shown and declined: nothing is fetched."""

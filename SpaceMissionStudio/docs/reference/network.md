@@ -1,0 +1,123 @@
+# Network use, offline mode and telemetry
+
+SpaceMissionStudio has **no telemetry**: no usage statistics, no crash
+reports, no update check. It reaches the network only for a download you
+start, and only the addresses listed for that download. This page says
+what can reach the network, how that is enforced, how to switch
+downloads off for good, and what is outside the tool's control.
+
+## Contents
+
+- [What can reach the network](#what-can-reach-the-network)
+- [Offline mode](#offline-mode)
+- [How it is enforced](#how-it-is-enforced)
+- [The network log](#the-network-log)
+- [What this does not cover](#what-this-does-not-cover)
+- [How it is tested](#how-it-is-tested)
+
+## What can reach the network
+
+Each download is a *purpose* in `spacemissionstudio/network.py`, with the
+only hosts it may contact (`spacemissionstudio network` prints this
+list):
+
+| Download | Hosts | Started by |
+|---|---|---|
+| Basilisk support data (SPICE kernels, gravity, magnetic field, albedo, atmosphere) | raw.githubusercontent.com, naif.jpl.nasa.gov, lambda.gsfc.nasa.gov, hanspeterschaub.info (Basilisk's backup) | **Download...** in the Reference data dialog, the start-up card, `kernels-status` |
+| Space weather | celestrak.org | the same, and `spaceweather-download` |
+| Earth orientation files | naif.jpl.nasa.gov | the same, and `earth-orientation --fetch` |
+| Small-body ephemerides (433 Eros) | naif.jpl.nasa.gov | **Download...**, `small-bodies --fetch` |
+| ITU-R P.676 tables | www.itu.int | **Download...**, `gaseous-attenuation --fetch` |
+| The Vizard application | hanspeterschaub.info | **Download Vizard** in the "Vizard not found" dialog |
+
+Everything else stays on your computer: a run, an export, a Monte Carlo
+batch, the GUI's plots and 3D view, the IDM-CIC import. Every file a
+download fetches can also be installed from disk instead
+([Reference data](../user-manual/reference-data.md)).
+
+Software-in-the-loop runs talk to your program over a Unix socket or
+127.0.0.1, never another computer.
+
+## Offline mode
+
+Offline, no download can start: **Download...** and **Download Vizard**
+are off, the start-up card is not shown, and the commands that download
+stop with the reason. Everything else works as before; files are
+installed from disk.
+
+| Who | How | Can the user change it? |
+|---|---|---|
+| You | **Settings > Network > Work offline**, or `spacemissionstudio network --offline on` | Yes |
+| An administrator, for every user of a computer | the file `/etc/spacemissionstudio/policy.json` (Linux) or `%ProgramData%\SpaceMissionStudio\policy.json` (Windows) containing `{"offline": true}` | No: the setting is shown ticked and locked, and the reason is given |
+| An administrator or a script, for one session | the environment variable `SPACEMISSIONSTUDIO_OFFLINE=1` | No |
+
+An administrator's policy file that cannot be read counts as offline.
+`spacemissionstudio network` shows the policy in effect and why.
+
+## How it is enforced
+
+- **One gateway.** The tool's own downloads all go through
+  `network.open_url`, which refuses a URL that is not https or not one of
+  its purpose's hosts, and refuses everything offline. A test fails if any
+  other module imports a networking library or calls `urlopen`
+  (`tests/test_network.py`).
+- **A guard on all Python code.** The command line and the GUI turn on a
+  Python audit hook (PEP 578) that sees every name lookup, connection and
+  listening socket of any Python code in the process: the tool's,
+  Basilisk's, a plugin's. It refuses those that reach another computer
+  unless a download's permit for that host is open on the same thread,
+  and it refuses listening on any address but 127.0.0.1. The processes the
+  tool starts (runs, Monte Carlo workers) inherit it.
+- **The web views load only the app's own pages.** The plots and the 3D
+  view run in Qt WebEngine (Chromium). A request interceptor blocks any
+  request that is not for a local file, and Chromium starts with its
+  background requests off (`--disable-background-networking`,
+  `--disable-component-update`, `--disable-domain-reliability`,
+  `--no-pings`, `--dns-prefetch-disable`; `gui/webengine_setup.py`).
+- **Basilisk's import-time request** (Basilisk 2.12.0 asks github.com for
+  its release tag when it is imported) is sent to a closed port on your
+  own computer (`spacemissionstudio/_offline.py`), so it never leaves it.
+
+## The network log
+
+Every network use allowed, and every attempt refused, is written to
+`~/.spacemissionstudio/logs/network.log`, one line each: the time (UTC),
+`permit` or `refused`, the download (or `-` for an attempt outside any
+download, `web view` for a blocked page request) and the host or address.
+**Settings > Network > Open the network log** opens it. A session that
+downloaded nothing leaves no line.
+
+## What this does not cover
+
+- **Vizard** is a separate program, started on request. The pre-built
+  Vizard the download fetches is AVS Lab's, built with Unity; its project
+  settings enable Unity Analytics, and whether that build sends anything
+  has not been measured. Until a build of Vizard without analytics ships
+  with SpaceMissionStudio, use Vizard behind a firewall rule, or not at
+  all where that matters.
+- **Code that is not Python.** The guard sees Python. Basilisk's C++
+  modules make no network calls in a run except Vizard's live stream
+  (`vizInterface`), which you start, on the address you give it. Chromium
+  is covered by the interceptor and the flags above, not by the guard.
+- **A user's own scripts.** A script that imports the package (the
+  [Python API](../api.md)) is not guarded unless it calls
+  `spacemissionstudio.network.install_guard()`; offline mode still applies
+  to the tool's downloads.
+- **Not a sandbox.** The policy file controls the tool, not the
+  computer: someone who can run their own programs can reach the network
+  with them. Where the network must be closed, close it at the operating
+  system or the firewall too.
+
+## How it is tested
+
+| Test | What it shows |
+|---|---|
+| `tests/test_network.py` | Only the reviewed modules can reach the network; each download's URLs are among its hosts; the gateway refuses other hosts and http; the policy, its precedence and its lock; the guard's refusals, its permits per thread and per host, and a child process inheriting it; `spacemissionstudio network` |
+| `tests/test_offline.py` | Validating, exporting and running a template need no network; a guarded run leaves the network log empty; the GUI starts with the download question declined and nothing is fetched. CI also runs it in a network namespace with no interface |
+| `tests/gui/test_network_gui.py` | **Settings > Network**, the locked policy, Download and the start-up card offline; a web view's request for another computer is blocked and logged; Chromium's flags |
+
+---
+
+**Next:** [Data, standards and the offline policy](data-and-standards.md) ·
+[Known limitations](limitations.md) ·
+[Documentation index](../README.md)

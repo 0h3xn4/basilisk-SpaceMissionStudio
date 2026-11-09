@@ -222,6 +222,11 @@ A few things to notice right away:
     the default, or **As recorded**, the values and units the run
     recorded and the CSV exports hold, SI, with the elapsed time in
     seconds; the exports are SI either way), **Reference data**,
+    **Network** (**Work offline**: no download can start; locked, with
+    the reason, when your administrator or the
+    `SPACEMISSIONSTUDIO_OFFLINE` environment variable sets it; the hosts
+    each download may contact; **Open the network log**, every network
+    use allowed or refused: [Network use and offline mode](docs/reference/network.md)),
     **Change history** (**Author**: the name each save records in the
     scenario's change history, the command line's too; empty: your user
     name), **Vizard** (the Vizard program **Launch Vizard** starts: **Browse...**

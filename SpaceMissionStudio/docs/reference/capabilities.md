@@ -430,7 +430,7 @@ A full PySide6 desktop shell (scenario editor, with the scenario's text
 as a code editor beside the forms: colours, problems marked in place,
 completion and help from the schema, rename, go to definition, quick
 fixes; Monte Carlo, live progress feedback, a real visual theme and icons, a
-navigation rail and a command palette) and an equivalent headless CLI (34 commands; see
+navigation rail and a command palette) and an equivalent headless CLI (35 commands; see
 [Use the command line](../user-manual/command-line.md)), both built on
 the exact same `schema`/`engine` layer -- neither is a thin wrapper
 around the other. Result plots are Plotly figures (a validated,

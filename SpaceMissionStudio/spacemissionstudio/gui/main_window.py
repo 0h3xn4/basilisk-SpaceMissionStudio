@@ -558,6 +558,14 @@ class MainWindow(QMainWindow):
             # M3 the question is a card on Home, not a modal dialog.
             QTimer.singleShot(0, self.load_scenario_widget.reference_card.ask)
 
+    def apply_network_policy(self) -> None:
+        """After Settings > Network changed: the downloads follow the policy."""
+        self.data_panel_widget.apply_network_policy()
+        from .. import network
+
+        if network.policy().offline:
+            self.load_scenario_widget.reference_card.setVisible(False)
+
     # -- commands: the action registry (gui.actions) ----------------------------
     def _build_actions(self) -> None:
         """Every command of the window, in one registry: the command
@@ -2136,6 +2144,11 @@ class MainWindow(QMainWindow):
             "for this platform, or you can browse for an existing install."
         )
         download_button = box.addButton("Download Vizard", QMessageBox.ButtonRole.AcceptRole)
+        from .. import network
+
+        if network.policy().offline:
+            download_button.setEnabled(False)
+            download_button.setToolTip(network.policy().describe())
         browse_button = box.addButton("Browse...", QMessageBox.ButtonRole.ActionRole)
         box.addButton(QMessageBox.StandardButton.Cancel)
         box.exec()

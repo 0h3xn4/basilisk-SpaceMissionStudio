@@ -32,6 +32,7 @@ to do. New here? Start with **Getting started**.
 | [Capabilities and verification](reference/capabilities.md) | What the app can do, which Basilisk modules do it, what has been verified |
 | [Known limitations](reference/limitations.md) | What it does not do, and why |
 | [Transparency audit](transparency_audit.md) | Every hard-coded value, hidden assumption, underived output, forced choice and data exchange, with file and line, and the plan to make results traceable and editable ([every numeric literal](transparency_audit_constants.csv)) |
+| [Network use, offline mode and telemetry](reference/network.md) | What can reach the network and which hosts, offline mode for you or a whole computer, how it is enforced and logged, what it does not cover |
 | [Data, standards and the offline policy](reference/data-and-standards.md) | Qualified Basilisk version, CCSDS, Earth orientation, space weather, network use |
 | [Packaging](../packaging/README.md) | How the installers are built, and what was run where |
 | [Compliance records](../compliance/README.md) | ECSS and CCSDS requirements, design, verification and the compliance matrix |

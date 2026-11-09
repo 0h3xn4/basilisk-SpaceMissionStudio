@@ -148,6 +148,8 @@ SRS_TO_COMPONENTS = {
     "SRS-S-02": ["engine/spaceweather", "engine/earth_orientation", "engine/results"],
     "SRS-S-03": ["engine/mission_engine", "schema/command", "gui/main_window", "cli"],
     "SRS-S-04": ["schema/command", "engine/mission_engine"],
+    "SRS-S-05": ["network", "_offline", "engine/kernels", "gui/webengine_setup", "gui/settings_page", "gui/data_panel_widget",
+                 "gui/startup_fetch_dialog", "cli"],
     "SRS-PO-01": ["dependencies"],
     "SRS-Q-01": [],
     "SRS-Q-02": [],

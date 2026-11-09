@@ -70,7 +70,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from .schema.epochs import parse_epoch_utc
-from . import __version__, ccsds_files, dependencies, output_provenance
+from . import __version__, ccsds_files, dependencies, network, output_provenance
 from .logging_setup import configure_logging, get_log_file_path
 from .schema import ScenarioValidationError, load_scenario
 from .schema.command import runs_sequence, script_blocks
@@ -1203,6 +1203,28 @@ def _print_launch_delays(pb, scenario, name, result):
     return 0, sweep
 
 
+def cmd_network(args: argparse.Namespace) -> int:
+    """The network policy: online or offline and why, what each download
+    may contact, and the log; ``--offline on|off`` sets the user's choice
+    (refused while an administrator or the environment fixes it)."""
+    if args.offline is not None:
+        try:
+            network.set_user_offline(args.offline == "on")
+        except PermissionError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 2
+    current = network.policy()
+    print(current.describe())
+    if current.locked:
+        print("  (you cannot change this here)")
+    print("Downloads, each only when you start it, and the only addresses each may contact:")
+    for purpose in network.PURPOSES.values():
+        print(f"  {purpose.key:18} {purpose.label}: {', '.join(purpose.hosts)}")
+    print(f"Administrator policy file: {network.machine_policy_file()}")
+    print(f"Every network use allowed or refused is logged in {network.log_path()}")
+    return 0
+
+
 def cmd_kernels_status(args: argparse.Namespace) -> int:
     try:
         from .engine import kernels
@@ -2127,6 +2149,12 @@ def build_parser() -> argparse.ArgumentParser:
                         help="also write the budget as JSON: inputs, figures, traces, the provenance")
     p_link.set_defaults(func=cmd_link_budget)
 
+    p_network = subparsers.add_parser("network", help="the network policy: offline or online, what each download "
+                                                       "may contact, the log; --offline on|off")
+    p_network.add_argument("--offline", choices=("on", "off"), default=None,
+                           help="work offline (no downloads) or not; refused while your administrator sets it")
+    p_network.set_defaults(func=cmd_network)
+
     p_kernels = subparsers.add_parser("kernels-status", help="fetch/check SPICE kernel cache status")
     p_kernels.set_defaults(func=cmd_kernels_status)
 
@@ -2395,6 +2423,7 @@ def main(argv: list | None = None) -> int:
         print(version_text())  # nothing to log: no log file and no "Logging to" line for a version query
         return 0
     configure_logging()
+    network.install_guard()  # no other computer is reached but for a download the user asks for
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

@@ -290,6 +290,7 @@ See [Flight software and SIL](flight-software-and-sil.md).
 
 | Command | What it does |
 |---|---|
+| `network [--offline on\|off]` | Shows whether downloads are allowed (online or offline, and who set it), the hosts each download may contact, the administrator's policy file and the network log; `--offline` sets your own choice, refused (status 2) when your administrator or `SPACEMISSIONSTUDIO_OFFLINE` sets it ([Network use and offline mode](../reference/network.md)) |
 | `kernels-status` | Downloads any missing support file (SPICE kernels, gravity fields, magnetic model, albedo maps; internet), then lists each with where it is, or why it could not be fetched |
 | `earth-orientation` | Shows the Earth orientation files; `--fetch` downloads new ones, `--import` installs them from disk, `--rollback` undoes the last change |
 | `small-bodies` | Shows the asteroid Eros files (ephemeris and shape); `--fetch` downloads them, `--import FILE` installs the ephemeris kernel `eros_1900_2100.bsp` from disk; see [Small bodies](small-body-navigation.md) |

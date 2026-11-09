@@ -93,7 +93,6 @@ import os
 import tempfile
 import time
 import urllib.error
-import urllib.request
 from dataclasses import dataclass, field
 from functools import cached_property
 from datetime import date, datetime, timedelta, UTC
@@ -102,6 +101,7 @@ from pathlib import Path
 import numpy as np
 
 from .findings import Finding
+from .. import network
 
 REQUIRED_COLUMNS = (
     "DATE", "AP1", "AP2", "AP3", "AP4", "AP5", "AP6", "AP7", "AP8",
@@ -289,9 +289,9 @@ def fetch(dataset: str = "SW-All", cache_dir: Path | None = None, force: bool = 
         return dest
 
     url = CELESTRAK_URLS[dataset]
-    request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})  # noqa: S310 -- constant https URL
     try:
-        with urllib.request.urlopen(request, timeout=timeout_s) as response:  # noqa: S310 -- constant https URL
+        with network.open_url(url, "space_weather", timeout_s=timeout_s,
+                              headers={"User-Agent": _USER_AGENT}) as response:
             # Read one byte past the cap rather than response.read() with no
             # bound: an unbounded read would buffer however much data the
             # server sends (or never sends, tying up memory/the connection)

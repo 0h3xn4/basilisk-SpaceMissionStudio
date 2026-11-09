@@ -220,3 +220,20 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_gui)
         if not C_TOOLCHAIN_AVAILABLE and "requires_c_toolchain" in item.keywords:
             item.add_marker(skip_c)
+
+
+@pytest.fixture(autouse=True)
+def _network_guard_per_test():
+    """The network guard (``spacemissionstudio.network``) that a test turns
+    on by calling the command line's or the GUI's ``main`` stays on for that
+    test only, as it does for one process."""
+    from spacemissionstudio import network
+
+    before = os.environ.get(network.GUARD_VARIABLE)
+    active = network._guard["active"]
+    yield
+    network._guard["active"] = active
+    if before is None:
+        os.environ.pop(network.GUARD_VARIABLE, None)
+    else:
+        os.environ[network.GUARD_VARIABLE] = before

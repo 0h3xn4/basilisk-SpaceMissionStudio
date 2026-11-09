@@ -64,8 +64,13 @@ way it then runs offline:
   `spaceweather-download` download.
 - Every file can also be installed from disk, for machines that never go
   online.
+- **Offline mode** switches every download off: **Settings > Network >
+  Work offline**, `spacemissionstudio network --offline on`, or, for
+  every user of a computer, an administrator's policy file. There is no
+  telemetry: no usage statistics, crash reports or update checks.
 
-See [Reference data](user-manual/reference-data.md) and, for the
+See [Network use and offline mode](reference/network.md),
+[Reference data](user-manual/reference-data.md) and, for the
 installers, [`packaging/README.md`](../packaging/README.md).
 
 ## Where does the space weather come from?
