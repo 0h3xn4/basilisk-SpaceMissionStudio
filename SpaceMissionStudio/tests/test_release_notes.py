@@ -160,3 +160,15 @@ def test_the_current_changelog_renders_for_its_newest_release(tmp_path):
     _files(tmp_path, version)
     notes = release_notes.render(version, tmp_path, "https://example.invalid/runs/7", changelog)
     assert "## What's new" in notes and notes.split("\n", 1)[0].strip()
+
+
+def test_the_bills_of_materials_are_listed_when_built(tmp_path):
+    """The installers' CycloneDX files are a download row, and the
+    contents say the packages were installed hash-checked."""
+    _files(tmp_path)
+    for name in ("spacemissionstudio_2.0.0_amd64.cdx.json", "spacemissionstudio-2.0.0-setup.cdx.json"):
+        (tmp_path / name).write_text("{}", encoding="utf-8")
+    notes = release_notes.render("2.0.0", tmp_path, "https://example.invalid/runs/7", _CHANGELOG)
+    assert ("| Software bill of materials (CycloneDX 1.6) | `spacemissionstudio_2.0.0_amd64.cdx.json`, "
+            "`spacemissionstudio-2.0.0-setup.cdx.json` | |") in notes
+    assert "installed hash-checked" in notes

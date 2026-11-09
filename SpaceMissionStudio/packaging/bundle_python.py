@@ -17,7 +17,8 @@
 
 Unpacks a pinned, relocatable CPython (python-build-standalone) into
 ``--dest``, installs Basilisk and SpaceMissionStudio into it at the tested
-versions (``constraints.txt``) and adds the reference data runs read:
+versions, hash-checked (``constraints-hashes.txt``), and adds the
+reference data runs read:
 
 * Basilisk's support data (SPICE kernels, gravity fields, the magnetic
   field model, albedo maps, the tabular atmosphere profiles:
@@ -32,6 +33,17 @@ versions (``constraints.txt``) and adds the reference data runs read:
 The installers then copy that folder as it is: installing needs no Python
 on the machine and no internet.
 
+Every package is installed with ``pip install --require-hashes
+--only-binary=:all:``: each file must have the SHA-256 recorded in
+``constraints-hashes.txt`` (from ``hash_constraints.py``), every package
+must be pinned there, and nothing is built from source. The build then
+checks that each package installed is one of the pins, at its version,
+and writes a software bill of materials (CycloneDX 1.6 JSON,
+``SPACEMISSIONSTUDIO_SBOM.cdx.json``) next to the manifest: the CPython
+build, every package with the file installed and its SHA-256 (pip's
+installation report), and every data file with its SHA-256. The release
+attaches it.
+
 Run it on the platform the installer is for, since pip installs that
 platform's binary wheels::
 
@@ -45,6 +57,7 @@ its pinned SHA-256; ``--archive`` uses a file already on disk instead.
 from __future__ import annotations
 
 import argparse
+import datetime
 import hashlib
 import json
 import os
@@ -54,7 +67,13 @@ import sys
 import tarfile
 import tempfile
 import urllib.request
+import uuid
 from pathlib import Path
+
+# The sibling module, however this script is started (python -I leaves its
+# folder off sys.path).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from hash_constraints import normalise, read_pins  # noqa: E402
 
 #: python-build-standalone release 20261013, CPython 3.14.8, the
 #: "install_only_stripped" builds (relocatable, debug symbols removed). The
@@ -79,6 +98,8 @@ BASILISK_REQUIREMENT = "bsk[all]==2.12.0"
 
 #: Written into the bundled Python: what it is and what was installed.
 MANIFEST_NAME = "SPACEMISSIONSTUDIO_RUNTIME.json"
+#: Written next to it: the software bill of materials (CycloneDX JSON).
+SBOM_NAME = "SPACEMISSIONSTUDIO_SBOM.cdx.json"
 
 _PACKAGING = Path(__file__).resolve().parent
 
@@ -123,12 +144,115 @@ def interpreter(dest: Path, platform: str) -> Path:
     return dest / ("python.exe" if platform == "windows" else "bin/python3")
 
 
-def pip_install(python: Path, constraints: Path, requirement: str) -> None:
-    """Install into the bundled Python; -I keeps any user site-packages out."""
+def pip_install(python: Path, constraints: Path, requirements: list[str]) -> list[dict]:
+    """Install into the bundled Python, hash-checked: each file must have a
+    digest in ``constraints`` (``constraints-hashes.txt``) or on its own
+    line, every package must be pinned, and none is built from source.
+    -I keeps any user site-packages out. Returns pip's record of each
+    package installed (installation report: file, SHA-256, metadata)."""
     env = dict(os.environ, PYTHONNOUSERSITE="1", PIP_DISABLE_PIP_VERSION_CHECK="1",
                PIP_ROOT_USER_ACTION="ignore")
-    subprocess.run([str(python), "-I", "-m", "pip", "install", "--quiet", "--no-warn-script-location",  # noqa: S603
-                    "-c", str(constraints), requirement], check=True, env=env)
+    with tempfile.TemporaryDirectory() as scratch:
+        listing, report = Path(scratch) / "requirements.txt", Path(scratch) / "report.json"
+        listing.write_text("\n".join(requirements) + "\n", encoding="utf-8")
+        subprocess.run([str(python), "-I", "-m", "pip", "install", "--quiet", "--no-warn-script-location",  # noqa: S603
+                        "--require-hashes", "--only-binary=:all:", "--report", str(report),
+                        "-c", str(constraints), "-r", str(listing)], check=True, env=env)
+        return json.loads(report.read_text(encoding="utf-8"))["install"]
+
+
+def local_wheel(wheel: Path, extras: str = "gui") -> str:
+    """A requirement line for a wheel on disk, with its own SHA-256 (in
+    hash-checking mode every requirement needs one)."""
+    name = wheel.name.split("-", 1)[0]
+    return f"{name}[{extras}] @ {wheel.as_uri()} --hash=sha256:{sha256_of(wheel)}"
+
+
+def installed(python: Path) -> list[str]:
+    """``name==version`` of every package in the bundled Python."""
+    return subprocess.run([str(python), "-I", "-m", "pip", "list", "--format=freeze",  # noqa: S603 -- no shell
+                           "--disable-pip-version-check"], check=True, capture_output=True, text=True).stdout.split()
+
+
+def not_pinned(packages: list[str], pins: dict, own: set[str]) -> list[str]:
+    """The packages installed that are not one of the pins at its version;
+    ``own`` names those that come with the CPython build or are ours."""
+    problems = []
+    for entry in packages:
+        name, _, version = entry.partition("==")
+        key = normalise(name)
+        if key in own:
+            continue
+        if key not in pins:
+            problems.append(f"{entry} is not pinned")
+        elif pins[key][1] != version:
+            problems.append(f"{entry} is pinned at {pins[key][1]}")
+    return problems
+
+
+def _licences(metadata: dict) -> list[dict]:
+    """CycloneDX licences from core metadata: the SPDX expression when
+    given, else a short licence field, else the trove classifiers."""
+    if metadata.get("license_expression"):
+        return [{"expression": metadata["license_expression"]}]
+    text = (metadata.get("license") or "").strip()
+    if text and "\n" not in text and len(text) <= 80:
+        return [{"license": {"name": text}}]
+    return [{"license": {"name": classifier.split(" :: ")[-1]}}
+            for classifier in metadata.get("classifier", []) if classifier.startswith("License ::")]
+
+
+def _timestamp() -> str:
+    """UTC, from SOURCE_DATE_EPOCH when set (reproducible builds)."""
+    epoch = os.environ.get("SOURCE_DATE_EPOCH")
+    moment = (datetime.datetime.fromtimestamp(int(epoch), datetime.UTC) if epoch
+              else datetime.datetime.now(datetime.UTC))
+    return moment.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def sbom(platform: str, manifest: dict, report: list[dict]) -> dict:
+    """The bill of materials of the bundled Python (CycloneDX 1.6): the
+    CPython build, each package pip installed with the file it came from
+    and its SHA-256, and each data file with its SHA-256."""
+    version = manifest["spacemissionstudio"]
+    components = [{
+        "type": "application", "bom-ref": "cpython", "name": "CPython (python-build-standalone)",
+        "version": manifest["python"], "licenses": [{"expression": "Python-2.0"}],
+        "hashes": [{"alg": "SHA-256", "content": manifest["python_build_sha256"]}],
+        "externalReferences": [{"type": "distribution", "url": manifest["python_build"]}],
+    }]
+    for item in sorted(report, key=lambda entry: normalise(entry["metadata"]["name"])):
+        metadata, download = item["metadata"], item["download_info"]
+        name = normalise(metadata["name"])
+        if name == "spacemissionstudio":
+            continue
+        purl = f"pkg:pypi/{name}@{metadata['version']}"
+        digest = download.get("archive_info", {}).get("hashes", {}).get("sha256")
+        component = {"type": "library", "bom-ref": purl, "name": metadata["name"], "version": metadata["version"],
+                     "purl": purl, "licenses": _licences(metadata),
+                     "externalReferences": [{"type": "distribution", "url": download["url"]}]}
+        if digest:
+            component["hashes"] = [{"alg": "SHA-256", "content": digest}]
+        if not component["licenses"]:
+            del component["licenses"]
+        components.append(component)
+    components += [{"type": "file", "bom-ref": f"file:{entry['path']}", "name": entry["path"],
+                    "hashes": [{"alg": "SHA-256", "content": entry["sha256"]}]} for entry in manifest["data_files"]]
+    return {
+        "bomFormat": "CycloneDX", "specVersion": "1.6", "version": 1,
+        "serialNumber": f"urn:uuid:{uuid.uuid4()}",
+        "metadata": {
+            "timestamp": _timestamp(),
+            "tools": {"components": [{"type": "application", "name": "packaging/bundle_python.py",
+                                      "version": version}]},
+            "component": {"type": "application", "bom-ref": f"pkg:pypi/spacemissionstudio@{version}",
+                          "name": "spacemissionstudio", "version": version,
+                          "purl": f"pkg:pypi/spacemissionstudio@{version}",
+                          "description": f"SpaceMissionStudio {version}, the private Python of the {platform} installer",
+                          "licenses": [{"expression": "ISC"}]},
+        },
+        "components": components,
+    }
 
 
 def run_python(python: Path, code: str, env: dict | None = None) -> str:
@@ -236,10 +360,14 @@ def bundle(platform: str, dest: Path, wheel: Path, constraints: Path, cache: Pat
     url, expected = PYTHON_BUILDS[platform]
     unpack(fetch_archive(platform, cache, archive), dest)
     python = interpreter(dest, platform)
-    print(f"Installing {BASILISK_REQUIREMENT} ...", flush=True)
-    pip_install(python, constraints, BASILISK_REQUIREMENT)
-    print(f"Installing {wheel.name}[gui] ...", flush=True)
-    pip_install(python, constraints, f"{wheel}[gui]")
+    own = {normalise(entry.partition("==")[0]) for entry in installed(python)} | {"spacemissionstudio"}
+    print(f"Installing {BASILISK_REQUIREMENT} (hash-checked) ...", flush=True)
+    report = pip_install(python, constraints, [BASILISK_REQUIREMENT])
+    print(f"Installing {wheel.name}[gui] (hash-checked) ...", flush=True)
+    report += pip_install(python, constraints, [local_wheel(wheel)])
+    problems = not_pinned(installed(python), read_pins(constraints), own)
+    if problems:
+        raise SystemExit("installed but not pinned in " + constraints.name + ": " + "; ".join(problems))
     print("Fetching the support data, the Earth orientation files and ITU-R P.676-13 Part 1 ...", flush=True)
     data = add_support_data(python, dest)
     with tempfile.TemporaryDirectory() as empty_cache:
@@ -248,15 +376,14 @@ def bundle(platform: str, dest: Path, wheel: Path, constraints: Path, cache: Pat
         python, "import json, sys, Basilisk, PySide6, spacemissionstudio; "
         "print(json.dumps({'python': sys.version.split()[0], "
         "'spacemissionstudio': spacemissionstudio.__version__, 'PySide6': PySide6.__version__}))"))
-    frozen = subprocess.run([str(python), "-I", "-m", "pip", "list", "--format=freeze",  # noqa: S603 -- no shell
-                             "--disable-pip-version-check"], check=True, capture_output=True, text=True).stdout.split()
     manifest = {"python_build": url, "python_build_sha256": expected, **check,
-                "packages": sorted(frozen, key=str.lower), "data_files": data}
+                "packages": sorted(installed(python), key=str.lower), "data_files": data, "sbom": SBOM_NAME}
     if prefix:
         print(f"Compiling the bytecode for {prefix} ...", flush=True)
         recompile(python, dest, prefix)
         relocate_earth_orientation(dest, prefix)
     (dest / MANIFEST_NAME).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    (dest / SBOM_NAME).write_text(json.dumps(sbom(platform, manifest, report), indent=2) + "\n", encoding="utf-8")
     return manifest
 
 
@@ -266,7 +393,8 @@ def main(argv: list[str] | None = None) -> int:
                         default="windows" if sys.platform == "win32" else "linux")
     parser.add_argument("--dest", type=Path, required=True, help="folder to create (must not exist)")
     parser.add_argument("--wheel", type=Path, required=True, help="the SpaceMissionStudio wheel to install")
-    parser.add_argument("--constraints", type=Path, default=_PACKAGING / "constraints.txt")
+    parser.add_argument("--constraints", type=Path, default=_PACKAGING / "constraints-hashes.txt",
+                        help="the pins with their SHA-256 (hash_constraints.py writes it)")
     parser.add_argument("--cache", type=Path, default=_PACKAGING / ".python-build-cache",
                         help="where the CPython archive is downloaded")
     parser.add_argument("--archive", type=Path, help="a CPython archive already on disk (still checked)")

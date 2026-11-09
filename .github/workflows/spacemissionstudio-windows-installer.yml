@@ -20,6 +20,8 @@ on:
       - "SpaceMissionStudio/packaging/windows/**"
       - "SpaceMissionStudio/packaging/bundle_python.py"
       - "SpaceMissionStudio/packaging/constraints.txt"
+      - "SpaceMissionStudio/packaging/constraints-hashes.txt"
+      - "SpaceMissionStudio/packaging/hash_constraints.py"
       - ".github/workflows/spacemissionstudio-windows-installer.yml"
   workflow_dispatch:
     inputs:

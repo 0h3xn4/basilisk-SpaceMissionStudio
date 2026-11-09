@@ -95,8 +95,10 @@ This is a requalification, described in
 2. Run the full suite and the validation cases against it.
 3. Only then change `QUALIFIED_BASILISK_VERSION`, the installers'
    `bsk[all]==` pin (`BASILISK_REQUIREMENT` in
-   `packaging/bundle_python.py`), `bsk==` in `packaging/constraints.txt`,
-   and the `bsk[all]==` commands
+   `packaging/bundle_python.py`), `bsk==` in `packaging/constraints.txt`
+   (then `python packaging/hash_constraints.py` to rewrite
+   `constraints-hashes.txt`, which also names any new dependency left
+   unpinned), and the `bsk[all]==` commands
    in the documentation (`grep -rn "bsk\[all\]==" --include=*.md .`).
 4. Re-vendor the flight-software sources the export uses
    (`spacemissionstudio/fsw_export/basilisk_fsw_sources.*`, from the new

@@ -118,9 +118,12 @@ def test_the_release_constraints_pin_every_dependency_the_installers_use():
         name = re.split(r"[<>=!~\[ ]", requirement, maxsplit=1)[0].lower().replace("_", "-")
         assert name in pins, f"{name} is not pinned in constraints.txt"
     assert pins["bsk"] == dependencies.QUALIFIED_BASILISK_VERSION
-    for installer in ("packaging/install.sh", "packaging/install.ps1", "packaging/bundle_python.py",
-                      "../.github/workflows/spacemissionstudio.yml"):
+    for installer in ("packaging/install.sh", "packaging/install.ps1", "../.github/workflows/spacemissionstudio.yml"):
         assert "constraints.txt" in (root / installer).read_text(encoding="utf-8"), installer
+    # The private Python of the .deb and the setup program: the same pins,
+    # each with its files' SHA-256 (tests/test_hashed_installs.py).
+    for installer in ("packaging/install.sh", "packaging/install.ps1", "packaging/bundle_python.py"):
+        assert "constraints-hashes.txt" in (root / installer).read_text(encoding="utf-8"), installer
 
 
 

@@ -1897,3 +1897,13 @@ through each downloading module:
 |---|---|---|---|
 | `tests/test_spaceweather.py` (9 tests), `tests/test_small_bodies.py` (2), `tests/test_gaseous_attenuation.py` (2), `tests/gui/test_vizard_launcher.py` (13) | `monkeypatch.setattr(sw.urllib.request, "urlopen", ...)` (and `sb.`, `gases.`, `vizard_launcher.`) | `monkeypatch.setattr(urllib.request, "urlopen", ...)` | The same function is replaced; only the path to it changed |
 | `tests/gui/test_vizard_launcher.py::test_a_cancelled_or_oversized_download_leaves_no_partial_file` | the download folder is empty afterwards | the download folder holds nothing but `.spacemissionstudio` | The test's home folder is that folder (`conftest.py`), so the network log written there is not a partial download; no `.part` or zip file may remain, as before |
+
+## Hash-checked installer packages (2026-11-09)
+
+No test removed, no assertion weakened, no golden or output file
+changed. The installers now install with the pins' SHA-256
+(`packaging/constraints-hashes.txt`, generated from `constraints.txt`):
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/test_dependencies.py::test_the_release_constraints_pin_every_dependency_the_installers_use` | `install.sh`, `install.ps1`, `bundle_python.py` and the CI workflow name `constraints.txt` | `install.sh`, `install.ps1` and the CI workflow name `constraints.txt` (the vendored Basilisk step and CI's editable install); `install.sh`, `install.ps1` and `bundle_python.py` name `constraints-hashes.txt` | `bundle_python.py` installs from the hashed file only; the hashed file is checked against `constraints.txt` in `tests/test_hashed_installs.py`, so the check is stricter, not weaker |

@@ -94,8 +94,14 @@ release"). On GitHub's runners it:
   opened in Inter;
 - builds the bundled Python on Windows, then the setup program around
   it, installs it silently and runs it the same way;
-- writes `SHA256SUMS-linux` and `SHA256SUMS-windows`, checks every file
-  against them and attaches all of them to the tag's release. A release
+- takes each installer's software bill of materials
+  (`SPACEMISSIONSTUDIO_SBOM.cdx.json`, written by `bundle_python.py`;
+  every package with the file installed and its SHA-256) and attaches it
+  beside the installer as `spacemissionstudio_X.Y.Z_amd64.cdx.json` and
+  `spacemissionstudio-X.Y.Z-setup.cdx.json`;
+- writes `SHA256SUMS-linux` and `SHA256SUMS-windows` (the bills of
+  materials included), checks every file against them and attaches all
+  of them to the tag's release. A release
   that does not exist yet is created as a draft. An existing release
   keeps its notes unless they are empty, and its files are replaced.
 - writes the notes with `packaging/release_notes.py`, in a fixed layout:

@@ -5,6 +5,41 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Network use, offline mode and the installers' packages (2026-11-09)
+
+- **Enforce, then observe:** a gateway and a guard inside the tool, and
+  an audit from outside it (strace in CI); a colleague can repeat the
+  second with their own firewall, without trusting the first.
+- **The guard is an audit hook, not a monkeypatch:** PEP 578 hooks see
+  every socket call of any Python code, Basilisk's and plugins' too, and
+  cannot be removed by later code; a patched `socket` could be bypassed.
+- **Refuse rather than log only:** a network use outside a download is a
+  defect, so it fails where it happens and is logged; a log alone would
+  be read after the fact.
+- **Offline is a setting, lockable by a file:** **Settings > Network**
+  for a user; a machine-wide file, or an environment variable, for an
+  administrator, which the user cannot override (no admin rights needed
+  to read it; an unreadable file counts as offline).
+- **A section of Settings, not a toolbar switch:** offline is set once
+  per computer or per user, not toggled during work.
+- **Local loopback stays open:** software-in-the-loop runs and Vizard's
+  stream use 127.0.0.1; listening on any other address is refused.
+- **Hashes in their own file:** `constraints.txt` stays the readable pin
+  list CI installs editable with; hash-checking mode would refuse an
+  editable install. The hashed file is generated, never edited, and a
+  test fails when the two differ.
+- **Every file PyPI publishes for Python 3.14, not one per platform:** a
+  Linux on ARM user of `install.sh` gets the same check, and pip still
+  picks the right file.
+- **No source builds in the installers** (`--only-binary=:all:`): every
+  pin has a wheel for Linux x86_64 and Windows x64 (the script checks),
+  so a package's build script never runs on the build machine.
+- **A Basilisk wheel the user supplies is not hash-checked:** it is their
+  own build; its dependencies keep the plain pins.
+- **CycloneDX for the bill of materials:** an open standard (ECMA-424)
+  most scanners read; the file installed and its SHA-256 come from pip's
+  own installation report, not from a second resolution.
+
 ## The definition of done (2026-11-03)
 
 - **A bundle made elsewhere, reproduced in CI:** a small Linux bundle is
