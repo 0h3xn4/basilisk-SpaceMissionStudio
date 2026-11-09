@@ -41,6 +41,24 @@ fixes bugs.
   (CycloneDX 1.6: every package, the file installed and its SHA-256,
   every data file), attached to the release beside it.
 
+- **Results › 3D View: the run in 3D, inside the app.** The central body
+  (Earth shaded by its albedo map, turning), each spacecraft's path, the
+  spacecraft with its 3D model turned by the run's attitude, the ground
+  stations and the Sun's direction, played back with a speed you choose.
+  The slider and the shared time cursor move together. **Follow** shows
+  one spacecraft at its true size with its body axes and the Sun and
+  nadir arrows. Nothing to install and nothing sent anywhere: it is
+  drawn by the app's own copy of plotly.js and is part of the network
+  audit.
+
+### Removed
+
+- **The Vizard download.** The Vizard AVS Lab publishes has Unity
+  Analytics switched on, so SpaceMissionStudio no longer downloads it,
+  no longer looks for a Vizard on your computer, and ignores a copy an
+  earlier version downloaded. A Vizard you choose in **Settings >
+  Vizard** is still started; **Results › 3D View** needs none.
+
 ### Fixed
 
 - **The Windows installer took the newest `tzdata`.** pandas needs it on

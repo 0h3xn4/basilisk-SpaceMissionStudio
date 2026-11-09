@@ -7,7 +7,7 @@ error path in this development sandbox (see test_run_worker.py).
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import Signal
 
 pytestmark = pytest.mark.requires_gui
 
@@ -452,7 +452,6 @@ def test_close_with_unsaved_changes_discard_allows_close(window, monkeypatch):
     event = QCloseEvent()
     window.closeEvent(event)
     assert event.isAccepted()
-
 
 
 def test_save_in_the_unsaved_changes_question_saves_then_goes_ahead(window, monkeypatch, tmp_path):
@@ -1342,7 +1341,7 @@ def test_locate_vizard_browse_cancelled_returns_none(window, monkeypatch):
 
 
 def test_locate_vizard_dismissed_returns_none(window, monkeypatch):
-    """Neither "Download Vizard" nor "Browse..." clicked (e.g. the dialog
+    """Neither "Open the 3D View" nor "Browse..." clicked (e.g. the dialog
     was closed via its window decoration) -- QMessageBox's own
     `clickedButton()` then returns its implicit Cancel button, which
     matches neither of the two named buttons this method checks for.
@@ -1352,75 +1351,6 @@ def test_locate_vizard_dismissed_returns_none(window, monkeypatch):
     monkeypatch.setattr(QMessageBox, "exec", lambda self: 0)  # never click anything
 
     assert window._locate_vizard() is None
-
-
-class _FakeVizardFetchWorker(QObject):
-    """Stands in for ``VizardFetchWorker`` without spinning up a real
-    ``QThread`` -- mirrors this test file's own ``RunWorker``-patching
-    convention (``monkeypatch.setattr(RunWorker, "start", ...)``) rather
-    than exercising real threading/network in a unit test. Signals are
-    emitted synchronously from :meth:`start`, exactly as they would be
-    for a worker whose background thread happened to finish before the
-    caller's nested ``QEventLoop`` even started spinning -- a real,
-    documented-safe case for ``QEventLoop`` (``quit()`` before ``exec()``
-    just makes the next ``exec()`` return immediately), not a test-only
-    shortcut.
-    """
-
-    finished_ok = Signal(str)
-    failed = Signal(str)
-    status = Signal(str)
-
-    def __init__(self, outcome_path=None, outcome_error=None, parent=None):
-        super().__init__(parent)
-        self._outcome_path = outcome_path
-        self._outcome_error = outcome_error
-        self.cancel_requested = False
-
-    def request_cancel(self):
-        self.cancel_requested = True
-
-    def start(self):
-        if self._outcome_error is not None:
-            self.failed.emit(self._outcome_error)
-        else:
-            self.finished_ok.emit(self._outcome_path)
-
-    def wait(self):
-        pass
-
-
-def test_fetch_vizard_with_progress_success_remembers_and_returns_the_path(window, monkeypatch):
-    """A successful Vizard download returns the executable's path and remembers
-    it."""
-    from pathlib import Path
-
-    from spacemissionstudio.gui import main_window
-
-    fetched = Path("/fetched/Vizard")
-    monkeypatch.setattr(main_window, "VizardFetchWorker",
-                         lambda parent=None: _FakeVizardFetchWorker(outcome_path=str(fetched)))
-    remembered = []
-    monkeypatch.setattr(main_window, "remember_vizard_executable", lambda path: remembered.append(path))
-
-    result = window._fetch_vizard_with_progress()
-
-    assert result == fetched
-    assert remembered == [fetched]
-
-
-def test_fetch_vizard_with_progress_failure_shows_error_and_returns_none(window, monkeypatch, reported):
-    """A failed Vizard download returns no path and reports the reason as an
-    error, without a message box."""
-    from spacemissionstudio.gui import main_window
-
-    monkeypatch.setattr(main_window, "VizardFetchWorker",
-                         lambda parent=None: _FakeVizardFetchWorker(outcome_error="could not download: boom"))
-
-    result = window._fetch_vizard_with_progress()
-
-    assert result is None
-    assert reported == [("Could not download Vizard: could not download: boom", "error")]  # the reason, no box
 
 
 def _click_message_box_button(button_text):
@@ -1438,6 +1368,26 @@ def _click_message_box_button(button_text):
                 return 0
         raise AssertionError(f"no QMessageBox button with text {button_text!r}")
     return _exec
+
+
+def test_the_vizard_not_found_dialog_offers_the_3d_view_and_no_download(window, monkeypatch):
+    """SpaceMissionStudio no longer downloads Vizard (AVS Lab's build has
+    Unity Analytics on): the dialog says why, offers the built-in 3D view
+    and Browse, and no button downloads anything."""
+    from PySide6.QtWidgets import QMessageBox
+
+    seen = {}
+
+    def exec_(box):
+        seen["text"] = box.text()
+        seen["buttons"] = [button.text() for button in box.buttons()]
+        return _click_message_box_button("Open the 3D View")(box)
+
+    monkeypatch.setattr(QMessageBox, "exec", exec_)
+    assert window._locate_vizard() is None
+    assert "does not download Vizard" in seen["text"] and "Unity Analytics" in seen["text"]
+    assert not any("Download" in text for text in seen["buttons"])
+    assert window.current_view() is window.mission_view_widget
 
 
 def test_launch_vizard_failure_shows_error(window, monkeypatch, reported):
@@ -2112,7 +2062,7 @@ def test_join_finished_worker_waits_out_a_thread_that_already_signalled(qtbot):
     """
     import threading
 
-    from PySide6.QtCore import QThread, Signal
+    from PySide6.QtCore import QThread
 
     from spacemissionstudio.gui.main_window import _join_finished_worker
 

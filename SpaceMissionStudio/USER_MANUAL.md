@@ -28,7 +28,7 @@ This manual only covers *using the app once it's installed*.
 6. [A tour of the Scenario Editor](#6-a-tour-of-the-scenario-editor)
 7. [Reading the results](#7-reading-the-results)
 8. [Saving your work](#8-saving-your-work)
-9. [3D visualization with Vizard](#9-3d-visualization-with-vizard)
+9. [3D visualization](#9-3d-visualization)
 10. [Monte Carlo: running many variations at once](#10-monte-carlo-running-many-variations-at-once)
 11. [Common questions and problems](#11-common-questions-and-problems)
 12. [A short glossary](#12-a-short-glossary)
@@ -1449,28 +1449,48 @@ page, spacecraft, ground station, setting, template or result series by a
 few letters of its name ("save as", "events", "sat-1", "05 formation",
 "velocity"). Arrows choose, Enter runs it.
 
-## 9. 3D visualization with Vizard
+## 9. 3D visualization
 
-Vizard is AVS's separate 3D visualization application -- it shows your
-spacecraft, orbit, and attitude moving in real time (or played back
-afterward) instead of just plots of numbers.
+**Results › 3D View** shows the last run in 3D, inside the app, with
+nothing to install and nothing sent anywhere:
+
+* the central body (Earth shaded by Basilisk's albedo map, turning), each
+  spacecraft's path, the spacecraft themselves (their
+  [3D model](docs/user-manual/3d-model.md) when they have one, else a
+  1 m cube) turned by the run's attitude, the ground stations and the
+  Sun's direction;
+* **Play** plays the run, at the speed beside it (simulated time per
+  second, chosen so a run plays in about 30 s); the slider picks a time.
+  The slider and the shared time cursor (Section 7) move together;
+* **Whole orbit** draws the spacecraft larger than they are, so they can
+  be seen (the note under the controls says by how much); **Follow** a
+  spacecraft shows it at its true size, centred, with its body axes
+  (x red, y green, z blue) and arrows to the Sun and nadir. Drag to
+  turn the view, scroll to zoom.
+
+Without an attitude in the run a spacecraft is drawn aligned with the
+inertial axes, and the note says so.
+
+**Vizard** is AVS's separate 3D application. SpaceMissionStudio no
+longer downloads or looks for it: the build AVS Lab publishes has Unity
+Analytics switched on, which sends usage data to Unity. A Vizard you
+built or checked yourself can still be used:
 
 * The **Vizard** options on the Run area's **Run** page (or **Vizard
   Configuration...** in the command palette, which shows them) decide how
   the *next* run feeds Vizard -- live streaming while the simulation
   runs, or saving a playback file to watch afterward. A change applies
   at once; there is no OK.
-* **Launch Vizard** (the Run area) starts the separate Vizard application itself.
-  If SpaceMissionStudio can't find it already installed, it offers to
-  download AVS's own pre-built copy for you (only when you click
-  **Download Vizard**), or to **Browse...** for one you already have.
+* **Launch Vizard** (the Run area) starts the Vizard you chose (**Settings >
+  Vizard > Browse...**). With none chosen, it offers the 3D View, or
+  **Browse...** for your own.
 * **Open in Vizard** appears in Results after a run that saved a
   playback file, and starts Vizard on that file. Vizard cannot follow
   the time cursor (Section 7): it has no way for another program to set
   its playback time.
 
-Vizard is entirely optional -- the plots in Results already show
-everything numerically; Vizard is for *seeing* the mission.
+Vizard is entirely optional: the 3D View and the plots in Results show
+the mission without it.
 
 ## 10. Monte Carlo: running many variations at once
 

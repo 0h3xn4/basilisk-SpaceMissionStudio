@@ -14514,6 +14514,69 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## A 3D view in the app, and no more Vizard download (2026-11-09)
+
+Looking at AVS Lab's published Vizard for the colleagues' concern showed
+that it has Unity Analytics switched on. Its project settings enable it
+and start it at launch, and the downloaded program contains Unity's
+analytics libraries (including a "Telemetry" module), AVS Lab's Unity
+project ID and Unity's event addresses. Running it here to watch it was
+not allowed (an external program), so it is not measured. It very likely
+sends usage data to Unity. The user called that "an absolute no-go" and
+asked for an alternative inside SpaceMissionStudio.
+
+**Removed:**
+
+- the **Download Vizard** button, its download code and its network
+  purpose;
+- the automatic search for a Vizard (Desktop, Downloads, home);
+- a remembered Vizard inside the folder the old download used, which is
+  ignored.
+
+Only a Vizard the user chooses is started. The "Vizard not found" dialog
+says why, and offers the 3D view or **Browse...**.
+
+**Added: Results › 3D View.**
+
+- **`engine/scene3d.py`** builds the scene from the run's own series:
+  - positions on one time grid of up to 1,500 frames;
+  - the attitude from the nearest recorded MRP, since an MRP that
+    switches to its shadow set cannot be interpolated;
+  - each spacecraft's 3D model, or a 1 m cube;
+  - the ground stations;
+  - the Earth turning by the IERS Earth rotation angle;
+  - the Sun's direction from the Astronomical Almanac's formula.
+- **The tests check the inputs it rests on:**
+  - the rotation angle at J2000.0 matches IERS 2010 to 1e-9 degrees;
+  - the Sun at the 2030 equinox and solstice is within 0.05 degrees;
+  - the attitude matrices equal the model analyses'.
+- **The view (`gui/mission_view_widget.py`)** draws it with the app's
+  own plotly.js. Playback moves the models in the page itself.
+- **The first follow view was blank:** a 15 m view around a point 7,000
+  km out is below WebGL's single precision. The follow view is now
+  centred on the spacecraft, with the Earth and paths hidden and arrows
+  to the Sun and nadir instead.
+- **The bundled albedo map is all-sky:** mostly cloud. The colours are
+  therefore ocean blue to cloud white, not land colours that would
+  mislead.
+- **Network audit:** a GUI session now includes the 3D view (play, then
+  follow). Traced here with no network: 146 processes, 20 calls, none to
+  another computer.
+
+The Vizard build without analytics, prepared in `0h3xn4/vizard` (branch
+`sms/telemetry-free-build`), is parked: it needs a Unity licence, and
+the 3D view replaces the need.
+
+**Tests:**
+
+- `tests/test_scene3d.py` (8);
+- `tests/gui/test_mission_view.py` (6): empty state, drawing, playback
+  and the cursor, follow at true size with the axes, the theme's colours;
+- the Vizard launcher's new rules (3), and the "not found" dialog (1).
+
+The download's and the search's tests are removed with them
+(`docs/ui/TEST_CHANGES.md`).
+
 ## Hash-checked installer packages and a bill of materials (2026-11-09)
 
 The third part: what the installers contain. The versions were already

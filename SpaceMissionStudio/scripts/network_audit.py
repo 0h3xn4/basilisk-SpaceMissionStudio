@@ -271,13 +271,21 @@ def session_gui(work: Path) -> None:
     wait(lambda: len(window.run_history.runs) > 0 and not window._run_worker.isRunning(), 900.0, "a run")
     window.show_view(window.results_widget)
     spin(5.0)  # [s] the plots' web view loads plotly
+    window.show_view(window.mission_view_widget)  # the built-in 3D view: its scene, its page, playing
+    wait(lambda: window.mission_view_widget.scene is not None, 120.0, "the 3D view")
+    spin(5.0)  # [s]
+    window.mission_view_widget.toggle_play()
+    spin(3.0)  # [s]
+    window.mission_view_widget.pause()
+    window.mission_view_widget.view_combo.setCurrentIndex(1)  # follow the spacecraft
+    spin(2.0)  # [s]
     window.show_view(window.event_timeline_widget)
     spin(1.0)  # [s]
     window.on_run()
     wait(lambda: len(window.run_history.runs) > 1 and not window._run_worker.isRunning(), 900.0, "a second run")
     window.show_view(window.compare_widget)
     spin(5.0)  # [s]
-    print("gui: runs, plots, compare", flush=True)
+    print("gui: runs, plots, 3D view, compare", flush=True)
 
     window.open_path(_short("25_monte_carlo_orbit_and_drag_dispersions.json", work, 0.05, monte_carlo_runs=2))
     spin(2.0)  # [s]
