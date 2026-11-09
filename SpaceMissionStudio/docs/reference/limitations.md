@@ -288,6 +288,20 @@ Each item was checked against Basilisk's own source.
   * Rename (F2) covers spacecraft, ground stations and 3D model parts,
     as their forms do; devices and materials are renamed in their forms.
 
+* **The 3D View (`engine/scene3d.py`, `gui/mission_view_widget.py`).**
+  * A playback of the run's own series, not a renderer: at most 1,500
+    frames, each spacecraft's attitude the nearest recorded one (an MRP
+    that switches to its shadow set cannot be interpolated).
+  * The Earth turns by the IERS Earth rotation angle, with UT1 taken as
+    UTC and precession left out: about 0.4 degrees from the true
+    Earth-fixed frame in 2030. Its colours are Basilisk's all-sky albedo
+    map, mostly cloud, not a land map.
+  * The Sun's direction (the Astronomical Almanac's formula, about 0.01
+    degrees) is drawn for Earth-centred runs only; other central bodies
+    are plain spheres that do not turn.
+  * No instrument or camera views, no panels and no live streaming:
+    Vizard's, which the 3D View does not replace.
+
 ## Planned, not yet built
 
 Scoped from real use, with the detail in

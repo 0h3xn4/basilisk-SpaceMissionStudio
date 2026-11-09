@@ -14514,6 +14514,39 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Release 2.6.0 prepared (2026-11-09)
+
+A minor release: it adds features. The standing instruction is to
+continue until the features are in and a release is ready. Contents
+since 2.5.0: network use enforced and offline mode (#235), the network
+audit (#236), hash-checked installers with a bill of materials (#237),
+the 3D View in place of the Vizard download (#239), and the
+documentation refresh with the 2.5.0 publication record (#234). The
+colleagues' concern about data security started the first three; the
+finding that AVS Lab's Vizard has Unity Analytics on, and the user's
+decision that this is "an absolute no-go", the fourth.
+
+Prepared by `docs/developer/releasing.md`: version 2.6.0 in
+`pyproject.toml`, `__init__.py` and the Inno Setup script; the
+CHANGELOG's Unreleased entries under 2.6.0 with an introduction, Who
+should update and Known limits; SRelD issue 31 (2.6.0 prepared, 2.5.0
+previous with its publication details, K-13 extended, K-32 for Vizard,
+the bills of materials among the delivered files); the SDP, SRS, ICD
+(the `network` command, the policy file, the bill of materials), CSD,
+SUM, both READMEs and `releasing.md` name 2.6.0; the limitations page
+lists the 3D View's.
+
+Compatibility checked with 2.5.0's own code (the tagged commit
+`1951a028c`): the 32 templates, saved by this code, open and validate in
+2.5.0 with no message. The golden-output regression tests passed, so
+every template's outputs are as in 2.5.0.
+
+CelesTrak reset the connection again (`curl: (35) Recv failure:
+Connection reset by peer`), so the bundled space weather is still
+1.3.0's (K-13).
+
+Full suite on Python 3.14 (a home holding only the reference data cache), on the release's code: 4835 passed in 16 min 8 s.
+
 ## A 3D view in the app, and no more Vizard download (2026-11-09)
 
 Looking at AVS Lab's published Vizard for the colleagues' concern showed
