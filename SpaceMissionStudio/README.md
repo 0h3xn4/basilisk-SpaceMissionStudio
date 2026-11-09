@@ -69,7 +69,9 @@ A few seconds later the **Results** area shows the orbit and the
 
 - **Scenarios** as plain JSON: spacecraft, orbits (elements, position
   and velocity, or a TLE), gravity, ground stations, space weather, a
-  Mission Sequence and Monte Carlo dispersions; checked as you type.
+  Mission Sequence and Monte Carlo dispersions; checked as you type, in
+  forms or as text in a code editor (colours, problems marked in place,
+  completion and help, rename, quick fixes).
 - **Orbits:** detailed Earth gravity, Sun and Moon, drag from real space
   weather, solar pressure, measured Earth orientation (ITRF93), runs of up
   to about 10 years.
@@ -95,7 +97,7 @@ A few seconds later the **Results** area shows the orbit and the
 - **3D model** of the spacecraft, built from shapes, `.obj` meshes or an
   IDM-CIC model: its mass, center of mass, inertia, surfaces, equipment
   and stowed configuration (from IDM-CIC also its sensors and actuators,
-  the power budget's bus load and solar panel, and the values your team
+  its thrusters from their plume cones, the power budget's bus load and solar panel, and the values your team
   keeps as properties); design checks (fields of view, thrusters, mass
   budget, launcher fit) and analyses after a run (disturbance torques,
   blinding, shading, exposure, brightness, a preliminary re-entry

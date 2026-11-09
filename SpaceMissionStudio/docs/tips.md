@@ -27,7 +27,21 @@ writes, so you can move data to and from other tools.
 | `Alt+Right` / `Alt+Left` in Results (with `Shift`: ten) | Move the time cursor a sample |
 | `Alt+PgDown` / `Alt+PgUp`, `Alt+Home` / `Alt+End` in Results | The time cursor to the next or previous event, or the run's start or end |
 
-**Settings > Keyboard** (`Ctrl+/`) lists them all in the app, and
+In the Scenario area's JSON page (**Form · JSON**), while the text has
+the focus:
+
+| Keys | Does |
+|---|---|
+| `Ctrl+Space` | Suggest what can be typed at the cursor (fields, choices, names) |
+| `Ctrl+Shift+Space` | Describe the key at the cursor: type, default, unit, meaning |
+| `F8` / `Shift+F8` | Go to the next / previous problem |
+| `F2` | Rename the spacecraft, ground station or 3D model part at the cursor, everywhere |
+| `F12` | Go to where the name at the cursor is defined |
+| `Ctrl+.` | Quick fixes for the key or value at the cursor |
+| `Shift+Alt+F` | Lay the text out again |
+
+**Settings > Keyboard** (`Ctrl+/`) lists every command's shortcut in the
+app (the JSON page's keys are in its right-click menu), and
 **Reports > Exports** lists the exports and where each is made.
 
 ## Working habits

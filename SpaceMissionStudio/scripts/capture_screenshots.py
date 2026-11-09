@@ -22,7 +22,8 @@ Basilisk 2.12.0, the ``gui`` extra and the reference data installed::
 
     QT_QPA_PLATFORM=offscreen python scripts/capture_screenshots.py docs/images
 
-It opens templates 22, 18 and 07, runs template 22 for one day and then
+It opens templates 22, 18 and 07 (22 also on its JSON page, a key
+misspelt), runs template 22 for one day and then
 two (Compare), runs template 25's Monte Carlo batch into a temporary
 folder, estimates template 22's lifetime and template 18's propellant
 budget, and saves each view at 1600 x 900 pixels, and the 3D model editor
@@ -125,6 +126,7 @@ def main(out: Path, theme: str = "light", size: tuple = WINDOW_SIZE) -> int:
     window.show_view(window.scenario_editor.scenario_page)  # its Scenario page (Explain is the tree's Overview, M4b)
     spin(4.0)  # [s]
     save("scenario_editor_tab.png")
+    capture_json_page(window, out, spin)
 
     window.on_run()
     wait(lambda: window.event_timeline_widget.table.row_count() > 0, 300.0, "the run of template 22")  # [s]
@@ -201,10 +203,45 @@ def main(out: Path, theme: str = "light", size: tuple = WINDOW_SIZE) -> int:
     return 0
 
 
+def capture_json_page(window, out: Path, spin) -> None:
+    """``json_page.png``: template 22 on its JSON page, "dry_mass_kg"
+    misspelt "dry_mas_kg": the key underlined where it is, and the cursor
+    on it giving its message under the text. The form is shown again
+    after, with the template's own text."""
+    from PySide6.QtGui import QTextCursor
+
+    editor = window.scenario_editor
+    editor.show_json()
+    spin(1.0)  # [s]
+    edit = editor.json_view.edit
+    text = edit.toPlainText()
+    start = text.index('"dry_mass_kg"')
+    cursor = edit.textCursor()
+    cursor.setPosition(start + 1)
+    cursor.setPosition(start + len('"dry_mass_kg'), QTextCursor.MoveMode.KeepAnchor)
+    edit.setTextCursor(cursor)
+    edit.insertPlainText("dry_mas_kg")
+    editor.json_view.flush()
+    cursor = edit.textCursor()
+    cursor.setPosition(start + 4)
+    edit.setTextCursor(cursor)
+    edit.centerCursor()
+    edit.setFocus()
+    spin(2.0)  # [s]
+    window.statusBar().clearMessage()  # "Opened <the template's path on this computer>"
+    spin(0.2)  # [s]
+    window.grab().save(str(out / "json_page.png"))
+    print(f"wrote {out / 'json_page.png'}")
+    edit.undo()
+    editor.json_view.flush()
+    spin(1.0)  # [s]
+
+
 def capture_idm_import(out: Path, spin) -> None:
     """``idm_import.png``: the IDM-CIC import dialog on a synthetic test
     model (``tests/data/idm/axessat``, made up; never a real model), its
-    devices listed with the axes their shapes show."""
+    devices listed with the axes their shapes show, scrolled to the
+    thruster added to the 3D model from its plume cone."""
     import tempfile
 
     from spacemissionstudio.gui.idm_import_dialog import IdmImportDialog
@@ -219,6 +256,7 @@ def capture_idm_import(out: Path, spin) -> None:
         end = time.time() + 30.0  # [s] the file read and the import planned in the worker
         while (dialog.busy() or dialog.plan() is None) and time.time() < end:
             spin(0.1)  # [s]
+        dialog.devices_table.scrollToBottom()
         spin(1.0)  # [s]
         dialog.grab().save(str(out / "idm_import.png"))
         print(f"wrote {out / 'idm_import.png'}")

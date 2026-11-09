@@ -21,8 +21,8 @@ One line per value that a save changes, with:
 | `reason` | why: for an override, the reason you gave it (**Give a reason...**), which an override must have |
 
 A change is found by comparing the file on disk with what is saved, so it
-is recorded the same whether it was made in a form, in the JSON view or by
-a command. A save that changes nothing writes nothing. The lines are
+is recorded the same whether it was made in a form, in the JSON page (a rename
+there included) or by a command. A save that changes nothing writes nothing. The lines are
 only ever added to; nothing rewrites them.
 
 - **An override** is a value you marked overridden

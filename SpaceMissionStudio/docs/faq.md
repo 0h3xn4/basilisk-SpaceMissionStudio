@@ -109,8 +109,9 @@ Yes, through standard files:
 - orbits in and out as CCSDS OPM, OMM and OEM, and in as TLEs, in the
   app or on the command line
   ([Orbit files](user-manual/orbit-files.md));
-- a spacecraft's 3D model, mass properties, sensors and actuators, and
-  the power budget's bus load and solar panel, in from an IDM-CIC model
+- a spacecraft's 3D model, mass properties, sensors and actuators,
+  thrusters (onto the 3D model), and the power budget's bus load and
+  solar panel, in from an IDM-CIC model
   (`.idm`, read only; IDM-CIC is © CNES;
   [Import a spacecraft from IDM-CIC](user-manual/idm-cic.md)), and 3D
   shapes in and out as Wavefront `.obj`

@@ -34,9 +34,9 @@ Manual the app shows (`help/`).
 
 | Package | What it holds | Needs Basilisk |
 |---|---|---|
-| `schema/` | The scenario model (`Scenario`, `SpacecraftConfig`, `OrbitIC`, ...) as dataclasses, its validation, file migrations, the Mission Sequence commands and reference checks | No |
+| `schema/` | The scenario model (`Scenario`, `SpacecraftConfig`, `OrbitIC`, ...) as dataclasses, its validation, file migrations, the Mission Sequence commands and reference checks, and what the file can hold at each place for the JSON page's completion and help (`fields.py`, with each field's help generated into `field_help.json` by `scripts/build_field_help.py`) | No |
 | `engine/` | `service.SimulationService` builds and runs a Basilisk simulation; `long_run` chains runs past 100 days; `mission_engine` runs a Mission Sequence; analyses (lifetime, budgets, Monte Carlo, link budget, formations, constellations); data and exchange (space weather, Earth orientation, kernels, CCSDS, TLE, results, events) | Only the modules that build a simulation, and they import it inside functions |
-| `gui/` | The PySide6 application: the shell (navigation rail, areas, top bar, status bar, command registry), the theme package (`gui/theme/`), the editors, the Run, Results, Timeline and Reports views, the workers that run things in the background | No (it opens without Basilisk; runs need it) |
+| `gui/` | The PySide6 application: the shell (navigation rail, areas, top bar, status bar, command registry), the theme package (`gui/theme/`), the editors (the JSON page's code editor among them: `code_editor.py`, `json_positions.py`, `json_assist.py`, `json_refactor.py`; design: [The JSON page as a code editor](json-editor.md)), the Run, Results, Timeline and Reports views, the workers that run things in the background | No (it opens without Basilisk; runs need it) |
 | `config/` | The registry of named parameters (value, unit, source, limits: `registry.py`, `parameters.py`), the selectable models (`models.py`), and the YAML project configuration files a scenario names in `config_file` (`files.py`; `defaults.yaml` is generated) | No |
 | `cli.py` | The `spacemissionstudio` command, over the same `engine` calls as the GUI | Only for commands that run something |
 | `api.py` | The stable Python API for scripts (`load`, `validate`, `run`, `lifetime`, `budget`, `compare`, ...; reference in [`docs/api.md`](../api.md)), over the same `engine` calls | Only for the functions that run something |
@@ -47,7 +47,7 @@ Manual the app shows (`help/`).
 | `model3d/` | 3D spacecraft models: shapes and `.obj` files, mass properties (and reading them from a file: `mass_import.py`), surface facets, mounted equipment, the stowed configuration, ray casting (`raycast.py`), moving the body frame's origin (`origin.py`), and applying them to a spacecraft | No (numpy only) |
 | `analyses/` | Analyses built on the 3D model: the design checks (fields of view, thrusters and plumes, mass budget, launcher envelope), a run's model analyses (disturbance budget, blinding, obstruction, shading, exposure, brightness), the preliminary re-entry estimate, and their records and tables | Only for the device defaults (thrusters, wheels) and the atmosphere table, imported inside functions |
 | `idm/` | Reading IDM-CIC models (`.idm` files; IDM-CIC is © CNES) with the tool's own code: the archive, its values, objects, frames and shapes, the power modes (`power.py`) and a team's properties (`properties.py`); it knows nothing of scenarios | No |
-| `idm_import.py`, `idm_devices.py`, `idm_properties.py` | Mapping an IDM-CIC model into a spacecraft: the 3D model, mass properties, stowed poses, the power budget and the body frame's origin, re-imports that keep your edits (`idm_import.py`); the sensors and actuators found by name, with their axes (`idm_devices.py`); device and battery values from a team's properties (`idm_properties.py`). Design: [IDM-CIC import](idm-cic-integration.md) | No |
+| `idm_import.py`, `idm_devices.py`, `idm_properties.py` | Mapping an IDM-CIC model into a spacecraft: the 3D model, mass properties, stowed poses, the power budget and the body frame's origin, re-imports that keep your edits (`idm_import.py`); the sensors and actuators found by name, with their axes, and the thrusters added to the 3D model from their plume cones (`idm_devices.py`); device and battery values from a team's properties (`idm_properties.py`). Design: [IDM-CIC import](idm-cic-integration.md) | No |
 | `ccsds_files.py` | CCSDS orbit data message files for a scenario (validate, export, import, a run's OEM), shared by the CLI and the GUI; the messages themselves are `engine/ccsds_odm.py`'s | Only to export an OPM, imported inside a function |
 | `plot_categories.py` | How each named result series is shown: title, axis label, unit, column names, display-only unit conversion | No |
 
@@ -92,7 +92,7 @@ days (`engine/long_run.py`).
 
 | You want | Look in |
 |---|---|
-| A scenario field and its meaning | `schema/scenario.py` (each field's comment), and the generated field list [`compliance/docs/ICD_scenario_fields.md`](../../compliance/docs/ICD_scenario_fields.md) |
+| A scenario field and its meaning | `schema/scenario.py` (each field's comment; after changing one, run `scripts/build_field_help.py` so the JSON page's help follows), and the generated field list [`compliance/docs/ICD_scenario_fields.md`](../../compliance/docs/ICD_scenario_fields.md) |
 | How a feature maps to Basilisk modules | `engine/service.py` and `engine/fsw.py` |
 | An engineering value an analysis uses (its unit, source and default) | `config/parameters.py`, and the generated `config/defaults.yaml` |
 | Scripting the tool from Python | `api.py` and [`docs/api.md`](../api.md) |

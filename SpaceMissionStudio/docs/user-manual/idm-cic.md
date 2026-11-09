@@ -68,7 +68,7 @@ In the 3D model editor (**Scenario › 3D Model...**), choose
 - **Origin of the body frame** (see [The origin of the body
   frame](#the-origin-of-the-body-frame)).
 
-![The import dialog: the model file, the configuration, the stowed configuration, the body element, the facets and the origin of the body frame, what the import will do, and the Devices found, Properties and Power tabs](../images/idm_import.png)
+![The import dialog: the model file, the configuration, the stowed configuration, the body element, the facets and the origin of the body frame, what the import will do, and the Devices found tab (here scrolled to "Thruster 2", which goes to the 3D model from its plume cone), and the Properties and Power tabs](../images/idm_import.png)
 
 The dialog shows what the import will do before you apply it: the
 elements imported and left out, the number of parts and point masses,

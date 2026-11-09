@@ -574,6 +574,8 @@ text ("At the cursor: ..."). **F8** goes to the next problem and
 whole, with no single place, stays in Problems only. Enter keeps the
 line's indentation (two spaces more after `{` or `[`).
 
+![Template 22 on the JSON page with "dry_mass_kg" misspelt: the key underlined in red with a dot beside line 33, and under the text "At the cursor: 'dry_mas_kg' is not a field of SpacecraftConfig; did you mean 'dry_mass_kg'? (Ctrl+. offers fixes)"](docs/images/json_page.png)
+
 The editor also suggests what can be typed. Inside a key or a text
 value, or anywhere with **Ctrl+Space**, a list shows what fits there:
 the fields that object can still have (each inserted with its default,

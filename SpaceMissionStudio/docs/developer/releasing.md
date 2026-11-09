@@ -333,7 +333,14 @@ a minor release because it adds features. No template, golden file or
 scenario field changed; 2.4.0 opens the files 2.5.0 saves (checked with
 2.4.0's code on a file with a thruster imported at the centre of
 gravity). The space weather is still 1.3.0's (CelesTrak refused the
-connection again, K-13).
+connection again, K-13). The release pull request (#233) was merged once
+CI was green, and the user tagged `spacemissionstudio-v2.5.0` on
+`1951a028c` and published it on 2026-11-08 at 19:29 UTC, with notes
+written for it, which the workflow kept. Published one second before the
+workflow started, it was public without files for 33 minutes, until the
+workflow attached them at 20:01, the tenth release so. To avoid it: push
+the tag, or save the release as a draft, wait for the files (about 35
+minutes), then publish.
 
 ---
 

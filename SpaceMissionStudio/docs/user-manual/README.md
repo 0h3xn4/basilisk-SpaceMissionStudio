@@ -14,6 +14,7 @@ New to the app? Do [Getting started](../getting-started.md) first.
 | Run a ready-made mission and look at the result? | [Run a template](run-a-template.md) |
 | Change a few settings of a template? | [Customize a template](customize-a-template.md) |
 | Build a mission of my own? | [Build your own scenario](build-your-own-scenario.md) |
+| Edit the scenario as text, with completion, help, rename and quick fixes? | [The JSON page](../../USER_MANUAL.md#6-a-tour-of-the-scenario-editor) (**Form · JSON**) |
 | Read plots, events and exports? | [Read the results](read-the-results.md) |
 | Run things without the GUI? | [Use the command line](command-line.md) |
 | Change a rule or margin an analysis uses, for my project? | [Change a parameter](project-configuration.md) |
@@ -33,7 +34,7 @@ New to the app? Do [Getting started](../getting-started.md) first.
 | Fly around an asteroid, with its shape's gravity, and navigate from its landmarks? | [Small bodies and landmark navigation](small-body-navigation.md) |
 | Point the spacecraft, with real sensors and actuators? | [Attitude and hardware](attitude-and-hardware.md) |
 | Build my spacecraft in 3D, or import it from CAD, with its mass, center of mass and inertia? | [3D model](3d-model.md) |
-| Bring in a spacecraft designed in IDM-CIC (concurrent engineering), with its sensors, actuators and power budget, and its later versions? | [Import from IDM-CIC](idm-cic.md) |
+| Bring in a spacecraft designed in IDM-CIC (concurrent engineering), with its sensors, actuators, thrusters and power budget, and its later versions? | [Import from IDM-CIC](idm-cic.md) |
 | Check fields of view, thrusters, mass and launcher fit on my 3D model, and analyse disturbances, blinding, shading, exposure, brightness and re-entry? | [Analyses built on the 3D model](model-analyses.md) |
 | Model power, the radio link and data? | [Power, link and data](power-link-and-data.md) |
 | Run many variations at once? | [Monte Carlo](monte-carlo.md) |

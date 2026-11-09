@@ -26,7 +26,9 @@ moves with it to the stowed configuration.
 Equipment the scenario has no definition for (a payload camera, an orbit
 thruster's nozzle, a solar-cell panel, a radiator, a unit with mass) goes
 in the model's `equipment` list, with its kind, mount and, if it has one,
-its mass, subsystem and maturity.
+its mass, subsystem and maturity. An IDM-CIC import puts a thruster
+whose plume is drawn as a cone there (see
+[Devices found in the model](idm-cic.md#devices-found-in-the-model)).
 
 ## Stowed configuration, materials and maturity
 

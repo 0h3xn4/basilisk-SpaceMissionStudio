@@ -225,6 +225,11 @@ used.
 slowly turns the orbit plane; [Sun-synchronous](#s) orbits use exactly
 that.
 
+**JSON page** -- the scenario's text, under **Form · JSON** in the
+Scenario area: the file as it is saved, editable, with colours, every
+problem marked where it is, completion (`Ctrl+Space`), each key's help,
+rename (`F2`), go to definition (`F12`) and quick fixes (`Ctrl+.`).
+
 ## K
 
 **Kalman filter** -- an estimator that keeps a best guess of a state
