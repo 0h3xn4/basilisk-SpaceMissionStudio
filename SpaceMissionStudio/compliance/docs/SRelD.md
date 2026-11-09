@@ -489,6 +489,8 @@ RD1 has the full story. In summary:
   its worker, its network purpose and the search for a Vizard on disk
   are removed; a remembered Vizard in the former download folder is
   ignored.
+- **A planning document** (#238): `docs/legal/PHASE1_PLAN.md`, a draft
+  plan, no code.
 
 **Unchanged:** the scenario format (no field added or changed), every
 template and golden file, the exit statuses, what runs compute, and the
