@@ -18,225 +18,142 @@
 """Results › 3D View: the run in 3D, inside the app, with nothing to
 install and nothing sent anywhere.
 
-The central body (Earth shaded by its albedo map and turning), each
-spacecraft's path, the spacecraft themselves (their 3D model, turned by
-the run's attitude), the ground stations and the Sun's direction, played
-back over the run. **Whole orbit** shows everything, the spacecraft drawn
-larger than they are so they can be seen (the factor is shown);
-**Follow** a spacecraft shows it at its true size with its body axes and
-the Sun's direction from it. The slider and the shared time cursor move
-together: a time picked on a plot or the Timeline is shown here, and the
-time shown here is the cursor elsewhere.
+A renderer of the run's own series: the Earth (NASA's Blue Marble, turning
+with the Earth rotation angle, lit by the Sun, with its atmosphere's rim)
+under NASA's star map, the Moon, each spacecraft (its 3D model, turned by
+the run's attitude) with its path, trail, body axes, Sun, nadir and
+velocity arrows, its instruments' fields of view and its thrusters'
+plumes, the ground stations with their line of sight to each spacecraft
+they see, and the ground track; an overlay with the time (ISO 8601 UTC),
+the playback speed and the followed spacecraft's altitude and speed.
 
-The scene (``engine.scene3d``) is built off the GUI thread; the page is
-plotly.js, the copy installed with plotly (offline, as the Results plots),
-in a web view made the first time the tab is shown. Playback moves the
-models in the page itself (``MV.setFrame``), so a frame costs no Python
-work beyond picking its index.
+Views (the View list, ``[`` and ``]``): **Whole orbit** (around the
+central body; the spacecraft drawn larger than they are, the factor
+shown), **Follow** a spacecraft (true size, around it), **Earth-fixed**
+(the camera turns with the Earth), and the view **from** a spacecraft
+along a body axis or an instrument's boresight, with that instrument's
+field of view. Drag to turn, scroll to zoom, right-drag to pan,
+double-click (or Home) to reset. **Show** switches what is drawn
+(remembered per user) and the reduced quality, which the page also
+chooses by itself when frames take longer than 50 ms.
+
+The slider and the shared time cursor move together. The scene
+(``engine.scene3d``) and the data the page takes are built off the GUI
+thread (:class:`SceneBuilder`); the page (``gui/assets/mission_view/``:
+three.js, bundled, and ``mission_view.js``) opens in a web view made the
+first time the tab is shown, and draws each frame itself, so playback
+costs Python only the frame's index. Its look is the theme's
+(``theme/mission_view_style.py``), restyled on a theme change without
+reloading anything.
 """
 
 from __future__ import annotations
 
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
-from PySide6.QtCore import QThread, QTimer, QUrl, Qt, Signal
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QHBoxLayout, QLabel, QPushButton, QSlider, QStackedWidget,
-                               QVBoxLayout, QWidget)
+from PySide6.QtCore import QSettings, QThread, QTimer, QUrl, Qt, Signal
+from PySide6.QtGui import QAction, QColor, QKeySequence, QShortcut
+from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QMenu, QPushButton, QSlider, QStackedWidget,
+                               QToolButton, QVBoxLayout, QWidget)
 
-from .. import temp_folders
+from ..constants import CENTRAL_BODY_EQUATORIAL_RADIUS_KM
 from ..engine import scene3d
 from ..schema.epochs import parse_epoch_utc
-from .results_widget import _plotlyjs_path
-from .theme import SPACE, TOKENS, current_theme, icon, mono_font, on_change, set_role
-from .theme.palettes import AXIS_COLOURS, EARTH_COLOURSCALE, PLAIN_BODY_COLOUR, SUN_COLOUR, categorical
-from .theme.plotly_template import WEB_FONT_STACK
+from .theme import SPACE, current_theme, icon, mono_font, on_change, set_role
+from .theme.mission_view_style import mission_view_style
+from .theme.palettes import SPACE_COLOUR
 
-_DIV_ID = "mission-view"
+ASSETS = Path(__file__).resolve().parent / "assets" / "mission_view"
+PAGE = ASSETS / "mission_view.html"
 _TICK_MS = 40  # [ms] playback timer: 25 frames a second
 _ORBIT_CRAFT_FRACTION = 0.04  # [-] in Whole orbit, a spacecraft is drawn this fraction of the scene's half-width
-_FOLLOW_HALF_WIDTH = 1.6  # [-] in Follow, the view's half-width in spacecraft sizes
+_REDUCE_ABOVE_MS = 50.0  # [ms] the page draws in reduced quality when a frame takes longer (under 20 fps)
 #: Playback speeds offered: simulated seconds per real second.
 SPEEDS = (1, 10, 60, 300, 1800, 3600, 21600, 86400)
-_BODY_ROWS, _BODY_COLUMNS = 37, 73  # [-] vertices of the body sphere: every 5 degrees
-
-_PAGE_SCRIPT = r"""
-const MV = {s: null, mode: -1, frame: 0, paths: true, ready: false};
-MV.rot = function (x, y, a) { const c = Math.cos(a), s = Math.sin(a); return [c * x - s * y, s * x + c * y]; };
-MV.toN = function (d, v) {  // C^T v, C = dcm_BN row-major
-  return [d[0] * v[0] + d[3] * v[1] + d[6] * v[2], d[1] * v[0] + d[4] * v[1] + d[7] * v[2],
-          d[2] * v[0] + d[5] * v[1] + d[8] * v[2]];
-};
-MV.I = [1, 0, 0, 0, 1, 0, 0, 0, 1];
-MV.load = function (s) {
-  MV.s = s; const st = s.style, b = s.body, data = [];
-  data.push({type: 'mesh3d', x: b.x, y: b.y, z: b.z, i: b.i, j: b.j, k: b.k, name: s.body_name,
-    intensity: b.intensity, colorscale: st.earth, cmin: 0, cmax: 0.8, showscale: false,
-    color: b.intensity ? undefined : st.plain, flatshading: false, hoverinfo: 'name',
-    lighting: {ambient: 0.35, diffuse: 0.9, specular: 0.05, roughness: 0.9}, lightposition: {x: 1e5, y: 0, z: 0}});
-  data.push({type: 'scatter3d', mode: 'lines+text', x: [0, 0], y: [0, 0], z: [0, 0], name: 'Sun direction',
-    line: {color: st.sun, width: 5}, text: ['', 'Sun'], textfont: {color: st.sun}, hoverinfo: 'name',
-    visible: s.sun !== null});
-  data.push({type: 'scatter3d', mode: 'markers+text', x: [], y: [], z: [], name: 'Ground stations',
-    text: s.stations.map(p => p.name), textposition: 'top center', textfont: {color: st.text},
-    marker: {size: 4, color: st.text, symbol: 'diamond'}, hoverinfo: 'text', visible: s.stations.length > 0});
-  s.crafts.forEach(function (c) {
-    data.push({type: 'scatter3d', mode: 'lines', x: c.path.x, y: c.path.y, z: c.path.z, name: c.name + ' path',
-      line: {color: c.colour, width: 2}, hoverinfo: 'name'});
-    data.push({type: 'mesh3d', x: [], y: [], z: [], i: c.i, j: c.j, k: c.k, facecolor: c.facecolor,
-      name: c.name, hoverinfo: 'name', flatshading: true,
-      lighting: {ambient: 0.45, diffuse: 0.8, specular: 0.2, roughness: 0.6}, lightposition: {x: 1e5, y: 0, z: 0}});
-    data.push({type: 'scatter3d', mode: 'markers+text', x: [0], y: [0], z: [0], text: [c.name],
-      textposition: 'top center', textfont: {color: c.colour}, marker: {size: 3, color: c.colour},
-      name: c.name, hoverinfo: 'name'});
-  });
-  ['x', 'y', 'z'].forEach(function (axis, n) {
-    data.push({type: 'scatter3d', mode: 'lines+text', x: [0, 0], y: [0, 0], z: [0, 0], text: ['', axis + '<sub>B</sub>'],
-      textfont: {color: st.axes[n]}, line: {color: st.axes[n], width: 5}, name: 'body ' + axis, hoverinfo: 'name',
-      visible: false});
-  });
-  data.push({type: 'scatter3d', mode: 'lines+text', x: [0, 0], y: [0, 0], z: [0, 0], text: ['', 'Nadir'],
-    textfont: {color: st.text}, line: {color: st.text, width: 3, dash: 'dash'}, name: 'Nadir', hoverinfo: 'name',
-    visible: false});
-  const hidden = {visible: false, showgrid: false, zeroline: false, showticklabels: false, title: ''};
-  const layout = {paper_bgcolor: st.bg, margin: {l: 0, r: 0, t: 0, b: 0}, showlegend: false, uirevision: 'keep',
-    font: {family: st.font, color: st.text},
-    scene: {bgcolor: st.bg, aspectmode: 'cube', xaxis: hidden, yaxis: hidden, zaxis: hidden,
-      camera: {eye: {x: 1.25, y: 1.25, z: 0.8}}}};
-  MV.mode = -1;
-  return Plotly.react('mission-view', data, layout, {displaylogo: false, responsive: true}).then(function () {
-    MV.ready = true; MV.setView(-1); MV.setFrame(MV.frame < s.times.length ? MV.frame : 0); return s.times.length;
-  });
-};
-MV.crafts = function () { return 3; };  // traces before the first spacecraft
-MV.axesTrace = function () { return 3 + 3 * MV.s.crafts.length; };
-MV.setView = function (target) {  // -1: whole orbit; n: follow spacecraft n, drawn at the origin
-  MV.mode = target; const s = MV.s, follow = target >= 0, a = MV.axesTrace();
-  Plotly.restyle('mission-view', {visible: follow}, [a, a + 1, a + 2, a + 3]);
-  Plotly.restyle('mission-view', {visible: !follow}, [0].concat(s.stations.length ? [2] : []));
-  MV.setPaths(MV.paths);
-  const e = follow ? s.crafts[target].size * s.follow_half_width : s.extent;
-  Plotly.relayout('mission-view', {'scene.xaxis.range': [-e, e], 'scene.yaxis.range': [-e, e],
-                                   'scene.zaxis.range': [-e, e]});
-  MV.setFrame(MV.frame);
-};
-MV.setPaths = function (shown) {  // paths are drawn in Whole orbit only
-  MV.paths = shown; const s = MV.s, indices = s.crafts.map((c, n) => 3 + 3 * n);
-  Plotly.restyle('mission-view', {visible: shown && MV.mode < 0}, indices);
-};
-MV.scaleFor = function (c) { return MV.mode < 0 ? Math.max(1, MV.s.orbit_fraction * MV.s.extent / c.size) : 1; };
-MV.setFrame = function (f) {
-  const s = MV.s; if (!s || !MV.ready) return; MV.frame = f;
-  const xs = [], ys = [], zs = [], idx = [];
-  const angle = s.rotation ? s.rotation[f] : 0, b = s.body;
-  if (s.rotation) {
-    const bx = [], by = [];
-    for (let n = 0; n < b.x.length; n++) { const r = MV.rot(b.x[n], b.y[n], angle); bx.push(r[0]); by.push(r[1]); }
-    xs.push(bx); ys.push(by); zs.push(b.z); idx.push(0);
-  }
-  const sun = s.sun ? s.sun[f] : null;
-  // Follow: everything relative to the followed spacecraft, so the view's
-  // few metres keep their precision (WebGL draws in single precision).
-  const origin = MV.mode >= 0 ? s.crafts[MV.mode].pos[f] : [0, 0, 0];
-  const reach = MV.mode >= 0 ? s.crafts[MV.mode].size * s.follow_half_width * 0.9 : s.extent * 0.95;
-  if (sun) {
-    xs.push([0, sun[0] * reach]); ys.push([0, sun[1] * reach]); zs.push([0, sun[2] * reach]); idx.push(1);
-  }
-  if (s.stations.length) {
-    const sx = [], sy = [], sz = [];
-    s.stations.forEach(function (p) { const r = MV.rot(p.p[0], p.p[1], angle); sx.push(r[0]); sy.push(r[1]); sz.push(p.p[2]); });
-    xs.push(sx); ys.push(sy); zs.push(sz); idx.push(2);
-  }
-  s.crafts.forEach(function (c, n) {
-    const d = c.dcm ? c.dcm[f] : MV.I, k = MV.scaleFor(c), mx = [], my = [], mz = [];
-    const p = [c.pos[f][0] - origin[0], c.pos[f][1] - origin[1], c.pos[f][2] - origin[2]];
-    c.verts.forEach(function (v) { const w = MV.toN(d, v); mx.push(p[0] + k * w[0]); my.push(p[1] + k * w[1]); mz.push(p[2] + k * w[2]); });
-    xs.push(mx); ys.push(my); zs.push(mz); idx.push(4 + 3 * n);
-    xs.push([p[0]]); ys.push([p[1]]); zs.push([p[2]]); idx.push(5 + 3 * n);
-  });
-  if (MV.mode >= 0) {
-    const c = s.crafts[MV.mode], d = c.dcm ? c.dcm[f] : MV.I, len = c.size * 1.2;
-    [[1, 0, 0], [0, 1, 0], [0, 0, 1]].forEach(function (e, n) {
-      const w = MV.toN(d, e);
-      xs.push([0, len * w[0]]); ys.push([0, len * w[1]]); zs.push([0, len * w[2]]); idx.push(MV.axesTrace() + n);
-    });
-    const r = Math.hypot(origin[0], origin[1], origin[2]) || 1;
-    xs.push([0, -origin[0] / r * reach]); ys.push([0, -origin[1] / r * reach]); zs.push([0, -origin[2] / r * reach]);
-    idx.push(MV.axesTrace() + 3);
-  }
-  Plotly.restyle('mission-view', {x: xs, y: ys, z: zs}, idx);
-  if (sun) {
-    const light = {x: sun[0] * 1e5, y: sun[1] * 1e5, z: sun[2] * 1e5};
-    const meshes = [0].concat(s.crafts.map((c, n) => 4 + 3 * n));
-    Plotly.restyle('mission-view', {lightposition: meshes.map(() => light)}, meshes);
-  }
-};
-"""
+#: What the Show menu switches, in its order: key in the page, menu text.
+TOGGLES = (("paths", "Paths"), ("trails", "Trails"), ("axes", "Body axes"),
+           ("headings", "Sun, nadir and velocity arrows"), ("cones", "Fields of view and plumes"),
+           ("stations", "Ground stations and line of sight"), ("labels", "Labels"), ("stars", "Stars"),
+           ("groundTrack", "Ground track"))
+_TOGGLES_OFF = ("groundTrack",)  # off until the user turns them on
+_AXES = (("+x", (1, 0, 0)), ("+y", (0, 1, 0)), ("+z", (0, 0, 1)), ("-z", (0, 0, -1)))
+_SETTINGS_GROUP = "mission_view"
 
 
-def body_mesh(radius_km: float, albedo: np.ndarray | None) -> dict:
-    """A sphere in the body-fixed frame, every 5 degrees, with the albedo
-    map's value at each vertex when there is one."""
-    latitudes = np.radians(np.linspace(-90.0, 90.0, _BODY_ROWS))
-    longitudes = np.radians(np.linspace(-180.0, 180.0, _BODY_COLUMNS))
-    lat, lon = np.meshgrid(latitudes, longitudes, indexing="ij")
-    x = radius_km * np.cos(lat) * np.cos(lon)
-    y = radius_km * np.cos(lat) * np.sin(lon)
-    z = radius_km * np.sin(lat)
-    triangles = []
-    for row in range(_BODY_ROWS - 1):
-        for column in range(_BODY_COLUMNS - 1):
-            a = row * _BODY_COLUMNS + column
-            b, c, d = a + 1, a + _BODY_COLUMNS, a + _BODY_COLUMNS + 1
-            triangles += [(a, b, d), (a, d, c)]
-    triangles = np.array(triangles)
-    mesh = {"x": np.round(x.ravel(), 3).tolist(), "y": np.round(y.ravel(), 3).tolist(),
-            "z": np.round(z.ravel(), 3).tolist(), "i": triangles[:, 0].tolist(), "j": triangles[:, 1].tolist(),
-            "k": triangles[:, 2].tolist(), "intensity": None}
-    if albedo is not None:
-        rows, columns = albedo.shape
-        r = np.clip(((np.degrees(lat) + 90.0) / 180.0 * rows).astype(int), 0, rows - 1)
-        c = np.clip(((np.degrees(lon) + 180.0) / 360.0 * columns).astype(int), 0, columns - 1)
-        mesh["intensity"] = np.round(albedo[r, c].ravel(), 3).tolist()
-    return mesh
+def _settings() -> QSettings:
+    return QSettings(str(Path.home() / ".spacemissionstudio" / "settings.ini"), QSettings.Format.IniFormat)
 
 
-def scene_payload(scene: scene3d.Scene, mode: str) -> dict:
-    """``scene`` as the page's ``MV.load`` takes it: lists, kilometres, the
-    theme's colours."""
-    colours = categorical(mode)
+def _linear(rgb: np.ndarray) -> np.ndarray:
+    """sRGB components (0 to 1) to linear light, as WebGL vertex colours take them."""
+    rgb = np.asarray(rgb, dtype=float)
+    return np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
+
+
+def _rows(array, decimals: int) -> list:
+    return np.round(np.asarray(array, dtype=float), decimals).tolist()
+
+
+def scene_payload(scene: scene3d.Scene) -> dict:
+    """``scene`` as the page's ``MV.load`` takes it: kilometres, seconds,
+    plain lists. Colours are not in it (``MV.setStyle``), except each 3D
+    part's own (the model's data, as linear light)."""
+    from ..engine.geodesy import ellipsoid_for
+
+    epoch = parse_epoch_utc(scene.epoch_utc)
     crafts = []
-    for n, craft in enumerate(scene.crafts):
-        triangles = craft.triangles
+    for craft in scene.crafts:
+        positions, normals = scene3d.mesh_normals(craft.vertices_km, craft.triangles)
+        colours = np.repeat(_linear(craft.face_rgb), 3, axis=0)
         crafts.append({
-            "name": craft.name, "colour": colours[n % len(colours)], "size": craft.size_km,
-            "pos": np.round(craft.position_km, 4).tolist(),
-            "dcm": None if craft.dcm_BN is None else np.round(craft.dcm_BN.reshape(-1, 9), 6).tolist(),
-            "verts": np.round(craft.vertices_km, 7).tolist(), "i": triangles[:, 0].tolist(),
-            "j": triangles[:, 1].tolist(), "k": triangles[:, 2].tolist(), "facecolor": craft.face_colors,
-            "path": {axis: np.round(craft.path_km[:, n_axis], 3).tolist() for n_axis, axis in enumerate("xyz")}})
+            "name": craft.name, "size": craft.size_km, "pos": _rows(craft.position_km, 5),
+            "vel": _rows(craft.velocity_km_s, 6), "alt": None if craft.altitude_km is None
+            else _rows(craft.altitude_km, 3), "dcm": None if craft.dcm_BN is None
+            else _rows(craft.dcm_BN.reshape(-1, 9), 6),
+            "mesh": {"p": _rows(positions.ravel(), 8), "n": _rows(normals.ravel(), 4),
+                     "c": _rows(colours.ravel(), 4)},
+            "path": _rows(craft.path_km, 3),
+            "track": None if craft.ground_track_deg is None else _rows(craft.ground_track_deg, 3),
+            "equipment": [{"name": item["name"], "kind": item["kind"], "p": _rows(item["position_km"], 8),
+                           "b": _rows(item["boresight"], 6), "fov": item["fov_deg"], "plume": item["plume_half_deg"]}
+                          for item in craft.equipment]})
+    flattening = ellipsoid_for(scene.body, scene.body_radius_km * 1000.0).flattening if scene.body_radius_km else 0.0
     return {
-        "times": np.round(scene.times_s, 3).tolist(), "body_name": scene.body.title(),
-        "rotation": None if scene.body_rotation_rad is None else np.round(scene.body_rotation_rad, 6).tolist(),
-        "sun": None if scene.sun_direction_N is None else np.round(scene.sun_direction_N, 5).tolist(),
-        "body": body_mesh(scene.body_radius_km, scene.body_albedo), "crafts": crafts,
-        "stations": [{"name": name, "p": np.round(point, 3).tolist()} for name, point in scene.stations],
-        "extent": scene.extent_km, "orbit_fraction": _ORBIT_CRAFT_FRACTION, "follow_half_width": _FOLLOW_HALF_WIDTH,
-        "style": {"bg": TOKENS["bg.surface"], "text": TOKENS["text.primary"], "font": WEB_FONT_STACK,
-                  "earth": EARTH_COLOURSCALE, "plain": PLAIN_BODY_COLOUR, "sun": SUN_COLOUR,
-                  "axes": list(AXIS_COLOURS)}}
+        "epoch_ms": (epoch - datetime(1970, 1, 1)).total_seconds() * 1000.0, "times": _rows(scene.times_s, 3),
+        "body": {"name": scene.body.title(), "radius": scene.body_radius_km, "flattening": flattening,
+                 "earth": scene.body == "earth", "rotation": None if scene.body_rotation_rad is None
+                 else _rows(scene.body_rotation_rad, 7)},
+        "sun": None if scene.sun_direction_N is None else _rows(scene.sun_direction_N, 6),
+        "moon": None if scene.moon_position_km is None else _rows(scene.moon_position_km, 1),
+        "moon_radius": CENTRAL_BODY_EQUATORIAL_RADIUS_KM["moon"], "crafts": crafts,
+        "stations": [{"name": name, "p": _rows(point, 4), "min_el": minimum,
+                      "visible": scene.station_visible[n].astype(int).tolist()}
+                     for n, ((name, point), minimum) in enumerate(zip(scene.stations, scene.station_min_elevation_deg))],
+        "extent": scene.extent_km, "orbit_fraction": _ORBIT_CRAFT_FRACTION}
 
 
-_ALBEDO: dict = {}  # the Earth albedo map, read once per process (None when not installed)
+def views(scene: scene3d.Scene) -> list[tuple[str, dict]]:
+    """The View list: its texts and the page's camera of each."""
+    found = [("Whole orbit", {"mode": "orbit"})]
+    found += [(f"Follow {craft.name}", {"mode": "follow", "craft": n}) for n, craft in enumerate(scene.crafts)]
+    if scene.body_rotation_rad is not None:
+        found.append(("Earth-fixed", {"mode": "earth"}))
+    for n, craft in enumerate(scene.crafts):
+        found += [(f"From {craft.name} along {name}_B", {"mode": "instrument", "craft": n, "axis": list(axis)})
+                  for name, axis in _AXES]
+        found += [(f"From {craft.name}: {item['name']} ({item['fov_deg']:g}° field of view)",
+                   {"mode": "instrument", "craft": n, "item": k})
+                  for k, item in enumerate(craft.equipment) if item["fov_deg"]]
+    return found
 
 
 class SceneBuilder(QThread):
-    """Builds the scene off the GUI thread (the albedo map is read with
-    Basilisk's data fetcher the first time)."""
+    """Builds the scene and the page's data off the GUI thread."""
 
-    built = Signal(object)  # engine.scene3d.Scene
+    built = Signal(object, str)  # engine.scene3d.Scene, its MV.load payload as JSON
     failed = Signal(str)
 
     def __init__(self, scenario, result, base_dir, parent=None):
@@ -245,14 +162,12 @@ class SceneBuilder(QThread):
 
     def run(self) -> None:
         try:
-            if "earth" not in _ALBEDO and self._scenario.gravity.central_body == "earth":
-                _ALBEDO["earth"] = scene3d.earth_albedo_map()
-            scene = scene3d.build_scene(self._scenario, self._result, base_dir=self._base_dir,
-                                        albedo=_ALBEDO.get("earth"))
+            scene = scene3d.build_scene(self._scenario, self._result, base_dir=self._base_dir)
+            payload = json.dumps(scene_payload(scene), separators=(",", ":"))
         except Exception as exc:  # noqa: BLE001 -- shown in the view; the run itself is not affected
             self.failed.emit(str(exc))
             return
-        self.built.emit(scene)
+        self.built.emit(scene, payload)
 
 
 class MissionViewWidget(QWidget):
@@ -262,6 +177,7 @@ class MissionViewWidget(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.scene: scene3d.Scene | None = None
+        self._payload: str | None = None  # the scene's MV.load data
         self._run = None  # (scenario, result, base_dir) not yet built
         self._builder: SceneBuilder | None = None
         self._time_cursor = None
@@ -270,8 +186,7 @@ class MissionViewWidget(QWidget):
         self._sim_time = 0.0  # [s] playback position
         self.web_view = None
         self._page_ready = False
-        self._pending: str | None = None
-        self._page_dir = None
+        self._scene_sent = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -280,7 +195,7 @@ class MissionViewWidget(QWidget):
         controls.setContentsMargins(SPACE["md"], SPACE["sm"], SPACE["md"], 0)
         controls.setSpacing(SPACE["sm"])
         self.play_button = QPushButton(icon("play"), "Play")
-        self.play_button.setToolTip("Play the run")
+        self.play_button.setToolTip("Play the run (Space)")
         self.play_button.clicked.connect(self.toggle_play)
         controls.addWidget(self.play_button)
         self.slider = QSlider(Qt.Orientation.Horizontal)
@@ -295,23 +210,55 @@ class MissionViewWidget(QWidget):
         self.speed_combo.setToolTip("Playback speed: simulated time per second")
         for speed in SPEEDS:
             self.speed_combo.addItem(_speed_text(speed), speed)
+        self.speed_combo.currentIndexChanged.connect(lambda _index: self._send_playback())
         controls.addWidget(self.speed_combo)
         self.view_combo = QComboBox()
         self.view_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-        self.view_combo.setToolTip("Whole orbit, or one spacecraft at its true size with its body axes")
+        self.view_combo.setToolTip("The camera: whole orbit, following a spacecraft, Earth-fixed, or from a "
+                                   "spacecraft along an axis or an instrument ([ and ] to step; Home or a "
+                                   "double-click resets it)")
         self.view_combo.currentIndexChanged.connect(self._on_view)
         controls.addWidget(self.view_combo)
-        self.paths_box = QCheckBox("Paths")
-        self.paths_box.setChecked(True)
-        self.paths_box.setToolTip("Show each spacecraft's path over the run")
-        self.paths_box.toggled.connect(lambda shown: self._call(f"MV.setPaths({json.dumps(bool(shown))});"))
-        controls.addWidget(self.paths_box)
+        self.show_button = QToolButton()
+        self.show_button.setText("Show")
+        self.show_button.setIcon(icon("sliders-horizontal"))
+        self.show_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.show_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.show_button.setToolTip("What the view draws, and its quality")
+        self.show_menu = QMenu(self.show_button)
+        self.toggle_actions: dict[str, QAction] = {}
+        settings = _settings()
+        for key, text in TOGGLES:
+            action = self.show_menu.addAction(text)
+            action.setCheckable(True)
+            action.setChecked(_as_bool(settings.value(f"{_SETTINGS_GROUP}/{key}", key not in _TOGGLES_OFF)))
+            action.toggled.connect(lambda on, key=key: self._on_toggle(key, on))
+            self.toggle_actions[key] = action
+        self.show_menu.addSeparator()
+        self.quality_action = self.show_menu.addAction("Reduced quality")
+        self.quality_action.setCheckable(True)
+        self.quality_action.setChecked(_as_bool(settings.value(f"{_SETTINGS_GROUP}/reduced", False)))
+        self.quality_action.setToolTip("Smaller textures, no atmosphere, one pixel per screen pixel: faster "
+                                       "without a graphics card. Chosen by itself when frames are slow.")
+        self.quality_action.toggled.connect(self._on_quality)
+        self.reset_action = self.show_menu.addAction("Reset view")
+        self.reset_action.setShortcut(QKeySequence("Home"))
+        self.reset_action.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.reset_action.triggered.connect(lambda: self._call("MV.resetView();"))
+        self.addAction(self.reset_action)
+        self.show_button.setMenu(self.show_menu)
+        controls.addWidget(self.show_button)
         layout.addLayout(controls)
         self.scale_note = QLabel()
         set_role(self.scale_note, tone="secondary")
         self.scale_note.setContentsMargins(SPACE["md"], 0, SPACE["md"], 0)
         self.scale_note.setWordWrap(True)
         layout.addWidget(self.scale_note)
+        for keys, slot in (("Space", self.toggle_play), ("[", lambda: self._step_view(-1)),
+                           ("]", lambda: self._step_view(1))):
+            shortcut = QShortcut(QKeySequence(keys), self)
+            shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+            shortcut.activated.connect(slot)
 
         self.stack = QStackedWidget()
         self.empty = QLabel("Run a scenario to see it here in 3D.")
@@ -383,11 +330,13 @@ class MissionViewWidget(QWidget):
         self.empty.setText(f"The 3D view could not be built: {message}")
         self.stack.setCurrentWidget(self.empty)
 
-    def _on_built(self, scene) -> None:
+    def _on_built(self, scene, payload: str) -> None:
         if self._run is None:
             return
         self._run = None
         self.scene = scene
+        self._payload = payload
+        self._scene_sent = False
         self._ensure_view()
         self.slider.blockSignals(True)
         self.slider.setRange(0, len(scene.times_s) - 1)
@@ -395,33 +344,36 @@ class MissionViewWidget(QWidget):
         self.slider.blockSignals(False)
         self._sim_time = float(scene.times_s[0])
         duration = float(scene.times_s[-1] - scene.times_s[0])
+        self.speed_combo.blockSignals(True)
         self.speed_combo.setCurrentIndex(_speed_index(duration))
+        self.speed_combo.blockSignals(False)
         self.view_combo.blockSignals(True)
         self.view_combo.clear()
-        self.view_combo.addItem("Whole orbit", -1)
-        for n, craft in enumerate(scene.crafts):
-            self.view_combo.addItem(f"Follow {craft.name}", n)
+        for text, spec in views(scene):
+            self.view_combo.addItem(text, spec)
         self.view_combo.blockSignals(False)
         self._show_scale_note()
         self._update_time_label(0)
         self._set_controls_enabled(True)
         self.stack.setCurrentWidget(self.web_view)
-        self._load_scene()
-
-    def _load_scene(self) -> None:
-        payload = json.dumps(scene_payload(self.scene, current_theme()))
-        self._call(f"MV.load({payload});", replace=True)
+        self._send_scene()
 
     def _show_scale_note(self) -> None:
         scene = self.scene
         if scene is None:
             return
-        if self.view_combo.currentData() in (None, -1):
+        spec = self.view_combo.currentData() or {"mode": "orbit"}
+        if spec["mode"] in ("orbit", "earth"):
             factors = [max(1.0, _ORBIT_CRAFT_FRACTION * scene.extent_km / craft.size_km) for craft in scene.crafts]
             text = (f"Spacecraft drawn {min(factors):,.0f}× larger than they are, to be seen at this scale."
                     if max(factors) > 1.0 else "Everything at its true size.")
+            if spec["mode"] == "earth":
+                text += " The camera turns with the Earth."
+        elif spec["mode"] == "follow":
+            text = ("True size, centred on the spacecraft. Body axes: x red, y green, z blue; arrows to the Sun, "
+                    "to nadir and along the velocity.")
         else:
-            text = "True size, centred on the spacecraft. Body axes: x red, y green, z blue; the Sun and nadir arrows."
+            text = "True size, from the spacecraft: " + self.view_combo.currentText().split(" ", 2)[-1] + "."
         notes = [n for n in scene.notes if n]
         self.scale_note.setText(" ".join([text] + notes))
 
@@ -435,45 +387,72 @@ class MissionViewWidget(QWidget):
         from PySide6.QtWebEngineWidgets import QWebEngineView
 
         self.web_view = QWebEngineView()
+        self.web_view.page().setBackgroundColor(QColor(SPACE_COLOUR))
         self.stack.addWidget(self.web_view)
-        self._page_dir = temp_folders.temporary_directory(temp_folders.MISSION_VIEW_PAGE)
-        page = Path(self._page_dir.name) / "mission.html"
-        page.write_text(self._page_html(), encoding="utf-8")
         self.web_view.loadFinished.connect(self._on_loaded)
-        self.web_view.load(QUrl.fromLocalFile(str(page)))
-
-    @staticmethod
-    def _page_html() -> str:
-        plotly_js = QUrl.fromLocalFile(str(_plotlyjs_path())).toString()
-        background = TOKENS["bg.surface"]
-        return (f"<!doctype html><html><head><meta charset='utf-8'><script src='{plotly_js}'></script>"
-                f"<style>html,body,#{_DIV_ID}{{margin:0;height:100%;width:100%;background:{background};"
-                f"overflow:hidden}}</style></head><body><div id='{_DIV_ID}'></div>"
-                f"<script>{_PAGE_SCRIPT}</script></body></html>")
+        self.web_view.titleChanged.connect(self._on_page_title)
+        self.web_view.load(QUrl.fromLocalFile(str(PAGE)))
 
     def _on_loaded(self, ok: bool) -> None:
         self._page_ready = bool(ok)
-        if self._page_ready and self._pending is not None:
-            script, self._pending = self._pending, None
-            self.web_view.page().runJavaScript(script)
-
-    def _call(self, script: str, replace: bool = False, callback=None) -> None:
-        """Run ``script`` in the page, now or once it has loaded (``replace``:
-        a later scene supersedes one not yet shown)."""
-        if self.web_view is None:
+        if not self._page_ready:
             return
-        if self._page_ready:
-            if callback is None:
-                self.web_view.page().runJavaScript(script)
-            else:
-                self.web_view.page().runJavaScript(script, 0, callback)
-        elif replace or self._pending is None:
-            self._pending = script
+        page = self.web_view.page()
+        page.runJavaScript(f"MV.setStyle({json.dumps(mission_view_style(current_theme()))});"
+                           f"MV.configure({json.dumps({'reduce_above_ms': _REDUCE_ABOVE_MS})});")
+        for key, action in self.toggle_actions.items():
+            page.runJavaScript(f"MV.setToggle({json.dumps(key)}, {json.dumps(action.isChecked())});")
+        if self.quality_action.isChecked():
+            page.runJavaScript("MV.configure({auto_quality: false}); MV.setQuality('reduced');")
+        self._send_scene()
 
-    def _on_theme_changed(self, _mode: str) -> None:
-        if self.web_view is not None and self.scene is not None:
-            self.web_view.page().runJavaScript(f"document.body.style.background = '{TOKENS['bg.surface']}';")
-            self._load_scene()
+    def _send_scene(self) -> None:
+        """The scene, its view, frame and playback, once the page is ready."""
+        if not self._page_ready or self._payload is None or self._scene_sent:
+            return
+        self._scene_sent = True
+        page = self.web_view.page()
+        page.runJavaScript("MV.load(" + self._payload + ");")
+        page.runJavaScript(f"MV.setView({json.dumps(self.view_combo.currentData() or {'mode': 'orbit'})});"
+                           f"MV.setFrame({self.slider.value()});")
+        self._send_playback()
+
+    def _call(self, script: str, callback=None) -> None:
+        """Run ``script`` in the page once it shows the scene (else it is
+        sent with the scene: the view, frame and toggles are re-sent)."""
+        if self.web_view is None or not self._page_ready or not self._scene_sent:
+            return
+        if callback is None:
+            self.web_view.page().runJavaScript(script)
+        else:
+            self.web_view.page().runJavaScript(script, 0, callback)
+
+    def _send_playback(self) -> None:
+        speed = self.speed_combo.currentData()
+        self._call(f"MV.setPlayback({json.dumps({'speed': _speed_text(int(speed)) if speed else '', 'playing': self.is_playing()})});")
+
+    def _on_page_title(self, title: str) -> None:
+        """The page chose reduced quality by itself (its frames were slow)."""
+        if title == "mv:reduced-auto" and not self.quality_action.isChecked():
+            self.quality_action.blockSignals(True)
+            self.quality_action.setChecked(True)
+            self.quality_action.blockSignals(False)
+
+    def _on_toggle(self, key: str, on: bool) -> None:
+        _settings().setValue(f"{_SETTINGS_GROUP}/{key}", bool(on))
+        if self._page_ready:
+            self.web_view.page().runJavaScript(f"MV.setToggle({json.dumps(key)}, {json.dumps(bool(on))});")
+
+    def _on_quality(self, reduced: bool) -> None:
+        _settings().setValue(f"{_SETTINGS_GROUP}/reduced", bool(reduced))
+        if self._page_ready:
+            self.web_view.page().runJavaScript(
+                f"MV.configure({{auto_quality: false}}); MV.setQuality({json.dumps('reduced' if reduced else 'full')});")
+
+    def _on_theme_changed(self, mode: str) -> None:
+        """Restyle the page (no reload: the textures and the scene stay)."""
+        if self.web_view is not None and self._page_ready:
+            self.web_view.page().runJavaScript(f"MV.setStyle({json.dumps(mission_view_style(mode))});")
 
     # -- playback ------------------------------------------------------------------
     def toggle_play(self) -> None:
@@ -484,14 +463,16 @@ class MissionViewWidget(QWidget):
                 self._sim_time = float(self.scene.times_s[0])
             self._timer.start()
             self.play_button.setText("Pause")
-            self.play_button.setToolTip("Pause")
+            self.play_button.setToolTip("Pause (Space)")
+            self._send_playback()
 
     def pause(self) -> None:
         was_playing = self._timer.isActive()
         self._timer.stop()
         self.play_button.setText("Play")
-        self.play_button.setToolTip("Play the run")
+        self.play_button.setToolTip("Play the run (Space)")
         if was_playing:
+            self._send_playback()
             self._move_cursor()
 
     def is_playing(self) -> bool:
@@ -528,11 +509,15 @@ class MissionViewWidget(QWidget):
             self._move_cursor()
 
     def _on_view(self, _index: int) -> None:
-        target = self.view_combo.currentData()
-        if target is None:
+        spec = self.view_combo.currentData()
+        if spec is None:
             return
         self._show_scale_note()
-        self._call(f"MV.setView({int(target)});")
+        self._call(f"MV.setView({json.dumps(spec)});")
+
+    def _step_view(self, step: int) -> None:
+        if self.view_combo.count() and self.view_combo.isEnabled():
+            self.view_combo.setCurrentIndex((self.view_combo.currentIndex() + step) % self.view_combo.count())
 
     def _update_time_label(self, frame: int) -> None:
         if self.scene is None:
@@ -543,7 +528,7 @@ class MissionViewWidget(QWidget):
         self.time_label.setText(f"T+{_elapsed_text(seconds)}  {moment}")
 
     def _set_controls_enabled(self, enabled: bool) -> None:
-        for widget in (self.play_button, self.slider, self.speed_combo, self.view_combo, self.paths_box):
+        for widget in (self.play_button, self.slider, self.speed_combo, self.view_combo, self.show_button):
             widget.setEnabled(enabled)
         if not enabled:
             self.time_label.clear()
@@ -567,6 +552,11 @@ class MissionViewWidget(QWidget):
             return
         self._sim_time = float(time_s)
         self.show_frame(int(np.argmin(np.abs(self.scene.times_s - float(time_s)))))
+
+
+def _as_bool(value) -> bool:
+    """A QSettings value (a bool, or "true"/"false" read back from the file)."""
+    return value is True or str(value).lower() == "true"
 
 
 def _speed_text(speed: int) -> str:
