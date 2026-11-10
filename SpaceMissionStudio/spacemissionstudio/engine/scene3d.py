@@ -17,23 +17,30 @@
 #
 """The 3D scene of a run: what the built-in 3D view (``gui.mission_view_widget``)
 draws, computed from the run's own results. No new physics: positions and
-attitudes are the run's series, sampled on one time grid.
+attitudes are the run's series, sampled on one time grid; everything else
+is geometry for display.
 
 * **Frame:** the run's inertial frame N, centred on the central body, in
   kilometres.
 * **The central body:** a sphere of its equatorial radius. For Earth it
   turns with the Earth rotation angle (IERS 2010, eq. 5.15, UT1 taken as
   UTC: a visual approximation, about 0.4 degrees from the true Earth-fixed
-  frame in 2030 since precession is left out) and is shaded by Basilisk's
-  albedo map when the support data holds it, so oceans, land and clouds
-  show. Ground stations turn with it.
+  frame in 2030 since precession is left out). Ground stations and the
+  ground track turn with it.
 * **The Sun:** for Earth-centred runs, the direction from the Astronomical
   Almanac's low-precision solar position (about 0.01 degrees from 1950 to
-  2050), used for the lighting and drawn as an arrow; for a run around
-  the Sun, the origin.
+  2050), used for the lighting; for a run around the Sun, the origin.
+* **The Moon:** for Earth-centred runs, its position from the Astronomical
+  Almanac's low-precision lunar formula (:func:`moon_position_eci`).
 * **Spacecraft:** each one's ``position_N``, its attitude ``attitude_sigma_BN``
   when the run recorded one (else drawn aligned with N, and said so), its
-  3D model's parts when it has one (else a 1 m cube), its full path.
+  3D model's parts when it has one (else a 1 m cube) with normals for
+  shading (:func:`mesh_normals`), its mounted equipment (fields of view,
+  thruster plumes), its full path, its ground track, its altitude and
+  speed.
+* **Ground stations:** each one's line of sight to each spacecraft, frame
+  by frame: the spacecraft's elevation above the station's horizon at or
+  above the station's ``min_elevation_deg`` (:func:`elevation_deg`).
 
 :func:`build_scene` is Basilisk-free and returns plain arrays, so the view
 and the tests use the same numbers.
@@ -54,9 +61,12 @@ from ..schema.epochs import parse_epoch_utc
 #: run); the path line keeps up to ``MAX_PATH_POINTS``.
 MAX_FRAMES = 1500  # [-]
 MAX_PATH_POINTS = 4000  # [-]
+CREASE_DEG = 30.0  # [deg] faces meeting at a sharper angle than this keep a hard edge
 _J2000_JD = 2451545.0  # [day] Julian date of J2000.0
 _UNIX_EPOCH_JD = 2440587.5  # [day] Julian date of 1970-01-01T00:00:00
 _DEFAULT_SIZE_M = 1.0  # [m] edge of the cube drawn for a spacecraft without a 3D model
+_EARTH_RADIUS_KM = 6378.14  # [km] the Earth radius of the Almanac's lunar parallax
+_DEFAULT_RGB = (176 / 255.0, 184 / 255.0, 196 / 255.0)  # [-] the cube's grey
 
 
 @dataclass
@@ -72,6 +82,11 @@ class Craft:
     face_colors: list[str]  # per triangle, "rgb(r,g,b)"
     size_km: float  # the model's largest extent
     notes: list[str] = field(default_factory=list)
+    face_rgb: np.ndarray | None = None  # (t, 3) per triangle, 0 to 1
+    velocity_km_s: np.ndarray | None = None  # (n, 3) on the scene's frames
+    altitude_km: np.ndarray | None = None  # (n,) above the body's ellipsoid (Earth) or sphere
+    ground_track_deg: np.ndarray | None = None  # (m, 2) geocentric latitude, longitude of the path's points
+    equipment: list[dict] = field(default_factory=list)  # mounted items with a direction (body frame, km)
 
 
 @dataclass
@@ -83,12 +98,14 @@ class Scene:
     body: str
     body_radius_km: float
     body_rotation_rad: np.ndarray | None  # (n,) angle of the body-fixed frame about N's z, or None
-    body_albedo: np.ndarray | None  # (lat, lon) grid from -90 and -180 deg, or None
     crafts: list[Craft]
     stations: list[tuple[str, np.ndarray]]  # name, body-fixed position [km]
     sun_direction_N: np.ndarray | None  # (n, 3) unit vectors, or None
     extent_km: float  # half-width of a box holding the body and every path
     notes: list[str] = field(default_factory=list)
+    moon_position_km: np.ndarray | None = None  # (n, 3) Earth-centred runs only
+    station_min_elevation_deg: list[float] = field(default_factory=list)  # [deg] per station
+    station_visible: np.ndarray | None = None  # (stations, crafts, n) line of sight
 
 
 def julian_date(epoch: datetime, seconds: np.ndarray) -> np.ndarray:
@@ -118,6 +135,38 @@ def sun_direction_eci(jd: np.ndarray) -> np.ndarray:
                             np.sin(obliquity) * np.sin(ecliptic_longitude)])
 
 
+def moon_ecliptic(jd: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """The Moon's geocentric ecliptic longitude [deg], latitude [deg] and
+    distance [km], mean equinox of date: the Astronomical Almanac's
+    low-precision formula (section D), about 0.3 degrees in longitude,
+    0.2 degrees in latitude and 0.003 degrees in horizontal parallax
+    (about 0.3 % of the distance) from 1950 to 2050."""
+    t = (np.asarray(jd, dtype=float) - _J2000_JD) / 36525.0
+    d = np.radians
+    longitude = (218.32 + 481267.881 * t + 6.29 * np.sin(d(135.0 + 477198.87 * t))
+                 - 1.27 * np.sin(d(259.3 - 413335.36 * t)) + 0.66 * np.sin(d(235.7 + 890534.22 * t))
+                 + 0.21 * np.sin(d(269.9 + 954397.74 * t)) - 0.19 * np.sin(d(357.5 + 35999.05 * t))
+                 - 0.11 * np.sin(d(186.5 + 966404.03 * t)))
+    latitude = (5.13 * np.sin(d(93.3 + 483202.02 * t)) + 0.28 * np.sin(d(228.2 + 960400.89 * t))
+                - 0.28 * np.sin(d(318.3 + 6003.15 * t)) - 0.17 * np.sin(d(217.6 - 407332.21 * t)))
+    parallax = (0.9508 + 0.0518 * np.cos(d(135.0 + 477198.87 * t)) + 0.0095 * np.cos(d(259.3 - 413335.36 * t))
+                + 0.0078 * np.cos(d(235.7 + 890534.22 * t)) + 0.0028 * np.cos(d(269.9 + 954397.74 * t)))
+    return np.mod(longitude, 360.0), latitude, _EARTH_RADIUS_KM / np.sin(d(parallax))
+
+
+def moon_position_eci(jd: np.ndarray) -> np.ndarray:
+    """The Moon's position [km] from the Earth's centre, equatorial
+    (equator and equinox of date, within the formula's accuracy of J2000
+    for display): :func:`moon_ecliptic` turned by the mean obliquity."""
+    longitude, latitude, distance = moon_ecliptic(jd)
+    lam, beta = np.radians(longitude), np.radians(latitude)
+    obliquity = np.radians(23.439 - 0.0000004 * (np.asarray(jd, dtype=float) - _J2000_JD))
+    x = np.cos(beta) * np.cos(lam)
+    y = np.cos(obliquity) * np.cos(beta) * np.sin(lam) - np.sin(obliquity) * np.sin(beta)
+    z = np.sin(obliquity) * np.cos(beta) * np.sin(lam) + np.cos(obliquity) * np.sin(beta)
+    return distance[:, None] * np.column_stack([x, y, z])
+
+
 def mrp_to_dcm(sigma: np.ndarray) -> np.ndarray:
     """``[BN]`` of each MRP set in ``sigma`` (n, 3) (Schaub & Junkins)."""
     sigma = np.asarray(sigma, dtype=float).reshape(-1, 3)
@@ -127,6 +176,99 @@ def mrp_to_dcm(sigma: np.ndarray) -> np.ndarray:
     tilde[:, 1, 0], tilde[:, 2, 0], tilde[:, 2, 1] = sigma[:, 2], -sigma[:, 1], sigma[:, 0]
     square = tilde @ tilde
     return np.eye(3) + (8.0 * square - 4.0 * (1.0 - s2)[:, None, None] * tilde) / ((1.0 + s2) ** 2)[:, None, None]
+
+
+def rotate_z(vectors: np.ndarray, angle_rad: np.ndarray) -> np.ndarray:
+    """Each of ``vectors`` (n, 3) turned by its ``angle_rad`` (n,) about z
+    (a body-fixed vector to N, for the body's rotation angle)."""
+    vectors = np.asarray(vectors, dtype=float)
+    c, s = np.cos(angle_rad), np.sin(angle_rad)
+    return np.column_stack([c * vectors[:, 0] - s * vectors[:, 1], s * vectors[:, 0] + c * vectors[:, 1],
+                            vectors[:, 2]])
+
+
+def mesh_normals(vertices: np.ndarray, triangles: np.ndarray,
+                 crease_deg: float = CREASE_DEG) -> tuple[np.ndarray, np.ndarray]:
+    """Per-corner ``(positions, normals)``, each (3 t, 3), of a triangle
+    mesh, for shading: a corner's normal is the area-weighted mean of the
+    normals of the faces at its vertex that meet its own face at less
+    than ``crease_deg`` (smooth across a curved surface, a hard edge where
+    a box turns a corner). A face without area gets its neighbours' or
+    the +z normal."""
+    vertices = np.asarray(vertices, dtype=float)
+    triangles = np.asarray(triangles, dtype=int).reshape(-1, 3)
+    corners = vertices[triangles]  # (t, 3, 3)
+    weighted = np.cross(corners[:, 1] - corners[:, 0], corners[:, 2] - corners[:, 0])  # twice the area
+    area = np.linalg.norm(weighted, axis=1)
+    unit = np.divide(weighted, area[:, None], out=np.zeros_like(weighted), where=area[:, None] > 0.0)
+    cos_crease = math.cos(math.radians(crease_deg))
+    faces_at: dict[int, list[int]] = {}
+    for face, corner_vertices in enumerate(triangles):
+        for vertex in corner_vertices:
+            faces_at.setdefault(int(vertex), []).append(face)
+    normals = np.zeros((len(triangles), 3, 3))
+    for face, corner_vertices in enumerate(triangles):
+        for corner, vertex in enumerate(corner_vertices):
+            around = np.array(faces_at[int(vertex)])
+            keep = around[unit[around] @ unit[face] >= cos_crease] if area[face] > 0.0 else around
+            total = weighted[keep].sum(axis=0)
+            length = np.linalg.norm(total)
+            normals[face, corner] = total / length if length > 0.0 else (0.0, 0.0, 1.0)
+    return corners.reshape(-1, 3), normals.reshape(-1, 3)
+
+
+def ground_track_deg(position_km: np.ndarray, rotation_rad: np.ndarray) -> np.ndarray:
+    """Geocentric latitude and longitude [deg] (n, 2), longitude in
+    [-180, 180), of the points under ``position_km`` (n, 3, frame N) on a
+    body turned by ``rotation_rad`` (n,)."""
+    fixed = rotate_z(position_km, -np.asarray(rotation_rad, dtype=float))
+    latitude = np.degrees(np.arctan2(fixed[:, 2], np.hypot(fixed[:, 0], fixed[:, 1])))
+    longitude = np.mod(np.degrees(np.arctan2(fixed[:, 1], fixed[:, 0])) + 180.0, 360.0) - 180.0
+    return np.column_stack([latitude, longitude])
+
+
+def geodetic_up(latitude_deg: float, longitude_deg: float) -> np.ndarray:
+    """The unit normal of the ellipsoid (the local vertical) at a geodetic
+    latitude and longitude, body-fixed."""
+    lat, lon = math.radians(latitude_deg), math.radians(longitude_deg)
+    return np.array([math.cos(lat) * math.cos(lon), math.cos(lat) * math.sin(lon), math.sin(lat)])
+
+
+def elevation_deg(station_km: np.ndarray, up: np.ndarray, rotation_rad: np.ndarray,
+                  position_km: np.ndarray) -> np.ndarray:
+    """Elevation [deg] (n,) of ``position_km`` (n, 3, frame N) above the
+    horizon of a station at body-fixed ``station_km`` with local vertical
+    ``up``, the body turned by ``rotation_rad`` (n,)."""
+    count = len(position_km)
+    site = rotate_z(np.tile(station_km, (count, 1)), rotation_rad)
+    vertical = rotate_z(np.tile(up, (count, 1)), rotation_rad)
+    line = np.asarray(position_km, dtype=float) - site
+    distance = np.linalg.norm(line, axis=1)
+    sine = np.divide(np.einsum("ij,ij->i", line, vertical), distance, out=np.zeros(count), where=distance > 0.0)
+    return np.degrees(np.arcsin(np.clip(sine, -1.0, 1.0)))
+
+
+def altitude_km(position_km: np.ndarray, equatorial_radius_km: float, flattening: float = 0.0) -> np.ndarray:
+    """Height [km] (n,) of ``position_km`` (n, 3) above an ellipsoid of
+    revolution about z (a sphere when ``flattening`` is 0); the frame's
+    turn about z does not matter. Bowring's iteration, three steps
+    (millimetres for orbits)."""
+    position_km = np.asarray(position_km, dtype=float)
+    a = float(equatorial_radius_km)
+    e2 = flattening * (2.0 - flattening)
+    p = np.hypot(position_km[:, 0], position_km[:, 1])
+    z = position_km[:, 2]
+    if e2 == 0.0:
+        return np.hypot(p, z) - a
+    latitude = np.arctan2(z, p * (1.0 - e2))
+    for _ in range(3):
+        n = a / np.sqrt(1.0 - e2 * np.sin(latitude) ** 2)
+        height = np.where(np.abs(latitude) < np.pi / 4, p / np.cos(latitude) - n,
+                          z / np.sin(np.where(latitude == 0.0, 1.0, latitude)) - n * (1.0 - e2))
+        latitude = np.arctan2(z, p * (1.0 - e2 * n / (n + height)))
+    n = a / np.sqrt(1.0 - e2 * np.sin(latitude) ** 2)
+    return np.where(np.abs(latitude) < np.pi / 4, p / np.cos(latitude) - n,
+                    z / np.sin(np.where(latitude == 0.0, 1.0, latitude)) - n * (1.0 - e2))
 
 
 def _sample(series, times_s: np.ndarray) -> np.ndarray:
@@ -148,6 +290,13 @@ def _attitude(series, times_s: np.ndarray) -> np.ndarray:
 def _rgb(color) -> str:
     red, green, blue = (int(round(255 * max(0.0, min(1.0, c)))) for c in color[:3])
     return f"rgb({red},{green},{blue})"
+
+
+def _rgb_floats(colors: list[str]) -> np.ndarray:
+    """``"rgb(r,g,b)"`` strings as (t, 3) floats from 0 to 1."""
+    if not colors:
+        return np.zeros((0, 3))
+    return np.array([[int(v) / 255.0 for v in c[c.index("(") + 1:c.index(")")].split(",")] for c in colors])
 
 
 def _cube(size_m: float):
@@ -184,30 +333,38 @@ def spacecraft_mesh(sc, base_dir=None) -> tuple[np.ndarray, np.ndarray, list[str
                 return np.vstack(vertices), np.vstack(triangles), colors, notes
             notes.append(f"{sc.name}: its 3D model has no visible part; drawn as a 1 m cube")
     vertices, triangles = _cube(_DEFAULT_SIZE_M)
-    return vertices, triangles, ["rgb(176,184,196)"] * len(triangles), notes
+    return vertices, triangles, [_rgb(_DEFAULT_RGB)] * len(triangles), notes
 
 
-def earth_albedo_map() -> np.ndarray | None:
-    """Basilisk's Earth albedo map (CERES, 5 x 5 degrees) from the local
-    support data, rows from -90 deg latitude, columns from -180 deg
-    longitude; None when it is not installed. Never downloads."""
+def equipment(sc) -> list[dict]:
+    """The mounted items of ``sc`` that point somewhere (``model3d.equipment``):
+    name, kind, position [km] and unit boresight in the body frame, the
+    full field-of-view angle [deg] (or None) and the plume half-angle
+    [deg] (or None). An item without a position sits at point B."""
     try:
-        from Basilisk.utilities.supportDataTools.dataFetcher import DataFile
+        from ..model3d.equipment import mounted_items
 
-        from .kernels import KernelError, cached_path
+        items = mounted_items(sc)
+    except Exception:  # noqa: BLE001 -- equipment that cannot be placed is not drawn; the run is not affected
+        return []
+    found = []
+    for item in items:
+        if item.boresight_b is None:
+            continue
+        boresight = np.asarray(item.boresight_b, dtype=float)
+        if not np.all(np.isfinite(boresight)) or np.linalg.norm(boresight) == 0.0:
+            continue
+        position = np.zeros(3) if item.position_b_m is None else np.asarray(item.position_b_m, dtype=float)
+        found.append({"name": item.name, "kind": item.kind, "position_km": position / 1000.0,
+                      "boresight": boresight / np.linalg.norm(boresight),
+                      "fov_deg": None if item.field_of_view_deg is None else float(item.field_of_view_deg),
+                      "plume_half_deg": None if item.plume_half_angle_deg is None
+                      else float(item.plume_half_angle_deg)})
+    return found
 
-        path = cached_path(DataFile.AlbedoData.Earth_ALB_2018_CERES_All_5x5)
-        grid = np.loadtxt(path, delimiter=",")
-    except (ImportError, OSError, ValueError, KernelError, AttributeError):
-        return None
-    return grid if grid.ndim == 2 and grid.shape[0] >= 2 and grid.shape[1] >= 2 else None
 
-
-def build_scene(scenario, result, *, base_dir=None, max_frames: int = MAX_FRAMES,
-                albedo: np.ndarray | None = None) -> Scene:
-    """The scene of ``result`` (a ResultSet of ``scenario``). ``albedo``
-    is the body's map when the caller already read it (the view reads it
-    once, off the GUI thread)."""
+def build_scene(scenario, result, *, base_dir=None, max_frames: int = MAX_FRAMES) -> Scene:
+    """The scene of ``result`` (a ResultSet of ``scenario``)."""
     from .geodesy import ellipsoid_for, geodetic_to_pcpf
 
     notes: list[str] = []
@@ -230,8 +387,10 @@ def build_scene(scenario, result, *, base_dir=None, max_frames: int = MAX_FRAMES
 
     central = scenario.gravity.central_body
     radius_km = float(CENTRAL_BODY_EQUATORIAL_RADIUS_KM.get(central, 0.0))
+    ellipsoid = ellipsoid_for(central, radius_km * 1000.0)
     epoch = parse_epoch_utc(scenario.epoch_utc)
     jd = julian_date(epoch, times)
+    rotation = earth_rotation_angle(jd) if central == "earth" else None
 
     crafts: list[Craft] = []
     extent = radius_km
@@ -243,29 +402,48 @@ def build_scene(scenario, result, *, base_dir=None, max_frames: int = MAX_FRAMES
         if attitude is None:
             craft_notes.append(f"{sc.name}: no attitude in this run; drawn aligned with the inertial axes")
         size_km = float(np.max(np.ptp(vertices_m, axis=0))) / 1000.0
+        position_km = _sample(position, times)[:, :3] / 1000.0
+        velocity = result.series.get(f"{sc.name}.velocity_N")
+        if velocity is not None and len(velocity.time_s):
+            velocity_km_s = _sample(velocity, times)[:, :3] / 1000.0
+        elif len(times) > 1 and times[-1] > times[0]:
+            velocity_km_s = np.gradient(position_km, times, axis=0)
+        else:
+            velocity_km_s = np.zeros_like(position_km)
+        track = None
+        if rotation is not None:
+            path_jd = julian_date(epoch, position.time_s[::stride])
+            track = ground_track_deg(path_km, earth_rotation_angle(path_jd))
         crafts.append(Craft(
-            name=sc.name, position_km=_sample(position, times)[:, :3] / 1000.0, path_km=path_km,
+            name=sc.name, position_km=position_km, path_km=path_km,
             dcm_BN=None if attitude is None else _attitude(attitude, times), vertices_km=vertices_m / 1000.0,
-            triangles=triangles, face_colors=colors, size_km=max(size_km, 1e-6), notes=craft_notes))
+            triangles=triangles, face_colors=colors, size_km=max(size_km, 1e-6), notes=craft_notes,
+            face_rgb=_rgb_floats(colors), velocity_km_s=velocity_km_s,
+            altitude_km=altitude_km(position_km, radius_km, ellipsoid.flattening) if radius_km > 0.0 else None,
+            ground_track_deg=track, equipment=equipment(sc)))
         extent = max(extent, float(np.max(np.linalg.norm(path_km, axis=1))))
         notes += craft_notes
 
-    rotation = earth_rotation_angle(jd) if central == "earth" else None
-    stations = []
+    stations, minimum, visible = [], [], []
     if central == "earth" and radius_km > 0.0:
-        ellipsoid = ellipsoid_for(central, radius_km * 1000.0)
         for station in getattr(scenario, "ground_stations", None) or []:
             point = geodetic_to_pcpf(math.radians(station.latitude_deg), math.radians(station.longitude_deg),
-                                     station.altitude_m, ellipsoid)
-            stations.append((station.name, point / 1000.0))
+                                     station.altitude_m, ellipsoid) / 1000.0
+            up = geodetic_up(station.latitude_deg, station.longitude_deg)
+            stations.append((station.name, point))
+            minimum.append(float(station.min_elevation_deg))
+            visible.append([elevation_deg(point, up, rotation, craft.position_km) >= station.min_elevation_deg
+                            for craft in crafts])
     if central == "earth":
         sun = sun_direction_eci(jd)
+        moon = moon_position_eci(jd)
     elif central == "sun":
-        sun = None
+        sun = moon = None
         notes.append("The Sun is the central body, at the origin")
     else:
-        sun = None
+        sun = moon = None
         notes.append(f"No Sun direction is drawn around {central}")
     return Scene(epoch_utc=scenario.epoch_utc, times_s=times, body=central, body_radius_km=radius_km,
-                 body_rotation_rad=rotation, body_albedo=albedo if central == "earth" else None,
-                 crafts=crafts, stations=stations, sun_direction_N=sun, extent_km=1.1 * extent, notes=notes)
+                 body_rotation_rad=rotation, crafts=crafts, stations=stations, sun_direction_N=sun,
+                 extent_km=1.1 * extent, notes=notes, moon_position_km=moon, station_min_elevation_deg=minimum,
+                 station_visible=np.array(visible, dtype=bool).reshape(len(stations), len(crafts), len(times)))

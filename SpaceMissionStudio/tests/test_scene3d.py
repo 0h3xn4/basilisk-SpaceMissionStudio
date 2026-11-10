@@ -132,3 +132,102 @@ def test_a_spacecraft_is_drawn_from_its_3d_model():
     assert notes == [] and len(vertices) > 8 and len(colours) == len(triangles)
     assert triangles.max() < len(vertices) and len(set(colours)) > 1
     assert np.ptp(vertices, axis=0).max() < 20.0  # [m] a spacecraft, in metres
+
+
+def test_the_moon_against_meeus_example_47a():
+    """Meeus, Astronomical Algorithms (2nd ed.), example 47.a, 1992-04-12
+    0h TD (JD 2448724.5): longitude 133.162655 deg, latitude -3.229126 deg,
+    distance 368409.7 km. The Almanac's low-precision formula is within its
+    stated 0.3 deg, 0.2 deg and 0.3 % (it gives 133.257 deg, -3.307 deg,
+    368077 km)."""
+    longitude, latitude, distance = scene3d.moon_ecliptic(np.array([2448724.5]))
+    assert longitude[0] == pytest.approx(133.162655, abs=0.3)
+    assert latitude[0] == pytest.approx(-3.229126, abs=0.2)
+    assert distance[0] == pytest.approx(368409.7, rel=0.003)
+    position = scene3d.moon_position_eci(np.array([2448724.5]))[0]
+    assert np.linalg.norm(position) == pytest.approx(distance[0])
+    # Meeus 47.a also gives the apparent right ascension 134.688470 deg and
+    # declination 13.768368 deg (true equator of date; nutation and
+    # aberration, about 0.01 deg, are left out here).
+    assert math.degrees(math.atan2(position[1], position[0])) == pytest.approx(134.688470, abs=0.35)
+    assert math.degrees(math.asin(position[2] / np.linalg.norm(position))) == pytest.approx(13.768368, abs=0.25)
+
+
+def test_mesh_normals_keep_hard_edges_and_smooth_gentle_ones():
+    """A cube's corners take their own face's normal (90 degree edges);
+    two faces meeting at 10 degrees share an averaged normal along their
+    edge."""
+    vertices, triangles = scene3d._cube(1.0)
+    positions, normals = scene3d.mesh_normals(vertices, triangles)
+    assert positions.shape == normals.shape == (36, 3)
+    corners = vertices[triangles]
+    faces = np.cross(corners[:, 1] - corners[:, 0], corners[:, 2] - corners[:, 0])
+    faces /= np.linalg.norm(faces, axis=1)[:, None]
+    np.testing.assert_allclose(normals.reshape(12, 3, 3), np.repeat(faces[:, None, :], 3, axis=1), atol=1e-12)
+    tilt = math.radians(10.0)
+    vertices = np.array([[0, 0, 0], [0, 1, 0], [-1, 0, 0], [math.cos(tilt), 0, math.sin(tilt)]], float)
+    _positions, normals = scene3d.mesh_normals(vertices, np.array([[0, 1, 2], [0, 3, 1]]))
+    shared = normals[0]  # vertex 0, on the shared edge
+    assert math.degrees(math.acos(shared @ np.array([0.0, 0.0, 1.0]))) == pytest.approx(5.0, abs=0.01)
+    np.testing.assert_allclose(normals[2], [0.0, 0.0, 1.0], atol=1e-12)  # vertex 2: its face only
+
+
+def test_the_ground_track_and_a_station_s_line_of_sight():
+    """The point under a spacecraft on the x axis is at 0 deg, 0 deg; a
+    quarter turn of the Earth later it is at -90 deg longitude. A station
+    at 0 deg, 0 deg sees a spacecraft straight above at 90 deg elevation
+    and one a quarter of the way round below its horizon."""
+    above = np.array([[7000.0, 0.0, 0.0], [7000.0, 0.0, 0.0], [0.0, 0.0, 7000.0]])
+    track = scene3d.ground_track_deg(above, np.array([0.0, math.pi / 2.0, 0.0]))
+    np.testing.assert_allclose(track, [[0.0, 0.0], [0.0, -90.0], [90.0, 0.0]], atol=1e-9)
+    station = np.array([6378.137, 0.0, 0.0])
+    up = scene3d.geodetic_up(0.0, 0.0)
+    elevation = scene3d.elevation_deg(station, up, np.zeros(2), np.array([[7000.0, 0.0, 0.0], [0.0, 7000.0, 0.0]]))
+    assert elevation[0] == pytest.approx(90.0) and elevation[1] < 0.0
+    turned = scene3d.elevation_deg(station, up, np.array([math.pi / 2.0]), np.array([[0.0, 7000.0, 0.0]]))
+    assert turned[0] == pytest.approx(90.0)
+
+
+def test_altitude_above_the_ellipsoid():
+    """WGS-84: 621.863 km above the equator at 7000 km, 643.248 km above
+    the pole (polar radius 6356.752 km); a sphere: the radius subtracted."""
+    flattening = 1.0 / 298.257223563
+    heights = scene3d.altitude_km(np.array([[7000.0, 0.0, 0.0], [0.0, 0.0, 7000.0]]), 6378.137, flattening)
+    np.testing.assert_allclose(heights, [621.863, 7000.0 - 6356.752314], atol=1e-6)
+    assert scene3d.altitude_km(np.array([[0.0, 3000.0, 4000.0]]), 3396.2)[0] == pytest.approx(5000.0 - 3396.2)
+
+
+def test_the_scene_carries_what_the_page_draws():
+    """Velocity (the path's derivative without a velocity series), speed
+    and altitude, the ground track, the Moon, and each station's line of
+    sight: visible exactly when the elevation is at or above the station's
+    minimum elevation (10 deg by default)."""
+    scenario, result, _name = _run(with_attitude=True)
+    scene = scene3d.build_scene(scenario, result, max_frames=200)
+    craft = scene.crafts[0]
+    speed = math.sqrt(3.986004418e14 / _RADIUS_M) / 1000.0  # [km/s]
+    np.testing.assert_allclose(np.linalg.norm(craft.velocity_km_s[5:-5], axis=1), speed, rtol=1e-3)
+    np.testing.assert_allclose(craft.altitude_km, _RADIUS_M / 1000.0 - EARTH_EQUATORIAL_RADIUS_M / 1000.0,
+                               atol=0.5)  # an equatorial orbit; frames between samples are on chords
+    assert craft.ground_track_deg.shape == (len(craft.path_km), 2)
+    np.testing.assert_allclose(craft.ground_track_deg[:, 0], 0.0, atol=1e-9)
+    assert craft.face_rgb.shape == (12, 3) and craft.equipment == []
+    assert scene.moon_position_km.shape == (200, 3)
+    assert 356000.0 < np.linalg.norm(scene.moon_position_km[0]) < 407000.0  # [km] perigee to apogee
+    assert scene.station_min_elevation_deg == [10.0] and scene.station_visible.shape == (1, 1, 200)
+    (_station, point), = scene.stations
+    elevation = scene3d.elevation_deg(point, scene3d.geodetic_up(0.0, 0.0), scene.body_rotation_rad,
+                                      craft.position_km)
+    np.testing.assert_array_equal(scene.station_visible[0, 0], elevation >= 10.0)
+    assert scene.station_visible.any() and not scene.station_visible.all()
+
+
+def test_the_mounted_equipment_is_placed_in_the_body_frame():
+    """Template 32: the star tracker's 20 deg field of view and the
+    thruster's 15 deg plume, each with a unit boresight, in kilometres."""
+    scenario = api.load(api.template("32_smallsat_design_checks"))
+    items = {item["name"]: item for item in scene3d.equipment(scenario.spacecraft[0])}
+    assert items["st-1"]["fov_deg"] == 20.0 and items["sk thruster"]["plume_half_deg"] == 15.0
+    for item in items.values():
+        assert np.linalg.norm(item["boresight"]) == pytest.approx(1.0)
+        assert np.all(np.abs(item["position_km"]) < 0.01)  # [km] on a small satellite
