@@ -12,6 +12,18 @@ fixes bugs.
 
 ### Changed
 
+- **The app starts on a landing page, not on the last session's work.**
+  The window opens on **Home** with no scenario open: the title says "no
+  scenario open", the other areas (Scenario, Run, Results, Timeline,
+  Reports) say so with **New Scenario**, **Open...** and **Go to Home**,
+  and the commands that need a scenario (Save, Run, the exports...) are
+  disabled until New Scenario, Open..., a recent file, a template or a
+  restored autosave opens one. Results, **Run > History** and **Compare**
+  no longer list every earlier session's runs at start: opening a scenario
+  lists its own earlier runs (the saved runs of a scenario with the same
+  name) and the runs made since. The runs stay saved on disk. The window's
+  size, position and panels are kept as before, and so is the crash
+  recovery offer.
 - **New licence: EUPL-1.2.** From this release SpaceMissionStudio is
   licensed under the European Union Public Licence v. 1.2
   ([`LICENSE`](LICENSE), German text [`LICENSE.de`](LICENSE.de)).

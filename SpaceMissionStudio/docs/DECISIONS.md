@@ -5,6 +5,64 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Landing page at start-up (2026-11-10)
+
+The owner's request: the app starts on a landing page, not on the last
+session's work, and closes cleanly. The owner decided: earlier runs only
+with their scenario; Home with nothing open; the window's size, position
+and panels kept.
+
+- **An explicit "scenario open" state in the main window** (one flag, one
+  method that switches it, `MainWindow._set_scenario_open`), not a window
+  without an editor scenario: the editor keeps its blank default inside.
+  Why: the smallest change; every view and command keeps a scenario to
+  read, so nothing can fail on "no scenario".
+- **New Scenario, Open..., a recent file, a template (opened or customized)
+  and accepting the crash-recovery prompt open a scenario.** No IDM-CIC or
+  CCSDS import creates a scenario: both import into a spacecraft of the
+  open one, so they need one open. Why: they are every way a scenario
+  reaches the editor.
+- **No "Close scenario" command:** once a scenario is open, opening another
+  replaces it, as before. Why: not asked for; the landing page is for the
+  start.
+- **A stored run belongs to the scenario of the same name** (the `name` of
+  the scenario recorded with the run, compared exactly after trimming
+  spaces). Why: the run store records the scenario as it ran, with its
+  name, but not the file's path (the provenance names the file only, and
+  only for a run of an unchanged file); adding the path would change the
+  run store's format.
+- **Consequences of matching by name:** a template opened as shipped (or
+  customized, untitled) lists the runs of every scenario with its name,
+  its own earlier runs included; two different files with the same name
+  share their runs; a run made before a rename stays with the old name.
+  Why: the same names the run lists already show; nothing is deleted.
+- **New Scenario lists no earlier runs:** a new scenario has none. Why:
+  its default name ("new scenario") would otherwise gather every blank
+  scenario's runs.
+- **The runs made since the scenario was opened stay listed** for as long
+  as it is open, even if it is renamed; failed runs and Monte Carlo
+  batches (listed for the session only, as before) follow the same rule.
+  A run still going when another scenario is opened is kept and saved, but
+  listed with its own scenario. Why: "runs made in the current session
+  stay listed"; switching scenario shows that scenario's runs.
+- **The empty state replaces the area's header too** (its commands are
+  disabled anyway), with New Scenario as the primary action, Open... and
+  Go to Home. Why: the design rules' "every empty state has its primary
+  action"; a header of disabled buttons says nothing.
+- **Disabled while nothing is open:** Save, Save As, Change History, Undo
+  and Redo, Run and the run modes, Live plot, Vizard Configuration, Open
+  Monte Carlo Results, Clear Time Cursor, 3D Model, Export Orbits as CCSDS,
+  the analyses' and Flight Software's page commands, Explain. Launch
+  Vizard, Check a CCSDS File, Check Reference Data, the panels, the
+  theme, Settings and Help stay. Why: the first list works on the
+  scenario or shows its pages; the second does not.
+- **The command palette** lists disabled commands greyed, as before, and
+  leaves out the scenario's pages, the run views' tabs and the series
+  while nothing is open. Why: they would lead to an empty state.
+- **Problems are empty while nothing is open** (the blank default's
+  problems are not the user's), and an open scenario's problems only
+  count (G8). Why: nothing open has nothing to fix.
+
 ## The 3D view, and no Vizard download (2026-11-09)
 
 - **Our own 3D view, not another program:** what the user sees must not

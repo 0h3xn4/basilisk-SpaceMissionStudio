@@ -145,7 +145,20 @@ and what to do when it doesn't. Installing from source needs Python 3.14;
 * **Running from source:** open a terminal in the project folder and run
   `spacemissionstudio gui` (or `python3 -m spacemissionstudio.gui.app`).
 
-The window opens on **Home**. Each time the app starts, a card at the
+The window opens on **Home**, with no scenario open: the app does not
+reopen the last session's scenario or list its runs. Start from Home with
+**New blank scenario**, **Open a scenario file...**, a recent scenario or
+a template. Until you do, the title says "no scenario open", the other
+areas (**Scenario**, **Run**, **Results**, **Timeline**, **Reports**) show
+"No scenario is open" with **New Scenario**, **Open...** and **Go to
+Home**, and the commands that need a scenario (Save, Run, the exports)
+are greyed out; **Settings** and **Help** work as always. The window
+keeps its size, position and panels from the last time. If the app did
+not close cleanly last time, it first offers to restore the scenario's
+unsaved changes (saved every 30 seconds while you edit); **Open**
+restores and opens that scenario, **Discard** starts on Home as usual.
+
+Each time the app starts, a card at the
 top of Home, **Fetch or update reference data?**, offers to check for
 newer reference data (support data, space weather, Earth orientation).
 Tick what you want and press **Fetch now**: the download runs while you
@@ -193,7 +206,7 @@ A few things to notice right away:
   * **Results**, which fills in when you run something (Section 7), with
     the run's **Overview** (its headline figures), the **Plots**, the
     **Dashboard**, the mission **Output**, **Compare**: your saved runs,
-    of this session and earlier ones, side by side (a summary with
+    the open scenario's, of this session and earlier ones, side by side (a summary with
     differences, the inputs that differ, the events and overlaid plots),
     and, last, a **Monte Carlo** view when the scenario has Monte Carlo
     on or a batch is open (Section 10).
@@ -1251,9 +1264,12 @@ it.
   `spacecraft[sat-1].orbit.semi_major_axis_km`.
 
 **Compare** (a view of Results, after Output) puts two or more runs side by side. Every run is saved as it
-ends, in `~/.spacemissionstudio/runs`, so the runs of earlier sessions
-are listed too ("Run 7, 13 Oct 17:30"); runs are numbered on from the
-last one. The newest 20 runs are kept, at most 2 GB together; the oldest
+ends, in `~/.spacemissionstudio/runs`. Opening a scenario lists its runs
+of earlier sessions too ("Run 7, 13 Oct 17:30"): the saved runs of a
+scenario with the same name (a template's runs show when you open that
+template; **New Scenario** starts with none). Opening another scenario
+lists that one's runs instead; the others stay saved. Runs are numbered
+on from the last one. The newest 20 runs are kept, at most 2 GB together; the oldest
 go first. Tick the runs to compare (Space ticks the selected one); after a
 run, it and the run before it are ticked. The oldest ticked run is the
 **base**, and each other run is compared with it:
@@ -1275,7 +1291,7 @@ run, it and the run before it are ticked. The oldest ticked run is the
 With the run shown and one other ticked, Results draws that other run
 dashed; choosing a run under **Compare with** ticks the pair here.
 
-**History** (the Run area) lists every run, newest first: its status
+**History** (the Run area) lists the open scenario's runs, newest first: its status
 (**Done**, **Cancelled**, **Failed**, or for a Monte Carlo batch with
 failed runs **Done, some failed**, each with its icon), the run, the
 scenario, the mode (**Single**, **SIL** or **Monte Carlo**; not recorded
