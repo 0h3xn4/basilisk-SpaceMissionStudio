@@ -171,7 +171,7 @@ every scenario field is in `ICD_scenario_fields.md`.
 | Direction cosine matrix `dcm_XY` | N → P (from SPICE `pxform`), P → L, TEME → N |
 | MRP `sigma_XY`, shadow set where \|σ\| > 1 | N → B (the attitude Basilisk integrates); guidance attitudes |
 | Angular rate `omega_XY_X` (rad/s) | B relative to N, in B |
-| 3-2-1 Euler angles (z, y, x; deg) | Only the orientation of a Vizard 3-D model relative to B (`vizard_model_rotation_deg`); display only, not used in the dynamics |
+| 3-2-1 Euler angles (z, y, x; deg) | Only the orientation of a 3D model's part relative to B (`ModelPartConfig.rotation_deg`: yaw about z, then pitch, then roll); the dynamics use the mass properties and facets derived from the model |
 
 ## 8 Transformation chains (A.2.1<8>)
 

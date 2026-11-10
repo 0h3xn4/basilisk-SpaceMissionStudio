@@ -87,7 +87,6 @@ days (`engine/long_run.py`).
   pool from there, each run in its own process. The start-up reading of
   the reference data also runs in a child process
   (`gui/reference_data_process.py`), so the window does not stall.
-- Vizard is a separate program, fed by a save file or a live stream.
 
 ## Where things live
 

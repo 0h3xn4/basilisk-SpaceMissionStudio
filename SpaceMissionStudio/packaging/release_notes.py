@@ -311,8 +311,8 @@ def render(version: str, files: Path, run_url: str, changelog: str, root: Path =
     add("  - the Earth and Mars albedo maps;")
     add("  - the measured Earth orientation files, current on the build day.")
     add(f"- **Bundled space weather:** CelesTrak observations to {space_weather_end(root)}.")
-    add("- **Still downloaded on request:** the asteroid Eros files (Reference data, **Small bodies**), the Vizard "
-        "viewer, and newer space weather. The app asks before any download.")
+    add("- **Still downloaded on request:** the asteroid Eros files (Reference data, **Small bodies**) and newer "
+        "space weather. The app asks before any download.")
     add("")
 
     add("## How this release was checked")

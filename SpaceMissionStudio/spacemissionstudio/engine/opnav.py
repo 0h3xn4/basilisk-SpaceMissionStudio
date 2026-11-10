@@ -21,7 +21,7 @@ Pure numpy, no Basilisk; ``engine.optical_navigation`` runs it in a
 simulation. This module is the tool's own code.
 
 **What it models.** No image is rendered (Basilisk's ``camera`` module only
-corrupts images Vizard renders, and no Vizard runs in a headless run).
+corrupts images an external renderer supplies, and none runs here).
 Instead the measurement an image-processing step such as Basilisk's
 ``houghCircles`` would report is computed from the true geometry: where
 the centre of the planet's disk falls on the detector (pixel and line) and

@@ -88,7 +88,7 @@ class RunWorker(QThread):
     phase = Signal(str)
     fraction = Signal(float)
 
-    def __init__(self, scenario: Scenario, vizard_request: object | None = None, live: bool = False,
+    def __init__(self, scenario: Scenario, model_base_dir: str | None = None, live: bool = False,
                  parent=None, allow_scripts: bool = False, sil: tuple | None = None):
         super().__init__(parent)
         self.scenario = scenario
@@ -98,7 +98,7 @@ class RunWorker(QThread):
         # True only after the user confirmed the scenario's script_block
         # code (MainWindow.on_run; SRS-S-03).
         self.allow_scripts = allow_scripts
-        self.vizard_request = vizard_request  # engine.vizard.VizardRequest, or None
+        self.model_base_dir = model_base_dir  # where a 3D model's relative mesh paths are read from
         # Whether `progress` is actually emitted as the run goes (driving
         # a live-updating plot -- see MainWindow.on_run()/the "Live plot"
         # toggle). No longer decides HOW the run executes -- see this
@@ -136,7 +136,7 @@ class RunWorker(QThread):
             if self.sil is not None:
                 self._run_sil()
                 return
-            service = SimulationService(self.scenario, vizard_request=self.vizard_request)
+            service = SimulationService(self.scenario, model_base_dir=self.model_base_dir)
             if runs_sequence(self.scenario.mission_sequence):
                 from ..engine.mission_engine import MissionEngine, MissionEngineCancelled
 
@@ -196,7 +196,7 @@ class RunWorker(QThread):
                 self.progress.emit(partial, fraction)
 
         try:
-            result, report = run_sil(self.scenario, name, options, vizard_request=self.vizard_request,
+            result, report = run_sil(self.scenario, name, options, model_base_dir=self.model_base_dir,
                                      on_progress=on_progress, should_cancel=self._should_cancel)
         except SilCancelled as exc:
             self.sil_report.emit(exc.report, "")

@@ -221,5 +221,6 @@ Three requirements need resources the validation environment lacks:
 - SRS-DEL-01 (installers): the Debian package was test-installed earlier
   in development; the Windows installer has not been tested in this
   audit.
-- SRS-F-16 (Vizard): needs a display and the Vizard program; tested only
-  through its save file.
+- SRS-F-16 (3D View): needs a display to be seen; tested through the
+  scene's numbers (`tests/test_scene3d.py`) and the view offscreen
+  (`tests/gui/test_mission_view.py`).

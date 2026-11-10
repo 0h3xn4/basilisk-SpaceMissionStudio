@@ -509,24 +509,9 @@ def test_phasing_keeping_runs_normally_with_finite_state():
     assert len(controller.tLog) == 1
 
 
-# -- Live delta-V-used/separation telemetry (engine.vizard's GenericStorage
-# panels) -------------------------------------------------------------------
+# -- Delta-V and separation telemetry --------------------------------------
 
-def test_station_keeping_dv_budget_is_tsiolkovsky_closed_form():
-    """Station keeping's delta-V budget is Tsiolkovsky's for its mass,
-    propellant and Isp."""
-    from spacemissionstudio.engine.orbit_maintenance import StationKeepingController
-    from spacemissionstudio.engine.propellant_bookkeeping import total_delta_v_budget
-
-    controller = StationKeepingController(
-        name="sk", mu=3.986004418e14, nominal_alt_m=550e3, deadband_m=2e3, r_planet_m=6378137.0,
-        thrust_n=0.05, isp_s=1500.0, dry_mass_kg=400.0, propellant_kg=5.0,
-    )
-    assert controller.dvBudgetMps == total_delta_v_budget(400.0, 5.0, 1500.0)
-    assert controller.dvBudgetMps > 0.0
-
-
-def test_station_keeping_publishes_delta_v_message_after_update():
+def test_station_keeping_burns_once_the_smoothing_window_is_full():
     """Below the deadband -> burnOn (once the altitude-smoothing window
     has a FULL orbital period of real history -- see the cold-start
     regression test below for why a single below-deadband sample must
@@ -557,14 +542,11 @@ def test_station_keeping_publishes_delta_v_message_after_update():
         t_s += dt_s
         controller.UpdateState(int(t_s * 1e9))
 
-    payload = controller.deltaVOutMsg.read()
-    assert payload.storageLevel == controller._cumulativeDv
-    assert payload.storageLevel > 0.0
-    assert payload.storageCapacity == controller.dvBudgetMps
+    assert controller._cumulativeDv > 0.0
 
 
 def test_station_keeping_cold_start_does_not_spuriously_burn_on_one_low_sample():
-    """Real bug, found by reproducing a real Vizard screenshot of
+    """Real bug, found by reproducing a real user's run of
     `05_formation_flying_phasing.json` showing a co-located
     PhasingKeepingController's along-track separation diverging without
     bound instead of converging: `_altHistory` starts EMPTY every
@@ -590,7 +572,7 @@ def test_station_keeping_cold_start_does_not_spuriously_burn_on_one_low_sample()
     controller.extForceEffector = extForceTorque.ExtForceTorque()
     sc_state_msg = messaging.SCStatesMsg()
     # Same "well below the deadband" osculating reading the old,
-    # removed version of test_station_keeping_publishes_delta_v_message_after_update
+    # removed version of test_station_keeping_burns_once_the_smoothing_window_is_full
     # used to trigger an immediate burn from -- this test is that
     # removed assumption's direct replacement.
     _write_sc_state(sc_state_msg, [6378137.0 + 540e3, 0.0, 0.0], [0.0, 7500.0, 0.0])
@@ -633,41 +615,11 @@ def test_station_keeping_cold_start_guard_only_gates_the_start_not_the_stop():
     assert controller.burnOn is False
 
 
-def test_phasing_keeping_dv_budget_is_passed_through_from_constructor():
-    """Phasing keeping keeps the delta-V budget it is given."""
-    from spacemissionstudio.engine.orbit_maintenance import PhasingKeepingController, SeparationSchedule
-
-    controller = PhasingKeepingController(
-        name="pk", mu=3.986004418e14, nominal_a_m=6928e3,
-        separation_schedule=SeparationSchedule(distances_km=[50.0], interval_days=0.0, semi_major_axis_m=6928e3),
-        tolerance_fraction=0.1, restore_tolerance_fraction=0.5, correction_window_days=1.0,
-        max_drift_days=5.0, max_delta_a_m=1000.0, thrust_n=0.05, isp_s=1500.0, dry_mass_kg=400.0,
-        dv_budget_mps=717.7,
-    )
-    assert controller.dvBudgetMps == 717.7
-
-
-def test_phasing_keeping_publishes_rtn_separation_and_delta_v_messages():
-    """Regression test for a real gap found while writing this feature:
-    deltaVOutMsg must report a correct storageCapacity (the shared-tank
-    budget) even on a tick where the thruster-arbitration branch returns
-    before the state machine's own final block runs -- see UpdateState's
-    two deltaVOutMsg.write() call sites and their comments for why.
-
-    Also the main regression test for the RTN separation telemetry (real
-    user feedback: a single "Separation" scalar was too vague) and for
-    the screenshot-confirmed bugs it must still not reintroduce -- this
-    scenario's chief/follower are 90 deg apart in true anomaly, which
-    (see the R, T computed below) makes BOTH the radial and transverse
-    raw offsets far exceed the shared capacity, in OPPOSITE signs, so a
-    single tick here exercises the magnitude clamp on both an
-    over-capacity NEGATIVE (radial) and an over-capacity POSITIVE
-    (transverse) raw value at once -- storageLevel must come out
-    non-negative and clamped either way (see _clamp_magnitude's own
-    docstring for why: an earlier revision clamped signed, which a real
-    Vizard screenshot showed rendering "Unavailable" for a negative
-    storageLevel instead of a bar).
-    """
+def test_phasing_keeping_records_the_signed_rtn_separation():
+    """The RTN separation telemetry (real user feedback: a single
+    "Separation" scalar was too vague) is the true, signed geometry: this
+    scenario's chief/follower are 90 deg apart in true anomaly, so the
+    radial and transverse offsets are large and of opposite signs."""
     from Basilisk.architecture import messaging
     from Basilisk.simulation import extForceTorque
     from Basilisk.utilities import orbitalMotion
@@ -681,7 +633,6 @@ def test_phasing_keeping_publishes_rtn_separation_and_delta_v_messages():
                                                 semi_major_axis_m=nominal_a_m),
         tolerance_fraction=0.1, restore_tolerance_fraction=0.5, correction_window_days=1.0,
         max_drift_days=5.0, max_delta_a_m=1000.0, thrust_n=0.05, isp_s=1500.0, dry_mass_kg=400.0,
-        dv_budget_mps=717.7,
     )
     controller.extForceEffectorB = extForceTorque.ExtForceTorque()
     state_a = messaging.SCStatesMsg()
@@ -703,47 +654,21 @@ def test_phasing_keeping_publishes_rtn_separation_and_delta_v_messages():
 
     rho_h, _rho_prime_h = orbitalMotion.rv2hill(r_a, v_a, r_b, v_b)
     expected_radial_km, expected_transverse_km, expected_normal_km = np.array(rho_h) / 1000.0
-    # Sanity on the scenario itself: R and T must both be far outside the
-    # shared +/-100 km capacity (2x the 50 km target), in opposite signs --
-    # otherwise this test isn't exercising the clamp both ways as intended.
+    # Sanity on the scenario itself: R and T far from the 50 km target, in opposite signs.
     assert expected_radial_km < -100.0
     assert expected_transverse_km > 100.0
 
-    radial_payload = controller.separationRadialOutMsg.read()
-    transverse_payload = controller.separationTransverseOutMsg.read()
-    normal_payload = controller.separationNormalOutMsg.read()
-
-    for payload in (radial_payload, transverse_payload, normal_payload):
-        assert payload.storageCapacity == pytest.approx(100.0)  # 2x the 50 km target, shared by all three
-        assert payload.storageLevel >= 0.0  # MAGNITUDE only -- never negative, whatever the raw sign
-    assert radial_payload.storageLevel == pytest.approx(100.0)  # clamped magnitude of the raw ~-6921 km
-    assert transverse_payload.storageLevel == pytest.approx(100.0)  # clamped magnitude of the raw ~6928 km
-    assert normal_payload.storageLevel == pytest.approx(0.0)  # co-planar case: genuinely ~0, not clamped
-
-    # The true, unclamped numbers must still be the real geometry.
     assert controller.lastRadialKm == pytest.approx(expected_radial_km)
     assert controller.lastTransverseKm == pytest.approx(expected_transverse_km)
     assert controller.lastNormalKm == pytest.approx(expected_normal_km, abs=1e-9)
     assert controller.lastTargetSeparationKm == pytest.approx(50.0)
 
-    # The gauge's max must be correct even before any phasing burn has
-    # actually accumulated delta-V (this scenario's first tick is still
-    # in IDLE -- see test_phasing_keeping_runs_normally_with_finite_state
-    # above, which confirms IDLE -> BURN_OUT transitions on the NEXT tick).
-    delta_v_payload = controller.deltaVOutMsg.read()
-    assert delta_v_payload.storageCapacity == 717.7
 
-
-def test_phasing_keeping_rtn_separation_is_unclamped_when_within_capacity():
-    """Companion to the clamping regression test above: when the raw
-    separation is comfortably within the shared 2x-target capacity,
-    storageLevel must pass through as its (non-negative) MAGNITUDE
-    unchanged, not always get pinned to the capacity -- confirms the
-    clamp is a min(abs(...), limit), not an accidental hard-set. Also
-    confirms the transverse (along-track) component reads close to the
-    along-track target for a follower placed there, and radial/normal
-    read close to zero for this co-planar, near-circular scenario.
-    """
+def test_phasing_keeping_on_target_follower_reads_its_target_separation():
+    """Companion to the test above: the transverse (along-track)
+    component reads close to the along-track target for a follower
+    placed there, and radial/normal read close to zero for this
+    co-planar, near-circular scenario."""
     from Basilisk.architecture import messaging
     from Basilisk.simulation import extForceTorque
     from Basilisk.utilities import orbitalMotion
@@ -777,31 +702,13 @@ def test_phasing_keeping_rtn_separation_is_unclamped_when_within_capacity():
 
     controller.UpdateState(0)
 
-    radial_payload = controller.separationRadialOutMsg.read()
-    transverse_payload = controller.separationTransverseOutMsg.read()
-    normal_payload = controller.separationNormalOutMsg.read()
-    for payload in (radial_payload, transverse_payload, normal_payload):
-        assert payload.storageCapacity == pytest.approx(2.0 * target_km)
-
     # abs=0.5 (1% of target): a nonzero eccentricity (0.001 here) makes
     # the Hill-frame T offset slightly different from a pure arc-length
-    # approximation -- real physics, not slack for a bug, and still small
-    # enough to clearly distinguish "passed through near-unchanged" from
-    # "clamped to 100.0".
-    assert transverse_payload.storageLevel == pytest.approx(target_km, abs=0.5)
-    assert transverse_payload.storageLevel < transverse_payload.storageCapacity
-    assert radial_payload.storageLevel < 1.0  # near-circular, co-planar: small, not clamped
-    assert normal_payload.storageLevel == pytest.approx(0.0, abs=1e-9)  # exactly co-planar here
-
-    # storageLevel is the MAGNITUDE of the true, signed geometry (see
-    # _clamp_magnitude's own docstring for why: GenericStorage cannot
-    # render a negative currentValue) -- lastRadialKm itself may be
-    # slightly negative here (near-circular, co-planar noise), unlike
-    # lastTransverseKm, which is comfortably positive ("ahead of the
-    # chief") in this scenario, so only the radial comparison needs abs().
-    assert controller.lastTransverseKm == pytest.approx(transverse_payload.storageLevel, abs=1e-9)
-    assert abs(controller.lastRadialKm) == pytest.approx(radial_payload.storageLevel, abs=1e-9)
-    assert controller.lastNormalKm == pytest.approx(normal_payload.storageLevel, abs=1e-9)
+    # approximation -- real physics, not slack for a bug.
+    assert controller.lastTransverseKm == pytest.approx(target_km, abs=0.5)
+    assert abs(controller.lastRadialKm) < 1.0  # near-circular, co-planar: small
+    assert controller.lastNormalKm == pytest.approx(0.0, abs=1e-9)  # exactly co-planar here
+    assert controller.lastTargetSeparationKm == pytest.approx(target_km)
 
 
 # -- Divergence guard: a correction cycle that never actually brings the

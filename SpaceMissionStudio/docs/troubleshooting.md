@@ -38,7 +38,7 @@ environment variable; set it before installing. The hosts to allow:
 | `pypi.org`, `files.pythonhosted.org` | Installing Basilisk and the Python packages |
 | `naif.jpl.nasa.gov` | SPICE kernels and Earth orientation files |
 | `raw.githubusercontent.com` | The gravity field and magnetic model |
-| `hanspeterschaub.info` | Basilisk's backup for the support data; Vizard |
+| `hanspeterschaub.info` | Basilisk's backup for the support data |
 | `celestrak.org` | Newer space weather, only if you ask for it |
 | `www.itu.int` | The ITU-R P.676-13 data file (`gaseous-attenuation --fetch`), only if you ask for it |
 

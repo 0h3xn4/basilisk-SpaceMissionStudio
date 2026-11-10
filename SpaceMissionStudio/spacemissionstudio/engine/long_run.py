@@ -45,8 +45,8 @@ A spacecraft that re-enters ends the run there (see
 boundary: controllers' internal
 filters (the station-keeping altitude smoothing refills over one orbit,
 the GEO drift fit over one day) and sensor noise sequences. Phasing
-keeping (its state machine and schedule), mission sequences, Monte Carlo
-batches and the live Vizard view are refused for segmented runs.
+keeping (its state machine and schedule), mission sequences and Monte Carlo
+batches are refused for segmented runs.
 """
 
 from __future__ import annotations
@@ -95,7 +95,7 @@ def segment_lengths_s(scenario: Scenario) -> list[float]:
     return lengths
 
 
-def check_segmentable(scenario: Scenario, vizard_request=None) -> None:
+def check_segmentable(scenario: Scenario) -> None:
     """Raises :class:`LongRunError` for what cannot be split. Mission
     sequences and phasing keeping are also refused by
     ``Scenario.validate()``; checked again here for scenarios built in code."""
@@ -111,9 +111,6 @@ def check_segmentable(scenario: Scenario, vizard_request=None) -> None:
     if scenario.gravity.central_body in SMALL_BODY_CENTRAL_BODIES:
         raise LongRunError(f"a run around a small body is one simulation, at most {SimSettings._MAX_SINGLE_RUN_DAYS:g} "
                            "days (longer, segmented runs are not verified around small bodies)")
-    if vizard_request is not None:
-        raise LongRunError(f"the Vizard view covers one simulation, at most {SimSettings._MAX_SINGLE_RUN_DAYS:g} "
-                           "days -- turn Vizard off for longer runs")
 
 
 def _parse_epoch(epoch_utc: str) -> datetime:
@@ -243,13 +240,14 @@ def _seed_segment(scenario: Scenario, segment: Scenario, index: int) -> None:
 
 
 def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], None] | None = None,
-                  should_cancel: Callable[[], bool] | None = None, vizard_request=None) -> ResultSet:
+                  should_cancel: Callable[[], bool] | None = None, model_base_dir: str | None = None) -> ResultSet:
     """Runs ``scenario`` as a chain of segments (see this module's
     docstring). ``on_progress(partial, fraction)`` and ``should_cancel``
-    behave as for :meth:`SimulationService.run_live`, over the whole run."""
+    behave as for :meth:`SimulationService.run_live`, over the whole run;
+    ``model_base_dir`` as for :class:`SimulationService`."""
     from .service import SimulationCancelled, SimulationService
 
-    check_segmentable(scenario, vizard_request)
+    check_segmentable(scenario)
     lengths = segment_lengths_s(scenario)
     total_s = sum(lengths)  # [s]
     epoch = _parse_epoch(scenario.epoch_utc)
@@ -268,7 +266,7 @@ def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], 
         segment.epoch_utc = time_system.elapsed_to_utc(epoch, [offset_s])[0].isoformat()
         segment.sim_settings.duration_days = length_s / 86400.0  # [day]
         _seed_segment(scenario, segment, index)
-        service = SimulationService(segment)
+        service = SimulationService(segment, model_base_dir=model_base_dir)
         service.mission_elapsed_offset_s = offset_s  # the solar panels' time in orbit (power.degradation)
         if on_progress is None and should_cancel is None:
             part = service.run()

@@ -42,10 +42,6 @@ Useful `run` options:
 | Option | Does |
 |---|---|
 | `--oem` | Also writes each spacecraft's ephemeris as a CCSDS OEM file (`--oem-stride N` writes every Nth recorded state; `--oem-interpolation hermite` or `lagrange` sets the interpolation the file suggests, degree 7: GMAT reads only `lagrange`) |
-| `--vizard-save-file run.bin` | Writes a Vizard playback file |
-| `--vizard-live-stream` | Streams to a Vizard that is already running |
-| `--vizard-camera-target NAME` | The spacecraft or celestial body Vizard's camera starts locked on (default: the scenario's central body) |
-| `--vizard-no-orbit-lines`, `--vizard-trail`, `--vizard-ground-tracks` | Turn off the orbit lines (on by default), or add the flown path or the ground tracks, in Vizard |
 | `--allow-scripts` | Runs the scenario's `script_block` commands. They are unrestricted Python: use it only for files you trust and have read. |
 | `--bundle` | Also makes `--out-dir` a reproduction bundle that `reproduce` can run again (see below) |
 | `--explain` | After the run, its headline figures (as Results > Overview shows them) and its data-handling totals, and how each was computed: the series and sample it was read from, the parameters and constants. Each of the run's warnings is followed by its rule ([Reading a run's results](../models/reading-results.md)) |
@@ -116,7 +112,7 @@ or damaged file from filling the memory or the disk.
 results and `scenario_as_run.json` it holds:
 
 - `inputs/`: copies of the files the scenario refers to (its project
-  configuration file, a model's meshes, a Vizard model, your own
+  configuration file, a model's meshes, your own
   space-weather or MSFC file) and of the space-weather files the run read;
 - `bundle.json`: each copy, with the path it stands for and its SHA-256.
 

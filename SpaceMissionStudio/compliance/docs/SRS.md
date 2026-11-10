@@ -94,7 +94,6 @@ The tool is standalone. It is not a component of an integrated
 hardware/software product. It uses or exchanges data with:
 
 - **Basilisk 2.12.0:** reused, unmodified simulation framework (SRF).
-- **Vizard:** optional 3-D viewer, separate process.
 - **SPICE kernels:** DE430, NAIF leap seconds and PCKs.
 - **IERS-based NAIF Earth orientation files.**
 - **CelesTrak space weather and NASA MSFC prediction files.**
@@ -111,7 +110,7 @@ Block diagram:
                          │                      ▲
                          │                      └─ data files: DE430, GGM03S, GGM2B, WMM2025, EOP, space weather
                          ▼
-         results: CSV, provenance.json, CCSDS OEM/OPM, plots ──► Vizard (optional)
+         results: CSV, provenance.json, CCSDS OEM/OPM, plots, 3D view
 ```
 
 ### 4.4 Constraints (D.2.1<4.4>)
@@ -163,11 +162,11 @@ states or modes beyond those in 5.5.
 | SRS-F-13 | Analyses: orbital lifetime and disposal rules (5-year and 25-year); ESA AD10-style delta-V and propellant budget; launch-delay sweep; altitude trade; Monte Carlo dispersions; RF link budget; onboard data generation, storage and downlink; power and thermal. | AD6; Tool |
 | SRS-F-14 | CCSDS OPM, OMM and OEM (KVN) shall be read and validated against 502.0-B-3. Validation errors and warnings shall cite the clause. The tool shall write OPMs of initial states and OEMs of runs (Hermite or Lagrange), convert TLE ↔ OMM, and set orbits from OPM/OMM, from the command line and the GUI. | CCSDS 502.0-B-3 sections 3–5, 7; Annex A (ICS) |
 | SRS-F-15 | The GUI shall offer: scenario editing, in forms and as the scenario's JSON text with its syntax highlighted, each problem marked at the key or value it is about, the fields, fixed choices and names that fit at the cursor offered with each field's type, default and description, a spacecraft, ground station or part renamed with every reference to it, and quick fixes for a key, a choice or a name that is wrong; validation feedback; results plots; mission dashboard; mission output; the run's events as a timeline and a sortable, exportable table; one time cursor shared by these views; comparison of a session's runs and their inputs; undo of scenario edits; a command palette; the reference data files with their sources, dates and checksums; explanation of the scenario; end of life; budget; template loading. The CLI shall offer the same functions headless. | Tool |
-| SRS-F-16 | 3D visualisation of a run inside the tool (Results › 3D View): the central body, paths, spacecraft models turned by their attitude, ground stations and the Sun, played back with the shared time cursor; and, for a Vizard the user chooses (never downloaded), Vizard live or from a file. (desirable) | Tool |
+| SRS-F-16 | 3D visualisation of a run inside the tool (Results › 3D View): the central body, paths, spacecraft models turned by their attitude, ground stations and the Sun, played back with the shared time cursor. (desirable) | Tool |
 | SRS-F-17 | At start-up the tool shall check the Basilisk version against the qualified one (2.12.0). It shall warn when they differ, and record the outcome in provenance. | Q-ST-80C 6.2.7; UD-4 (D5) |
 | SRS-F-18 | The tool shall export a spacecraft's attitude flight software as a standalone C project: the Basilisk C module sources it runs, unchanged and from the qualified Basilisk revision; every module parameter; a scheduler running the modules in the simulation's order and rate; a CMake build of a static library and a host program; an interface control document of every input, output, telemetry and configuration message; a traceability table from each GUI parameter to its configuration symbol and source file; and one unit test per module plus a replay of a recorded run, both passing without changes. Exports of flight software the tool runs in Python shall be refused, with the reason. The scenario shall record each export with a hash of its flight-software configuration, and the tool shall show when an export no longer matches. | Tool |
 | SRS-F-19 | The tool shall run a spacecraft's flight software as an external program, software-in-the-loop, in lock-step with the Basilisk dynamics, through a versioned, documented transport contract (a local socket; the byte stream replaceable by another link). The exported project shall include a host harness implementing the contract, and an adapter template with a guide for third-party flight software. The program's outputs shall drive the actuators in the same step, while the spacecraft's own modules keep running on the same inputs as the reference; the tool shall show, per signal, the residual against that reference, and the round-trip and execution time, their jitter and the dropped steps. A contract-version, step or port mismatch, a timeout, an exited program and an error from the program shall stop the run with the reason. The program shall be started only after the user confirmed its path and SHA-256. | Tool |
-| SRS-F-20 | The tool shall build a spacecraft's 3D model from simple shapes (box, n-sided prism, cylinder, cone, sphere, thin panel) and from the groups of imported Wavefront `.obj` files. From the model it shall derive the mass, the center of mass and the inertia, or take them typed in or from a JSON or CSV file, and the facets for drag and SRP. Applying the model shall write them to the spacecraft, the center of mass as the offset of Basilisk's hub. The tool shall warn when the stored values differ from the model, and show the model in Vizard. | Tool |
+| SRS-F-20 | The tool shall build a spacecraft's 3D model from simple shapes (box, n-sided prism, cylinder, cone, sphere, thin panel) and from the groups of imported Wavefront `.obj` files. From the model it shall derive the mass, the center of mass and the inertia, or take them typed in or from a JSON or CSV file, and the facets for drag and SRP. Applying the model shall write them to the spacecraft, the center of mass as the offset of Basilisk's hub. The tool shall warn when the stored values differ from the model, and show the model in its 3D views. | Tool |
 | SRS-F-22 | A spacecraft shall estimate its position and velocity from camera images of the central body: each image's disk centre and apparent radius computed from the true geometry with Gaussian pixel noise, turned into a position by Basilisk's `pixelLineConverter` and filtered by Basilisk's `relativeODuKF`. Images from beyond a phase-angle limit, with the body behind the camera, not wholly in the image or too small shall not be used. The camera shall point perfectly in an orbit-only run and through the spacecraft's attitude otherwise. It shall be refused for a central body the two modules do not know, without the Sun in the run, or for a run over 100 days. | Tool |
 | SRS-F-23 | A run shall be able to orbit asteroid 433 Eros: its position from NAIF's eros_1900_2100.bsp, its rotation from pck00010, and gravity either as a point mass or from Gaskell's NEAR shape model at constant density (Basilisk's polyhedralGravityModel). Both files shall be downloaded or imported only when the user starts it, the kernel checked against its SHA-256, and a run without them refused naming the download. A position inside the shape shall be reported as an impact. A spacecraft shall be able to estimate its position and velocity from surface landmarks: Basilisk's pinholeCamera reports the pixels of the landmarks it sees, and the tool's Kalman filter, predicting with the shape's gravity, estimates the state. Eros shall be refused as a third body, with ground stations, outside the kernel's span or for a run over 100 days; landmark navigation without the shape's gravity or the Sun. | Tool |
 | SRS-F-24 | With albedo selected, the coarse sun sensors of a spacecraft orbiting Earth or Mars shall receive the sunlight the central body reflects (Basilisk's albedo module with the CERES 2018 map of Earth or the TES map of Mars, from the support data, never downloaded during a run), added to each sensor's output and recorded per sensor. Albedo shall be refused for other central bodies and without the Sun in the run. In a planet's shadow the coarse sun sensors shall read no direct sunlight. | Tool |
@@ -211,7 +210,7 @@ SRS-I-01 to SRS-I-08:
 | SRS-I-05 | Space-weather files |
 | SRS-I-06 | SPICE and EOP kernels |
 | SRS-I-07 | Basilisk API |
-| SRS-I-08 | Vizard |
+| SRS-I-08 | Retired (2026-11-10): the external 3-D viewer interface was removed. |
 
 Naming conventions for data and commands are those of the CSD (RD5) and of
 coding standard rule C-3: units and frames in names. Each data item's
@@ -224,7 +223,7 @@ definition (name, type, dimension, range, initial value) is in the ICD.
 | SRS-O-01 | The tool shall run interactively (GUI) or headless (CLI). A GUI run shall run in a worker thread, show live progress and be cancellable without corrupting the session. |
 | SRS-O-02 | Intended use: open a template or a saved scenario; edit; validate; run; inspect and export results; run analyses. |
 
-The GUI's modes are idle, running, and running live with Vizard. Running
+The GUI's modes are idle and running. Running
 disables editing of the running scenario; cancelling returns to idle with
 the results so far.
 
@@ -232,7 +231,7 @@ the results so far.
 
 | ID | Requirement |
 |---|---|
-| SRS-R-01 | The tool shall run on the hardware of 4.2 without special hardware (no GPU needed; Vizard benefits from one). |
+| SRS-R-01 | The tool shall run on the hardware of 4.2 without special hardware (no GPU needed). |
 | SRS-R-02 | Memory use shall stay below 2 GB for a one-year run recorded at 60 s (desirable). |
 
 ### 5.7 Design requirements and implementation constraints (D.2.1<5.7>)
@@ -347,11 +346,11 @@ Methods: T = test, A = analysis, I = inspection, R = review of design.
 | SRS-F-13 | T | `tests/test_lifetime.py`, `tests/test_propellant_budget.py`, `tests/test_monte_carlo.py`, `tests/test_link_budget.py`, `tests/test_data_handling.py`, `tests/test_thermal_simulation.py` |
 | SRS-F-14 | T | `tests/test_ccsds_odm.py`, `tests/test_ccsds_files.py`, `tests/gui/test_ccsds_gui.py`, `tests/validation/test_v06_ccsds_oem.py` |
 | SRS-F-15 | T, I | `tests/gui/`, `tests/test_cli.py`, `tests/test_json_positions.py`, `tests/test_json_assist.py`, `tests/test_schema_fields.py`, `tests/test_json_refactor.py` |
-| SRS-F-16 | T | `tests/test_vizard*.py`, `tests/test_scene3d.py`, `tests/gui/test_mission_view.py` |
+| SRS-F-16 | T | `tests/test_scene3d.py`, `tests/gui/test_mission_view.py` |
 | SRS-F-17 | T | `tests/test_dependencies.py` |
 | SRS-F-19 | T | `tests/test_sil.py` (the exported flight software in the loop reproduces three templates' normal runs bit for bit, over a Unix socket and TCP; the adapter, refusals, a deadline, the C harness's refusals, the CLI, the GUI worker), `tests/test_sil_contract.py`, `tests/test_sil_report.py`, `tests/gui/test_sil_widgets.py` |
 | SRS-F-18 | T | `tests/test_fsw_export.py` (every attitude template built with CMake and its CTest suite passing), `tests/test_fsw_export_units.py`, `tests/test_fsw_vendored_sources.py`, `tests/gui/test_fsw_workbench_widget.py` |
-| SRS-F-20 | T | `tests/test_model3d.py` (each shape's mass properties against the textbook formulas, mesh integrals, `.obj` reading and writing, facets), `tests/test_model3d_model.py` (deriving, applying, staleness, mass-property files), `tests/test_model3d_engine.py` (the center-of-mass offset gives drag its torque in a Basilisk run; the Vizard copy; the `model` command), `tests/gui/test_model_editor.py` (the editor, the 3D view, the spacecraft editor applying and keeping the model), `tests/test_template_claims.py::test_28_the_model_s_center_of_mass_offset_drives_the_y_wheel` (template 28 in Basilisk: the model's center-of-mass offset drives the wheel drift its description quotes) |
+| SRS-F-20 | T | `tests/test_model3d.py` (each shape's mass properties against the textbook formulas, mesh integrals, `.obj` reading and writing, facets), `tests/test_model3d_model.py` (deriving, applying, staleness, mass-property files), `tests/test_model3d_engine.py` (the center-of-mass offset gives drag its torque in a Basilisk run; the folder meshes are read from; the `model` command), `tests/gui/test_model_editor.py` (the editor, the 3D view, the spacecraft editor applying and keeping the model), `tests/test_template_claims.py::test_28_the_model_s_center_of_mass_offset_drives_the_y_wheel` (template 28 in Basilisk: the model's center-of-mass offset drives the wheel drift its description quotes) |
 | SRS-F-22 | T | `tests/test_opnav.py` (the camera model against its inverse and, in Basilisk, against pixelLineConverter for Earth, Mars and Jupiter), `tests/test_optical_navigation_schema.py` (validation), `tests/test_optical_navigation_run.py` (noise-free images give the true position; the filter converges inside its bounds; the night side is left out; the same seed repeats; attitude pointing), `tests/gui/test_optical_navigation_editor.py`, `tests/test_scenario_explainer.py::test_optical_navigation_is_explained`, `tests/test_template_claims.py::test_30_the_filter_converges_from_mars_images` and `::test_30_without_pixel_noise_every_image_gives_the_true_position` |
 | SRS-F-23 | T | `tests/test_polyhedron.py` (the field against Basilisk's polyhedralGravityModel on the Eros shape, a = grad U and Poisson's equation, volume), `tests/test_small_bodies.py` (download, import, checksum refusal, schema rules, CLI), `tests/test_small_body_run.py` (Eros's pole and spin, the Jacobi integral in the shape's field, the impact warning, the missing kernel), `tests/test_landmarks.py` (camera conventions, pixel Jacobian, gravity gradient, the filter on a cube), `tests/test_landmark_navigation_run.py` (pinholeCamera against the tool's camera model, convergence and consistency, pixel noise, attitude pointing, refusals), `tests/gui/test_small_body_editors.py`, `tests/test_scenario_explainer.py::test_the_small_body_section_gives_spin_orbit_and_pixel_size`, `tests/test_template_claims.py::test_31_the_filter_finds_the_orbit_from_eros_landmarks` and `::test_31_one_pixel_of_noise_shows_in_the_residuals_and_the_error` |
 | SRS-F-24 | T | `tests/test_albedo.py` (each sensor adds exactly its recorded albedo; the albedo against an independent numpy integral of the CERES and TES maps once a minute over an orbit, within 1 %; refusals), `tests/gui/test_propagation_setup_dialog.py::test_albedo_is_offered_for_bodies_with_an_albedo_map`, `tests/test_template_claims.py::test_14_earths_albedo_pulls_the_estimate_off_the_sun` and `::test_14_css_estimate_settles_on_the_sun_axis_and_is_lost_in_the_shadow` |
@@ -363,7 +362,7 @@ Methods: T = test, A = analysis, I = inspection, R = review of design.
 | SRS-P-01 to P-07 | T | `tests/validation/` (V-01, V-02, V-04, V-05) |
 | SRS-P-08 | T | `tests/test_lifetime.py::test_reentry_date_matches_a_basilisk_decay_run` |
 | SRS-P-09, SRS-R-02 | A | `compliance/tools/measure_performance.py` on the reference PC (SVR) |
-| SRS-I-01 to I-08 | T | see the ICD validation matrix |
+| SRS-I-01 to I-07 | T | see the ICD validation matrix (SRS-I-08 retired) |
 | SRS-O-01, O-02 | T | `tests/gui/test_run_worker*.py`, `tests/test_service_run_live.py` |
 | SRS-S-01 to S-04 | T, R | `tests/test_spaceweather.py` (fetch never called by `resolve`), `tests/gui/test_startup_fetch_dialog.py`; S-03: `tests/test_mission_engine.py`, `tests/test_cli.py`, `tests/gui/test_main_window.py` (script consent); S-04: `tests/test_command.py` (condition evaluator); security analysis |
 | SRS-S-05 | T, I | `tests/test_network.py` (the reviewed modules, the gateway, the policy, the guard and its children, the command), `tests/test_offline.py::test_a_guarded_run_tries_to_reach_nothing`, `tests/gui/test_network_gui.py` (Settings > Network, the locked policy, the web views); `scripts/network_audit.py` in CI (every network call of every process of a full session; `tests/test_network_audit.py`) |
@@ -423,8 +422,7 @@ and the diagram of 4.3.
    These run on scenarios or on results.
 5. **Exchange:**
    - CSV and provenance export;
-   - CCSDS ODM read/write;
-   - Vizard.
+   - CCSDS ODM read/write.
 
 **Behaviour:** a run is a batch transformation, scenario → results. It
 starts on request (Run button or CLI) and ends on completion,

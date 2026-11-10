@@ -74,6 +74,7 @@ from . import __version__, ccsds_files, dependencies, network, output_provenance
 from .logging_setup import configure_logging, get_log_file_path
 from .schema import ScenarioValidationError, load_scenario
 from .schema.command import runs_sequence, script_blocks
+from .schema.migrations import RETIRED_STEP
 from .schema.scenario import PHASING_CONTROL_LAWS, ROE_CONTROL_LAWS
 
 # The exit status of a fault in SpaceMissionStudio itself, as opposed to the
@@ -98,10 +99,18 @@ def cmd_validate(args: argparse.Namespace) -> int:
               f"'spacemissionstudio assumptions {args.scenario}' lists them")
     # An older file is brought up to date as it loads; say what that changed
     # (transparency audit, Phase 2c: the migrations were silent).
+    # Fields this version no longer has are summed up in one line: they
+    # change nothing the file describes.
+    retired = 0
     for change in file_record["scenario_file_migrations"]:
+        if change["step"] == RETIRED_STEP:
+            retired += 1
+            continue
         before = repr(change["before"]) if "before" in change else "(not set)"
         after = repr(change["after"]) if "after" in change else "(removed)"
         print(f"MIGRATED: schema {change['step']}: {change['path']} {before} -> {after}")
+    if retired:
+        print(f"MIGRATED: schema {RETIRED_STEP}: {retired} field(s) this version no longer uses removed")
     blocks = script_blocks(scenario.mission_sequence)
     if blocks:
         print(f"NOTE: {len(blocks)} script_block(s) ({', '.join(path for path, _ in blocks)}) run unrestricted "
@@ -127,8 +136,6 @@ def _run_argument_error(scenario, args: argparse.Namespace):
     """Why ``run`` cannot start with these arguments, or None. A scenario
     with script blocks needs --allow-scripts: a scenario file must not run
     code without the user knowing (SRS-S-03)."""
-    if args.vizard_save_file and args.vizard_live_stream:
-        return "pass at most one of --vizard-save-file / --vizard-live-stream"
     blocks = script_blocks(scenario.mission_sequence)
     if blocks and not args.allow_scripts:
         return (f"{len(blocks)} script_block(s) ({', '.join(path for path, _ in blocks)}) run unrestricted "
@@ -275,17 +282,6 @@ def cmd_run(args: argparse.Namespace) -> int:
     if version_note:
         print(f"WARNING: {version_note}", file=sys.stderr)
 
-    vizard_request = None
-    if args.vizard_save_file or args.vizard_live_stream:
-        from .engine.vizard import VizardRequest
-
-        vizard_request = VizardRequest(
-            save_file=args.vizard_save_file, live_stream=args.vizard_live_stream,
-            camera_target=args.vizard_camera_target, show_orbit_lines=not args.vizard_no_orbit_lines,
-            show_trajectory_trail=args.vizard_trail, show_ground_tracks=args.vizard_ground_tracks,
-            model_base_dir=str(args.scenario.resolve().parent),
-        )
-
     folder_error = _output_folder_error(args.out_dir)
     if folder_error:
         print(f"ERROR: {folder_error}", file=sys.stderr)
@@ -293,7 +289,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     print(f"Running {scenario.name!r} ({len(scenario.spacecraft)} spacecraft, "
           f"{scenario.sim_settings.duration_days} day(s), {scenario.sim_settings.integrator})...")
-    service = SimulationService(scenario, vizard_request=vizard_request)
+    service = SimulationService(scenario, model_base_dir=str(args.scenario.resolve().parent))
     command_summary = None
     try:
         if runs_sequence(scenario.mission_sequence):
@@ -1974,19 +1970,6 @@ def build_parser() -> argparse.ArgumentParser:
                        help="write every Nth recorded state to the OEM (default 1: all)")
     p_run.add_argument("--oem-interpolation", choices=("hermite", "lagrange"), default="hermite",
                        help="interpolation the OEM suggests, degree 7 (GMAT reads only lagrange)")
-    p_run.add_argument("--vizard-save-file", type=str, default=None,
-                        help="write a Vizard .bin playback file to this path (see engine/vizard.py)")
-    p_run.add_argument("--vizard-live-stream", action="store_true",
-                        help="live-stream to a Vizard instance already running on this machine")
-    p_run.add_argument("--vizard-camera-target", type=str, default=None,
-                        help="spacecraft or celestial body name for Vizard's camera to start locked on "
-                             "(default: the scenario's central body -- an Earth-centered view with the orbit "
-                             "tracing around it, like STK/GMAT/FreeFlyer, rather than a spacecraft-locked close-up)")
-    p_run.add_argument("--vizard-no-orbit-lines", action="store_true",
-                        help="don't draw each spacecraft's orbit in Vizard (on by default)")
-    p_run.add_argument("--vizard-trail", action="store_true",
-                        help="also draw the flown path in Vizard (builds up into a band over long runs)")
-    p_run.add_argument("--vizard-ground-tracks", action="store_true", help="also draw ground tracks in Vizard")
     p_run.add_argument("--allow-scripts", action="store_true",
                        help="run the scenario's script_block commands (unrestricted Python: only for files you "
                             "trust and have read)")

@@ -128,9 +128,6 @@ reboosts included.
   (out-of-plane)", "ROE control firing") and each drift.
 * **Scenario > Overview**: the e/i-vector diagram, one colour per target: the two
   vectors and the path around the chief in the radial/cross-track plane.
-* **Vizard**: the follower's panels show **ROE Delta-V**, the
-  separation from the chief (**R**, **T** and **N vs** the chief, in km)
-  and **R/N gap**, the closest radial/cross-track approach in metres.
 
 ## Limits
 

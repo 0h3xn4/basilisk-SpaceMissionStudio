@@ -29,13 +29,17 @@ from pathlib import Path
 import pytest
 
 _PLAN = Path(__file__).resolve().parents[2] / "docs" / "ui" / "UI_OVERHAUL_PLAN.md"
+# The plan is a record and is not edited: its rows for a program removed
+# since (2026-11-10, docs/DECISIONS.md) have nothing left to reach.
+_REMOVED_SINCE = ("Vizard",)
 
 
 def _plan_rows():
     text = _PLAN.read_text(encoding="utf-8")
     section = text[text.index("### 5.2 Every current element and its new place"):
                    text.index("### 5.3 Exports in one place")]
-    return [today for today, _new in re.findall(r"^\| (.+?) \| (.+?) \|$", section, re.MULTILINE)[1:]]
+    rows = [today for today, _new in re.findall(r"^\| (.+?) \| (.+?) \|$", section, re.MULTILINE)[1:]]
+    return [row for row in rows if not any(name in row for name in _REMOVED_SINCE)]
 
 
 @pytest.fixture(scope="module")
@@ -147,10 +151,6 @@ _ROWS = {
                                   _shown(w, w.run_page.live_plot_check, "run")),
     "Run › Check Reference Data": lambda w: (_command(w, "run.check_data"),
                                              _shown(w, w.status_items.data_button, w.shell.current_area())),
-    "Run › Vizard Configuration…": lambda w: (_command(w, "run.vizard_config"),
-                                             _shown(w, w.run_page.vizard_section, "run")),
-    "Run › Launch Vizard": lambda w: (_command(w, "run.vizard_launch"),
-                                     _shown(w, w.shell.page("run").buttons[w.vizard_launch_action], "run")),
     "Run › Open Monte Carlo Results…": lambda w: (_command(w, "run.open_monte_carlo"), _shown(
         w, w.shell.page("run").buttons[w.open_monte_carlo_results_action], "run")),
     # M5b: the folder is a field of Run > Run in Monte Carlo mode, remembered per scenario.
@@ -186,8 +186,6 @@ _ROWS = {
     "**Toolbar row 1**: New, Open, Save, Run, Single run ▾, Cancel, Live plot, 3D Model": lambda w: (
         _command(w, "file.new", "file.open", "file.save", "run.run", "run.mode.single", "run.cancel",
                  "run.live_plot", "tools.model_3d"), _no_toolbars(w)),
-    "**Toolbar row 2**: Vizard Configuration, Launch Vizard, Check Reference Data": lambda w: (
-        _command(w, "run.vizard_config", "run.vizard_launch", "run.check_data"), _no_toolbars(w)),
     "Title bar (name, save state, from template, run state chip)": lambda w: (
         _shown(w, w.top_bar.name_label, w.shell.current_area()), _in_the_status_bar(w, w.run_chip),
         _top_bar_says(w, "from template 23")),
@@ -254,7 +252,6 @@ _ROWS = {
     "`OrbitSwitchDialog`": lambda w: (_dialog("orbit_ic_widget", "OrbitSwitchDialog"),
                                      _tree(w, f"Spacecraft > {_spacecraft_list(w).to_list()[0].name}")),
     "`SilRunDialog`": lambda w: (_dialog("sil_dialog", "SilRunDialog"), _command(w, "run.mode.sil")),
-    "`VizardDialog`": lambda w: (_dialog("vizard_dialog", "VizardDialog"), _command(w, "run.vizard_config")),
     "`StartupFetchDialog`": lambda w: (_dialog("startup_fetch_dialog", "StartupFetchDialog"),
                                       _command(w, "tools.reference_data"), _reference_card(w)),
     "Reference data dialog": lambda w: (_command(w, "tools.reference_data"), _reference_data_opens(w)),

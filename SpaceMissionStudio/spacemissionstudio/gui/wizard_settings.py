@@ -79,9 +79,6 @@ _META: dict[str, SettingMeta] = {
     "enable_gravity_gradient": SettingMeta("Gravity-gradient torque"),
     "sigma_bn_init": SettingMeta("Initial attitude (MRP)", "", "Modified Rodrigues parameters, body vs inertial."),
     "omega_bn_b_init_rad_s": SettingMeta("Initial body rate", " rad/s"),
-    "vizard_model_offset_m": SettingMeta("Vizard model offset", " m"),
-    "vizard_model_rotation_deg": SettingMeta("Vizard model rotation", " deg"),
-    "vizard_model_scale": SettingMeta("Vizard model scale"),
     # Station-keeping
     "target_altitude_km": SettingMeta("Target altitude", " km"),
     "deadband_km": SettingMeta("Deadband", " km", "How far below the target altitude a reboost starts."),
@@ -343,8 +340,6 @@ def _page_and_label(path: Path, scenario: Scenario) -> tuple[str, str, str, str,
             page = f"{craft.name}: attitude"
         elif part in _BLOCK_TITLES:
             page = f"{craft.name}: {_BLOCK_TITLES[part]}"
-        elif part.startswith("vizard_model"):
-            page = f"{craft.name}: Vizard model"
         else:
             page = f"{craft.name}: mass & environment"
     elif head == "ground_stations":
@@ -394,9 +389,6 @@ def build_all_settings_pages(scenario: Scenario, exclude=frozenset()):
     for path, value in _leaf_settings(scenario.to_dict()):
         if path in exclude or path[:-1] in exclude:
             continue
-        if (path[0] == "spacecraft" and str(path[2]).startswith("vizard_model")
-                and scenario.spacecraft[path[1]].vizard_model_path is None):
-            continue  # no effect without a Vizard model
         page, group, label, suffix, help_text = _page_and_label(path, scenario)
         component, shares_row = _component(path, scenario)
         if component and not shares_row:
@@ -425,11 +417,3 @@ def build_all_settings_pages(scenario: Scenario, exclude=frozenset()):
 
     titles = sorted(pages, key=rank)  # stable: scenario order within each rank
     return [WizardPageSpec(title=title, intro="", fields=pages[title]) for title in titles]
-
-
-def vizard_model_settings_hidden(scenario: Scenario) -> list[Path]:
-    """Vizard model offset/rotation/scale paths left off the generated
-    pages because that spacecraft has no Vizard model (they'd do nothing)."""
-    return [path for path in setting_paths(scenario)
-            if path[0] == "spacecraft" and str(path[2]).startswith("vizard_model")
-            and scenario.spacecraft[path[1]].vizard_model_path is None]

@@ -117,7 +117,7 @@ def test_03_geo_slot_is_held_in_longitude_and_inclination():
 
 
 def test_10_uncontrolled_spacecraft_drifts_under_gravity_gradient():
-    """Its attitude used to be unrecorded (only visible in Vizard)."""
+    """Its attitude used to be unrecorded."""
     result = _run(_template("10"), duration_days=2.0 / 24.0)  # [day]
     sigma = result.series["sat-1.attitude_sigma_BN"]
     assert np.linalg.norm(sigma.data[0]) < 1e-6

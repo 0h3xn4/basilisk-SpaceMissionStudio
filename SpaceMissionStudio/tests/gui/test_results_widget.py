@@ -1488,11 +1488,14 @@ def test_the_shown_run_exports_as_a_reproduction_bundle(widget, tmp_path, report
     from spacemissionstudio import reproduction
     from spacemissionstudio.gui.run_history import RunRecord
     from spacemissionstudio.schema import OrbitIC, Scenario, SpacecraftConfig
+    from spacemissionstudio.schema.scenario import ModelMeshConfig, ModelPartConfig, SpacecraftModelConfig
 
     (tmp_path / "scenario").mkdir()
     (tmp_path / "scenario" / "sat.obj").write_text("v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n", encoding="utf-8")
     scenario = Scenario(name="demo", epoch_utc="2030-01-01T00:00:00", spacecraft=[SpacecraftConfig(
-        name="sat-1", vizard_model_path="sat.obj",
+        name="sat-1", model=SpacecraftModelConfig(
+            parts=[ModelPartConfig(name="bus", shape="box", dimensions_m={"x": 1.0, "y": 1.0, "z": 1.0})],
+            meshes=[ModelMeshConfig(path="sat.obj")]),
         orbit=OrbitIC(type="cartesian", position_km=[7000.0, 0.0, 0.0], velocity_km_s=[0.0, 7.5, 0.0]))])
     scenario.space_weather.msfc_file_path = str(tmp_path / "gone.txt")
     result = _sample_result_set()
@@ -1507,7 +1510,7 @@ def test_the_shown_run_exports_as_a_reproduction_bundle(widget, tmp_path, report
     assert (bundle / reproduction.SCENARIO_AS_RUN).is_file() and (bundle / "inputs" / "sat.obj").is_file()
     manifest = json.loads((bundle / reproduction.MANIFEST).read_text(encoding="utf-8"))
     assert {e["role"]: e.get("file") for e in manifest["inputs"]} == {
-        "spacecraft[sat-1].vizard_model_path": "inputs/sat.obj", "space_weather.msfc_file_path": None}
+        "spacecraft[sat-1].model.meshes[0]": "inputs/sat.obj", "space_weather.msfc_file_path": None}
     assert reported[-1][1] == "warning" and "without 1 file(s)" in reported[-1][0]
     reported.clear()
     widget.export_bundle(bundle)

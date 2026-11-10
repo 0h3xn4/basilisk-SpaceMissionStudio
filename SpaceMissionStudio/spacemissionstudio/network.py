@@ -47,8 +47,7 @@ Every network use allowed, and every attempt refused, is written to
 ``~/.spacemissionstudio/logs/network.log`` (:func:`log_path`).
 
 The guard covers Python code. The web views' Chromium processes are kept
-to the app's own pages by ``gui.webengine_setup``'s request interceptor;
-Vizard is a separate program, never downloaded; the 3D view is built in
+to the app's own pages by ``gui.webengine_setup``'s request interceptor
 (``docs/reference/network.md``).
 """
 

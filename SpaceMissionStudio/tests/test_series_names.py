@@ -145,8 +145,8 @@ def test_every_series_a_template_points_at_exists(path):
 
 def test_an_uncontrolled_spacecraft_still_records_its_attitude():
     """Template 10's gravity-gradient drift: with no attitude control there
-    was no navigation recorder, so no attitude series -- the lesson could
-    only be seen in Vizard. It now comes from the spacecraft state."""
+    was no navigation recorder, so no attitude series. It now comes from
+    the spacecraft state."""
     names = expected_series_names(load_scenario(_TEMPLATES_DIR / "10_gravity_gradient_torque.json"))
     assert {"sat-1.attitude_sigma_BN", "sat-1.body_rate_omega_BN_B"} <= set(names)
     assert "sat-1.control_torque" not in names

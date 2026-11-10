@@ -73,8 +73,6 @@ def _everything() -> SpacecraftConfig:
                                         normal_b=[0.0, 0.0, 1.0], first_mode_hz=1.0, damping_ratio=0.01)]
     sc.rf_link = RFLinkConfig(tx_power_w=1.0, frequency_hz=2.2e9, data_rate_bps=1.0e6,
                               antenna_mount=MountConfig(position_m=[0.0, -0.2, 0.0]))
-    sc.vizard_model_path = "cad.obj"
-    sc.vizard_model_offset_m = [0.0, 0.0, 0.0]
     return sc
 
 
@@ -107,10 +105,9 @@ def test_moving_the_origin_moves_every_position_from_b_and_nothing_else():
     assert sc.solar_arrays[0].hinge_position_b == less([0.5, 0.0, 0.2])
     assert sc.solar_arrays[0].deploy_direction_b == [1.0, 0.0, 0.0]
     assert sc.rf_link.antenna_mount.position_m == less([0.0, -0.2, 0.0])
-    assert sc.vizard_model_offset_m == less([0.0, 0.0, 0.0])
     assert moved == ["1 part(s)", "1 mounted equipment", "1 stowed pose(s)", "the launcher's separation plane",
                      "the model's typed centre of mass", "3 sensor(s) and actuator(s)", "the RF antenna",
-                     "1 facet(s)", "the fuel tank", "1 solar array hinge(s)", "the Vizard model's offset"]
+                     "1 facet(s)", "the fuel tank", "1 solar array hinge(s)"]
 
 
 def test_a_record_s_positions_move_and_its_other_values_do_not():

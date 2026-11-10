@@ -76,8 +76,7 @@ moves the follower the opposite way within an orbit). See the
 ``tests/test_formation_control.py`` runs and ``HISTORY.md``.
 
 The telemetry matches :class:`~.orbit_maintenance.PhasingKeepingController`
-(same log lists, Vizard messages and attributes), so results, events and
-Vizard treat both alike; ``stateLog`` is :data:`FIRING` while the thruster
+(same log lists and attributes), so results and events treat both alike; ``stateLog`` is :data:`FIRING` while the thruster
 fires, :data:`COASTING` otherwise.
 """
 
@@ -99,7 +98,6 @@ from .orbit_maintenance import (
     LogThinner,
     PhasingKeepingController,
     StationKeepingController,
-    _clamp_magnitude,
     _eclipse_illumination_fraction,
     _log_sunlit_transition,
     _wrap_pm_pi,
@@ -125,7 +123,7 @@ class FormationControlBridge(sysModel.SysModel):
 
     def __init__(self, name: str, control_law: str, mu: float, nominal_a_m: float,
                  separation_schedule: SeparationSchedule, thrust_n: float, isp_s: float,
-                 dry_mass_kg: float, dv_budget_mps: float, eclipse_sunlit_threshold: float,
+                 dry_mass_kg: float, eclipse_sunlit_threshold: float,
                  g0_mps2: float = constants.STANDARD_GRAVITY_M_S2):
         super().__init__()
         self.ModelTag = name
@@ -135,10 +133,6 @@ class FormationControlBridge(sysModel.SysModel):
         self.scStateInMsgB = messaging.SCStatesMsgReader()  # follower
         self.eclipseInMsgB = messaging.EclipseMsgReader()
         self.forceInMsg = messaging.CmdForceInertialMsgReader()  # the Basilisk law's request
-        self.deltaVOutMsg = messaging.DataStorageStatusMsg()
-        self.separationRadialOutMsg = messaging.DataStorageStatusMsg()
-        self.separationTransverseOutMsg = messaging.DataStorageStatusMsg()
-        self.separationNormalOutMsg = messaging.DataStorageStatusMsg()
 
         # Wired by build_formation_control.
         self.extForceEffectorB = None
@@ -147,7 +141,6 @@ class FormationControlBridge(sysModel.SysModel):
         self.thruster = None  # the follower's shared ThrusterOnTimeModel
         self.lawModule = None  # meanOEFeedback config or HillFrameRelativeControl
         self.vehicleConfigMsg = None  # "hill_pd": the follower's current mass, for the law
-        self.chiefName = ""
 
         self.mu = mu  # [m^3/s^2]
         self.aNom = nominal_a_m  # [m]
@@ -156,7 +149,6 @@ class FormationControlBridge(sysModel.SysModel):
         self.ispS = isp_s  # [s]
         self.g0 = g0_mps2  # [m/s^2]
         self.dryMass = dry_mass_kg  # [kg]
-        self.dvBudgetMps = dv_budget_mps  # [m/s] shared-tank total, for the Vizard gauge
         self.sunlitThreshold = eclipse_sunlit_threshold  # [-]
         self.smoothingWindowS = float(2.0 * np.pi * np.sqrt(nominal_a_m ** 3 / mu))  # [s] orbit period
         self.suspendedDueToNonConvergence = False  # never set: no suspension logic in this controller
@@ -271,14 +263,6 @@ class FormationControlBridge(sysModel.SysModel):
         rhoH, _ = orbitalMotion.rv2hill(rA, vA, rB, vB)
         self.lastRadialKm, self.lastTransverseKm, self.lastNormalKm = (float(x) / 1000.0 for x in rhoH)
         self.lastTargetSeparationKm = abs(targetRad) * self.aNom / 1000.0  # [km]
-        capacityKm = 2.0 * self.lastTargetSeparationKm  # [km] same gauge scale as the drift-orbit controller
-        for msg, value in ((self.separationRadialOutMsg, self.lastRadialKm),
-                           (self.separationTransverseOutMsg, self.lastTransverseKm),
-                           (self.separationNormalOutMsg, self.lastNormalKm)):
-            payload = messaging.DataStorageStatusMsgPayload()
-            payload.storageCapacity = capacityKm
-            payload.storageLevel = _clamp_magnitude(value, capacityKm)
-            msg.write(payload, CurrentSimNanos, self.moduleID)
 
         inSun = True
         if self.eclipseInMsgB.isLinked():
@@ -322,11 +306,6 @@ class FormationControlBridge(sysModel.SysModel):
         if self.extForceEffectorB is not None and not heldByStationKeeping:
             self.extForceEffectorB.extForce_N = (thrustMag * self._direction).tolist()
 
-        deltaVMsg = messaging.DataStorageStatusMsgPayload()
-        deltaVMsg.storageLevel = self._cumulativeDv  # [m/s] this controller's own delta-V
-        deltaVMsg.storageCapacity = self.dvBudgetMps  # [m/s]
-        self.deltaVOutMsg.write(deltaVMsg, CurrentSimNanos, self.moduleID)
-
         self._log(t, float(np.degrees(error)), tracker.propellant, relA)
 
 
@@ -352,8 +331,7 @@ def build_formation_control(scSim, task_name: str, tag: str, mu: float, chief_sc
     bridge = FormationControlBridge(
         name=f"{tag}FormationControl", control_law=config.control_law, mu=mu, nominal_a_m=nominal_a_m,
         separation_schedule=schedule, thrust_n=station_keeping.thrustN, isp_s=station_keeping.ispS,
-        dry_mass_kg=station_keeping.dryMass, dv_budget_mps=station_keeping.dvBudgetMps,
-        eclipse_sunlit_threshold=station_keeping.sunlitThreshold)
+        dry_mass_kg=station_keeping.dryMass, eclipse_sunlit_threshold=station_keeping.sunlitThreshold)
 
     navs = []
     for role, sc_object in (("Chief", chief_sc_object), ("Follower", follower_sc_object)):
@@ -404,7 +382,6 @@ def build_formation_control(scSim, task_name: str, tag: str, mu: float, chief_sc
     bridge.scObjectB = follower_sc_object
     bridge.altitudeControllerB = station_keeping
     bridge.thruster = station_keeping.thruster
-    bridge.chiefName = chief_sc_object.ModelTag
     # The law controls the whole relative state, chief reboosts included:
     # the follower's station keeping never fires on its own (formation
     # follower with nothing to follow).

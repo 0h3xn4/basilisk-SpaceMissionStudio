@@ -527,7 +527,6 @@ class _ExportWorker(QThread):
 
 
 class ResultsWidget(QWidget):
-    open_in_vizard = Signal(str)  # the last run's playback file
     plot_drawn = Signal(bool)  # the page drew the latest figures (M6a); False: Plotly reported an error
 
     def __init__(self, parent: QWidget | None = None):
@@ -686,15 +685,6 @@ class ResultsWidget(QWidget):
         button_row.addWidget(self.export_cancel_button)
         self._export_worker: _ExportWorker | None = None
         self._export_ends: tuple = ()  # (on_done, on_failed, folder) of the export running
-        # The last run's Vizard playback file (UX/UI guidelines, decision 3:
-        # open only -- Vizard has no interface to follow the time cursor).
-        self.vizard_button = QPushButton("Open in Vizard")
-        self.vizard_button.setToolTip("Opens the playback file this run wrote in Vizard. Vizard cannot follow "
-                                      "the time cursor.")
-        self.vizard_button.clicked.connect(lambda: self.open_in_vizard.emit(self._vizard_file or ""))
-        self.vizard_button.setVisible(False)
-        self._vizard_file: str | None = None
-        button_row.addWidget(self.vizard_button)
         button_row.addStretch(1)
         # Run comparison (UX/UI guidelines): the same series from an earlier
         # run of this session, dashed, and the inputs that differ.
@@ -1637,11 +1627,6 @@ class ResultsWidget(QWidget):
                 line=dict(color=_SERIES_COLORS[i % len(_SERIES_COLORS)], width=2, dash="dash"),
             ))
         return traces
-
-    def set_vizard_file(self, path: str | None) -> None:
-        """Offer "Open in Vizard" for ``path`` (the run's playback file), or hide it."""
-        self._vizard_file = path
-        self.vizard_button.setVisible(bool(path))
 
     # -- the shared time cursor and the readout -----------------------------
 

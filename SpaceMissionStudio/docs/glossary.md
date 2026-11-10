@@ -309,7 +309,7 @@ drag uses, driven by [F10.7](#f) and [Ap](#a).
 
 **OBJ (Wavefront .obj)** -- a common text file format for 3D shapes,
 written by CAD and modelling tools. The app reads it into a 3D model and
-writes the model in it, for Vizard and for export.
+writes the model in it, for export.
 
 **OEM, OMM, OPM** -- three [CCSDS](#c) orbit files. An **OPM** (Orbit
 Parameter Message) gives one state at one time; an **OMM** (Orbit
@@ -508,9 +508,6 @@ it), one you edited afterwards (**edited**) or one you replace on purpose
 them. See [Computed and overridden values](models/value-marks.md).
 
 **Visual magnitude** -- how bright an object looks to the eye on a scale where smaller is brighter: the Sun is -26.7, the brightest stars about 0, the faintest seen in a dark sky about 6.
-
-**Vizard** -- Basilisk's separate 3D visualisation program. SpaceMissionStudio
-can stream a run to it live or save a file to play back.
 
 **VNB** -- see [RTN, VNB](#r).
 

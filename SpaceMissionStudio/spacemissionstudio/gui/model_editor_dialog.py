@@ -704,7 +704,7 @@ class ModelEditorDialog(QDialog):
         w["color"].clicked.connect(self._on_pick_color)
         self._paint_color_button(part.color)
         w["visible"] = QCheckBox("Shown")
-        w["visible"].setToolTip("Drawn in the 3D view and in Vizard. A hidden part keeps its mass and facets.")
+        w["visible"].setToolTip("Drawn in the 3D views. A hidden part keeps its mass and facets.")
         w["visible"].setChecked(part.visible)
         w["visible"].toggled.connect(self._on_visible_toggled)
         form.addRow("Colour", _row(w["color"], w["visible"]))
@@ -1073,9 +1073,7 @@ class ModelEditorDialog(QDialog):
         layout.addWidget(self.use_note)
         self.apply_mass_check = QCheckBox("Apply the mass properties to the spacecraft (mass, center of mass, inertia)")
         self.apply_facets_check = QCheckBox("Apply the facets (drag and solar pressure; full-attitude runs only)")
-        self.use_for_vizard_check = QCheckBox("Show this model in Vizard")
-        for box, field in ((self.apply_mass_check, "apply_mass_properties"), (self.apply_facets_check, "apply_facets"),
-                           (self.use_for_vizard_check, "use_for_vizard")):
+        for box, field in ((self.apply_mass_check, "apply_mass_properties"), (self.apply_facets_check, "apply_facets")):
             box.toggled.connect(lambda v, f=field: self._set_model_flag(f, v))
             layout.addWidget(box)
         self.export_button = QPushButton("Export .obj...")
@@ -1089,7 +1087,6 @@ class ModelEditorDialog(QDialog):
         self._loading_form = True
         self.apply_mass_check.setChecked(self._model.apply_mass_properties)
         self.apply_facets_check.setChecked(self._model.apply_facets)
-        self.use_for_vizard_check.setChecked(self._model.use_for_vizard)
         self._loading_form = False
 
     def _set_model_flag(self, field: str, value: bool) -> None:

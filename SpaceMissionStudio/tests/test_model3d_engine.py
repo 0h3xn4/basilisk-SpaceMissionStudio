@@ -17,8 +17,8 @@
 #
 
 """Tests for a 3D model reaching the simulation: the center-of-mass offset
-in Basilisk's hub, the Vizard copy of the model, the explainer and the
-``model`` command."""
+in Basilisk's hub, the folder its meshes are read from, the explainer
+and the ``model`` command."""
 
 import json
 
@@ -26,7 +26,6 @@ import numpy as np
 import pytest
 
 from spacemissionstudio import cli
-from spacemissionstudio.engine import vizard
 from spacemissionstudio.engine.scenario_explainer import explain
 from spacemissionstudio.model3d import model as model3d
 from spacemissionstudio.model3d import obj_io
@@ -82,24 +81,6 @@ def test_center_of_mass_offset_gives_drag_its_torque():
     assert np.abs(along_flow).max() < 0.1 * offset[2]
 
 
-def test_vizard_copy_is_written_in_vizards_axes(tmp_path):
-    """The Vizard .obj holds every visible part, each body point (x, y, z)
-    written as (-y, z, -x) (Vizard mirrors x on import and maps body axes
-    to (y, z, -x)); hidden parts are left out."""
-    sc = _cube_spacecraft([0.0, 0.0, 0.0])
-    sc.model.parts.append(ModelPartConfig(name="mast", shape="box", dimensions_m={"x": 0.1, "y": 0.1, "z": 1.0},
-                                          position_b_m=[0.0, 0.0, 1.0], mass_kg=1.0))
-    sc.model.parts.append(ModelPartConfig(name="hidden", shape="sphere", dimensions_m={"diameter": 0.2},
-                                          visible=False, mass_kg=1.0))
-    path = vizard.write_model_for_vizard(sc, tmp_path)
-    groups = obj_io.read_obj(path).groups
-    assert [g.name for g in groups] == ["bus", "mast"]
-    mast = groups[1].mesh.vertices
-    # The mast runs from body z = 0.5 to 1.5 m: Vizard's file y (= body z).
-    assert mast[:, 1].min() == pytest.approx(0.5) and mast[:, 1].max() == pytest.approx(1.5)
-    assert np.abs(mast[:, [0, 2]]).max() == pytest.approx(0.05)
-
-
 def test_explain_tab_shows_the_model_and_the_offset():
     """The Explain tab names the model's part count and the center-of-mass
     offset."""
@@ -136,22 +117,19 @@ def test_model_command_reports_applies_and_exports(tmp_path, capsys):
 
 
 @pytest.mark.requires_basilisk
-def test_service_hands_vizard_the_model_next_to_the_save_file(tmp_path):
-    """With a Vizard save file, each spacecraft whose model is used for
-    Vizard (and has no vizard_model_path) gets an .obj in <stem>_models/
-    beside it, passed on as its custom model; a set vizard_model_path
-    wins."""
+def test_the_model_analyses_read_meshes_from_the_folder_given(tmp_path):
+    """A run's model analyses read relative mesh paths from the folder the
+    GUI or the command line gives (the scenario file's), else from the
+    folder the scenario was loaded from."""
     from spacemissionstudio.engine.service import SimulationService
-    from spacemissionstudio.engine.vizard import VizardRequest
+    from spacemissionstudio.schema import load_scenario
 
-    sc = _cube_spacecraft([0.0, 0.0, 0.0])
-    other = _cube_spacecraft([0.0, 0.0, 0.0])
-    other.name = "sat-2"
-    other.vizard_model_path = "CUBE"
-    scenario = Scenario(name="v", epoch_utc="2030-01-01T00:00:00", simulation_mode="full_attitude",
-                        gravity=GravityConfig(central_body="earth", central_body_degree=0), spacecraft=[sc, other])
-    service = SimulationService(scenario, vizard_request=VizardRequest(save_file=str(tmp_path / "run.bin")))
-    models = service._vizard_models_from_3d_models(scenario)
-    assert list(models) == ["sat-1"]
-    assert models["sat-1"]["path"] == str(tmp_path / "run_models" / "sat-1.obj")
-    assert (tmp_path / "run_models" / "sat-1.mtl").is_file()
+    scenario = Scenario(name="m", epoch_utc="2030-01-01T00:00:00", spacecraft=[_cube_spacecraft([0.0, 0.0, 0.0])],
+                        gravity=GravityConfig(central_body="earth", central_body_degree=0))
+    path = tmp_path / "saved" / "s.json"
+    path.parent.mkdir()
+    scenario.save(path)
+    loaded = load_scenario(path)
+    assert SimulationService(loaded)._model_base_dir() == path.parent
+    assert SimulationService(loaded, model_base_dir=str(tmp_path))._model_base_dir() == str(tmp_path)
+    assert SimulationService(scenario)._model_base_dir() is None

@@ -88,7 +88,7 @@ def test_the_areas_and_what_they_hold(window):
     assert [path for path, _page in window.scenario_editor.page_tree.paths()] == [
         "Overview", "Scenario", "Environment", "Spacecraft", "Spacecraft > my-sat",
         *(f"Spacecraft > my-sat > {tab}" for tab in ("Orbit / mass", "Power / propulsion / link budget", "3D model",
-                                                     "Vizard model", "Budget (AD10)")),
+                                                     "Budget (AD10)")),
         "Ground stations",
         "Ground stations > berlin-gs", "Mission sequence", "Monte Carlo", "Assumptions"]  # Assumptions: Phase 3d
     assert window.shell.page("scenario").header.isAncestorOf(window.scenario_editor.mode_toggle)  # Form · JSON

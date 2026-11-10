@@ -238,7 +238,7 @@ SOFTWARE_RULES = [
     ("Q-ST-80C", "5.5.*", "P", "compliance/docs/SRF.md section 4 (items, versions, licences), 9 (SHA-256); "
      "pyproject.toml", "Components listed with versions and licences and accepted by the user as listed "
      "(decision 13); no procurement documents or receiving inspection reports; licences of Basilisk's own "
-     "dependencies and of Vizard not reviewed.", "-", "S", "yes", "H07,R01"),
+     "dependencies not reviewed.", "-", "S", "yes", "H07,R01"),
     ("Q-ST-80C", "5.5.6a", _H, "-", "Exportability constraints not identified: left open by the user "
      "(decision 13).", "Classify the tool and the reused items, or have export control do it (H07).", "S",
      "yes", "H07"),

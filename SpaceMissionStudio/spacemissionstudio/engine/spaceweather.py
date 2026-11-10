@@ -119,8 +119,7 @@ CELESTRAK_URLS = {
 }
 
 # A real user report (on a different, bare-urlopen fetch this project
-# shares the same pattern with -- see gui.vizard_launcher's own
-# _USER_AGENT comment) found urllib's own default User-Agent
+# once had) found urllib's own default User-Agent
 # ("Python-urllib/<version>") gets blocked by basic bot-protection on
 # hosts that have no issue with the exact same public file downloaded by
 # an ordinary browser -- a well-known, standard workaround, not an

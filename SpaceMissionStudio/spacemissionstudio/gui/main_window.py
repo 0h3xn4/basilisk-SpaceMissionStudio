@@ -35,7 +35,6 @@ import dataclasses
 import hashlib
 import logging
 from datetime import datetime, UTC
-import subprocess
 import time
 import weakref
 from pathlib import Path
@@ -102,19 +101,12 @@ from .run_history_view import HistoryEntry, RunHistoryView, run_entry, utc_text
 from .results_overview import ResultsOverview
 from .mission_view_widget import MissionViewWidget
 from .run_page import RunModeControl, RunPage
-from .vizard_launcher import (
-    DEFAULT_LIVE_STREAM_ADDRESS,
-    find_vizard_executable,
-    launch_vizard,
-    remember_vizard_executable,
-)
 from .widgets import TabWidget, make_window, show_window
 from .theme import (CONTENT_MAX_WIDTH_PX, apply_theme, current_theme, follow_system, icon, resolve_theme,
                     set_theme_setting, theme_setting)
 from .theme.icons import keep_icon
 from .compare_widget import CompareWidget
 from .workspace_panels import InspectorWidget, LogViewWidget, ProblemsWidget, install_log_view
-from ..engine.vizard import playback_file as vizard_playback_file
 
 _FILE_FILTER = "SpaceMissionStudio scenario (*.json)"
 
@@ -242,28 +234,7 @@ class MainWindow(QMainWindow):
         self._mc_worker: MonteCarloWorker | None = None
         self._mc_archive_dir: Path | None = None  # where the running or last batch saves (on_run_monte_carlo)
         self._progress_error_shown = False  # see _on_run_progress's own comment
-        self._vizard_request = None  # engine.vizard.VizardRequest, or None -- set via the Run menu's "Vizard Configuration..." action
-        self._vizard_process = None  # subprocess.Popen, or None -- set via the Run menu's "Launch Vizard" action
-        # The direct_comm_address self._vizard_process was actually launched
-        # with (None if it was launched with no -directComm flag at all) --
-        # lets on_launch_vizard() tell a live-stream-ready instance apart
-        # from one that isn't, instead of trusting ANY already-running
-        # process regardless of how it was started. See on_launch_vizard()'s
-        # own docstring.
-        self._vizard_direct_comm_address = None
-        # -directComm pre-fills Vizard's own socket address field and
-        # selects DirectComm/Live Display for the user, but -- confirmed
-        # by direct user report -- does NOT click its "Start
-        # Visualization" button for them; that one click is still needed
-        # every time Vizard is (re)launched this way, and no documented
-        # command-line flag skips it while keeping the visible live view
-        # (see on_launch_vizard()'s own comment). Shown once per session
-        # (not on every single launch/run) so the user isn't stuck
-        # wondering why the run is "stuck" without knowing this, but
-        # also isn't nagged repeatedly once they do.
-        self._vizard_live_stream_hint_shown = False
         self._last_run_epoch_utc: str | None = None  # set in on_run(); see its own comment
-        self._last_run_vizard_file: str | None = None  # the playback file the last run writes, if any
         # the runs kept for comparison, saved in ~/.spacemissionstudio/runs (U-33, decision 5)
         # Read and saved in a worker thread (M5a): the end of a run does not wait for the disk.
         self.run_history = RunHistory(store_root=run_store.default_root(), background=True, parent=self)
@@ -309,7 +280,6 @@ class MainWindow(QMainWindow):
         self.results_widget.set_time_cursor(self.time_cursor)
         self.mission_dashboard_widget.set_time_cursor(self.time_cursor)
         self.mission_output_widget.set_time_cursor(self.time_cursor)
-        self.results_widget.open_in_vizard.connect(self.open_vizard_playback)
         self.scenario_explainer_widget = ScenarioExplainerWidget()
         self.scenario_explainer_widget.model_requested.connect(self.open_3d_model_of)
         self.lifetime_widget = LifetimeWidget()
@@ -403,7 +373,6 @@ class MainWindow(QMainWindow):
         self.run_views.setObjectName("runViews")
         # Run > Run (M5b): what the next run uses, for the mode chosen.
         self.run_page = RunPage()
-        self.run_page.vizard_changed.connect(self._on_vizard_edited)
         self.run_page.archive_changed.connect(self._remember_archive_dir)
         # The Run page says Monte Carlo is off before Run is pressed (audit G5).
         monte_carlo_enabled = self.scenario_editor.monte_carlo_group.enabled_check
@@ -686,16 +655,6 @@ class MainWindow(QMainWindow):
             tip="Shows every reference data file (SPICE kernels, gravity field, magnetic model, space weather, "
                 "Earth orientation) with its source, dates and checksum. No network: downloads start only from "
                 "the Reference data dialog's Download... menu, after asking.")
-        self.vizard_action = add("run.vizard_config", "Vizard &Configuration...", self.on_configure_vizard,
-                                 category="Run", area="run", qicon=toolbar_icon("vizard-config"),
-                                 tip="Configure Vizard visualization for the next run.")
-        # Distinct from "Vizard Configuration..." above (which only
-        # decides how the NEXT run feeds Vizard, e.g. a live stream or a
-        # playback file) -- this one actually starts the separate Vizard
-        # application, so live-stream mode has something to connect to.
-        self.vizard_launch_action = add("run.vizard_launch", "&Launch Vizard", self.on_launch_vizard,
-                                        category="Run", area="run", qicon=toolbar_icon("vizard-launch"),
-                                        tip="Start the external Vizard application.")
         self.open_monte_carlo_results_action = add(
             "run.open_monte_carlo", "Open Monte Carlo &Results...", self.on_open_monte_carlo_results,
             category="Run", area="run", qicon=toolbar_icon("open-monte-carlo"),
@@ -708,8 +667,8 @@ class MainWindow(QMainWindow):
         self.model_3d_action = add(
             "tools.model_3d", "3D &Model...", self.on_open_3d_model, category="Tools", area="scenario",
             qicon=toolbar_icon("model-3d"),
-            tip="Build or edit a spacecraft's 3D model: its look in Vizard, its mass, center of mass and inertia, "
-                "and its drag and solar pressure surfaces.")
+            tip="Build or edit a spacecraft's 3D model: its look in the 3D views, its mass, center of mass and "
+                "inertia, and its drag and solar pressure surfaces.")
         # CCSDS orbit data messages (CCSDS 502.0-B-3), as the command line's ccsds-export and ccsds-validate.
         self.ccsds_export_action = add(
             "tools.ccsds_export", "Export Orbits as &CCSDS...", self.on_export_ccsds_orbits, category="Tools",
@@ -854,13 +813,11 @@ class MainWindow(QMainWindow):
         self.run_mode_control = RunModeControl()
         self.run_mode_control.chosen.connect(self.set_run_mode)
         run.add_widget(self.run_mode_control)
-        for action in (self.abort_action, self.vizard_launch_action, self.open_monte_carlo_results_action,
-                       self.check_kernels_action):
+        for action in (self.abort_action, self.open_monte_carlo_results_action, self.check_kernels_action):
             run.add_command(action)
         self.run_page.live_plot_check.setChecked(self.live_plot_action.isChecked())
         self.run_page.live_plot_check.toggled.connect(self.live_plot_action.setChecked)
         self.live_plot_action.toggled.connect(self.run_page.live_plot_check.setChecked)
-        self.run_page.set_vizard(self._vizard_request)
         self.run_views.currentChanged.connect(self._refresh_run_page)
         self.shell.area_changed.connect(self._refresh_run_page)
         for area_id in ("results", "timeline"):
@@ -883,8 +840,8 @@ class MainWindow(QMainWindow):
     _SCENARIO_AREAS = ("scenario", "run", "results", "timeline", "reports")
     # The commands that need an open scenario: disabled while none is (Settings, Help, New and Open stay).
     _SCENARIO_COMMANDS = ("file.save", "file.save_as", "file.change_history", "run.run", "run.mode.single",
-                          "run.mode.monte_carlo", "run.mode.sil", "run.live_plot", "run.vizard_config",
-                          "run.open_monte_carlo", "run.clear_cursor", "tools.model_3d", "tools.ccsds_export",
+                          "run.mode.monte_carlo", "run.mode.sil", "run.live_plot", "run.open_monte_carlo",
+                          "run.clear_cursor", "tools.model_3d", "tools.ccsds_export",
                           "analyses.end_of_life", "analyses.budget", "analyses.design_checks",
                           "tools.flight_software", "view.explain")
 
@@ -1162,8 +1119,7 @@ class MainWindow(QMainWindow):
                  "monte_carlo_csv": self.monte_carlo_results_widget, "budget_csv": self.budget_widget,
                  "design_checks": self.design_checks_widget, "reentry_json": self.lifetime_widget,
                  "model_analyses": self.model_analyses_scroll,
-                 "fsw_project": self.flight_software_widget, "sil_report": self.flight_software_widget,
-                 "vizard_file": self.run_page}
+                 "fsw_project": self.flight_software_widget, "sil_report": self.flight_software_widget}
         self.show_view(views.get(key, self.results_widget))  # the plot exports: Results › Plots
 
     def on_open_3d_model(self) -> None:
@@ -1809,7 +1765,6 @@ class MainWindow(QMainWindow):
         self.mission_dashboard_widget.set_result(None)
         self.mission_output_widget.clear()
         self.event_timeline_widget.set_result(None)
-        self.results_widget.set_vizard_file(None)
         self.results_widget.set_runs(self._listed_runs(), None)
         self._refresh_compare_tab()
         self.time_cursor.clear()
@@ -1887,29 +1842,6 @@ class MainWindow(QMainWindow):
         if self.results_widget._current_run is None or record.number != self.results_widget._current_run.number:
             self._on_compare_chosen(record.number)
         self.show_view(self.results_widget)
-
-    def _offer_vizard_playback(self) -> None:
-        """Show "Open in Vizard" on Results when the run wrote a playback file."""
-        path = self._last_run_vizard_file
-        if path and Path(path).is_file():
-            export_log.record("vizard_file", path)  # Reports › Exports
-        self.results_widget.set_vizard_file(path if path and Path(path).is_file() else None)
-
-    def open_vizard_playback(self, path: str) -> bool:
-        """Start Vizard on ``path`` (``-loadFile``); False if it could not be started."""
-        if not path or not Path(path).is_file():
-            report(self, f"No Vizard playback file: {path} is not there", kind="warning")
-            return False
-        executable = find_vizard_executable() or self._locate_vizard()
-        if executable is None:
-            return False
-        try:
-            launch_vizard(executable, load_file=Path(path))
-        except OSError as exc:
-            report(self, f"Could not launch Vizard ({executable}): {exc}")
-            return False
-        self.statusBar().showMessage(f"Opened {path} in Vizard.")
-        return True
 
     def _on_time_cursor_changed(self, time_s) -> None:
         self.time_cursor_label.setVisible(time_s is not None)
@@ -2130,10 +2062,10 @@ class MainWindow(QMainWindow):
         single run's worker was still using ``self._run_worker``, silently
         losing track of it. One run at a time.
         """
-        needs_scenario = {self.run_action, self.live_plot_action, self.vizard_action,
+        needs_scenario = {self.run_action, self.live_plot_action,
                           *self.run_mode_group.actions()}  # and none is open: they stay disabled
-        for action in (self.run_action, self.live_plot_action, self.vizard_action,
-                       self.vizard_launch_action, self.check_kernels_action, *self.run_mode_group.actions()):
+        for action in (self.run_action, self.live_plot_action, self.check_kernels_action,
+                       *self.run_mode_group.actions()):
             action.setEnabled(not running and (self._scenario_open or action not in needs_scenario))
         for button in (getattr(self, "run_mode_button", None), getattr(self, "run_mode_control", None)):
             if button is not None:
@@ -2225,18 +2157,6 @@ class MainWindow(QMainWindow):
             self.run_chip.set_state("running", f"Running {seconds // 60}:{seconds % 60:02d}")
 
     # -- Run --------------------------------------------------------------
-    def on_configure_vizard(self) -> None:
-        """Vizard Configuration: the Vizard options, on Run > Run (M5b)."""
-        self.show_view(self.run_page.vizard_section)
-        if self.run_page.vizard_form is not None:
-            self.run_page.vizard_form.setFocus()
-
-    def _on_vizard_edited(self, request) -> None:
-        """The Run page's Vizard form, applied as it is edited (M5b)."""
-        self._vizard_request = request
-        self.statusBar().showMessage("Vizard disabled for the next run." if request is None
-                                     else "Vizard enabled for the next run.")
-
     # -- Run > Run: the Monte Carlo archive folder, the SIL spacecraft (M5b) ---------------
     def _archive_key(self) -> str:
         name = str(self._current_path.resolve()) if self._current_path is not None else \
@@ -2270,179 +2190,6 @@ class MainWindow(QMainWindow):
             return
         names = [sc.name for sc in scenario.spacecraft if exportable_reason(scenario, sc) is None]
         self.run_page.set_sil_spacecraft(names, self.flight_software_widget._folder_of)
-
-    def _locate_vizard(self) -> Path | None:
-        """Called only when :func:`find_vizard_executable` came up empty.
-        SpaceMissionStudio no longer downloads Vizard: AVS Lab's published
-        build enables Unity Analytics (docs/reference/network.md, Vizard).
-        Offers the built-in 3D view instead, or **Browse...** for a Vizard
-        the user built or vetted themselves. Returns the chosen, remembered
-        executable, or ``None``."""
-        box = QMessageBox(self)
-        box.setWindowTitle("Vizard not found")
-        box.setText("SpaceMissionStudio does not download Vizard: the build AVS Lab publishes has Unity "
-                    "Analytics switched on. Results › 3D View shows the run inside the app, with nothing sent "
-                    "anywhere. A Vizard you built or checked yourself can still be used.")
-        view_button = box.addButton("Open the 3D View", QMessageBox.ButtonRole.AcceptRole)
-        browse_button = box.addButton("Browse...", QMessageBox.ButtonRole.ActionRole)
-        box.addButton(QMessageBox.StandardButton.Cancel)
-        box.setDefaultButton(view_button)
-        box.exec()
-        clicked = box.clickedButton()
-
-        if clicked is view_button:
-            self.show_view(self.mission_view_widget)
-            return None
-
-        if clicked is browse_button:
-            path_str, _selected_filter = QFileDialog.getOpenFileName(self, "Locate the Vizard application")
-            if not path_str:
-                return None
-            executable = Path(path_str)
-            remember_vizard_executable(executable)
-            return executable
-
-        return None
-
-    def on_launch_vizard(self) -> bool:
-        """Starts the external Vizard application -- a no-op if an
-        instance already running is already suitable (see below).
-        Distinct from :meth:`on_configure_vizard`, which never touches a
-        process at all: it only decides how the NEXT run feeds an
-        instance of Vizard, wherever/however that instance got started.
-
-        When the current Vizard Configuration is set to live-stream,
-        Vizard is launched with its own ``-directComm`` command-line
-        argument (see ``vizard_launcher.DEFAULT_LIVE_STREAM_ADDRESS``'s
-        own comment) -- direct user feedback that manually launching
-        Vizard left it sitting on its own "Load Data Using One of the
-        Following" screen, doing nothing, because nobody had typed the
-        socket address in by hand. ``-directComm`` pre-fills that
-        address and selects DirectComm/Live Display, but -- confirmed by
-        a further direct user report -- does NOT click Vizard's own
-        "Start Visualization" button; no documented command-line flag
-        does that while keeping the visible live view (the fully
-        headless ``-batchmode -noDisplay`` combination skips it, but
-        also skips rendering anything at all, defeating the point of a
-        LIVE VISUALIZATION). That one click is therefore still needed
-        each time Vizard is (re)launched this way -- see
-        ``self._vizard_live_stream_hint_shown`` for how that's
-        communicated instead of silently left for the user to discover.
-
-        A previously-tracked ``self._vizard_process`` (one THIS method
-        itself launched earlier, in this same session -- see
-        ``self._vizard_direct_comm_address``) is only trusted as-is if it
-        already matches what's needed now: still running, and either no
-        ``-directComm`` is needed this time, or it already has the one
-        needed. A live-stream run needing one that the tracked instance
-        doesn't have is a real, reachable case -- e.g. Vizard was
-        launched earlier for a save-file run, or before Vizard
-        Configuration was ever set to live-stream -- and trusting it
-        anyway would reproduce the exact original bug, just one launch
-        later. That mismatched instance is terminated and a fresh one
-        relaunched with the correct flag instead. The reverse (a
-        live-stream-ready instance already running, but a save-file/no
-        -request launch is what's needed now) is left alone -- having
-        ``-directComm`` active doesn't stop Vizard from also opening a
-        save file, so there is nothing broken to fix there. An instance
-        this session never itself launched (``self._vizard_process`` is
-        still ``None`` -- started by the user outside SpaceMissionStudio, or
-        in an earlier session) is left completely alone; a second,
-        correctly-configured instance is launched alongside it instead,
-        since there is no reliable way to ask an arbitrary already
-        -running Vizard process "are you already connected".
-
-        This method's own "reuse if already running and matching"
-        behavior still applies when called directly from the "Launch
-        Vizard" menu action -- but :meth:`on_run` (a live-stream run
-        specifically) always terminates a self-launched
-        ``self._vizard_process`` BEFORE calling this method, so that
-        branch is effectively never reached from there: real user
-        feedback was that reusing a running instance across separate runs
-        left a live-streamed Vizard showing a mix of the previous run's
-        and the current run's data, since a running Vizard Main Scene has
-        no way to reset itself live (confirmed directly from Vizard's own
-        Unity source, not merely suspected -- see ``on_run``'s own
-        comment for specifics). Forcing a fresh relaunch there is the
-        only way this app can guarantee a truly clean scene per run.
-
-        Returns True once Vizard is confirmed running (already was, or
-        was just started) by the end of this call, False if the user
-        cancelled a browse prompt or launching genuinely failed (an
-        error was already shown in that case) -- :meth:`on_run` uses
-        this to decide whether it's safe to start a live-stream run at
-        all.
-        """
-        direct_comm_address = (
-            DEFAULT_LIVE_STREAM_ADDRESS
-            if self._vizard_request is not None and self._vizard_request.live_stream
-            else None
-        )
-        if self._vizard_process is not None and self._vizard_process.poll() is None:
-            if not direct_comm_address or self._vizard_direct_comm_address == direct_comm_address:
-                self.statusBar().showMessage("Vizard is already running.")
-                return True
-            self._terminate_vizard_process()
-
-        executable = find_vizard_executable()
-        if executable is None:
-            executable = self._locate_vizard()
-            if executable is None:
-                return False
-        try:
-            self._vizard_process = launch_vizard(executable, direct_comm_address=direct_comm_address)
-        except OSError as exc:
-            report(self, f"Could not launch Vizard ({executable}): {exc}")
-            return False
-        self._vizard_direct_comm_address = direct_comm_address
-        if direct_comm_address:
-            self.statusBar().showMessage(
-                f"Launched Vizard ({executable}) -- click \"Start Visualization\" in the Vizard window to connect."
-            )
-            if not self._vizard_live_stream_hint_shown:
-                # Once per session, not once per launch/run -- see
-                # self._vizard_live_stream_hint_shown's own comment. The
-                # status bar message above (shown every time) is easy to
-                # miss/get overwritten by the "Running..." message that
-                # follows moments later when this was triggered from
-                # on_run(): a longer toast the first time (U-39: no box for
-                # information), and the full text in the Log.
-                _logger.info("Vizard was launched with its socket address filled in (%s), but it still needs "
-                             "\"Start Visualization\" clicked in its own window before the run can begin: Vizard "
-                             "has no command-line option to skip that click while showing the live view.",
-                             direct_comm_address)
-                show_toast(self, "Vizard is open: click \"Start Visualization\" in its window to connect",
-                           kind="info", duration_ms=10000)
-                self._vizard_live_stream_hint_shown = True
-        else:
-            self.statusBar().showMessage(f"Launched Vizard ({executable}).")
-        return True
-
-    def _terminate_vizard_process(self) -> None:
-        """Stops ``self._vizard_process`` (a mismatched instance
-        :meth:`on_launch_vizard` is about to replace -- see its own
-        docstring) and waits (bounded, so a Vizard that refuses to exit
-        can't hang the GUI thread forever) for it to actually stop before
-        returning, so the replacement instance doesn't briefly coexist
-        with it. ``terminate()`` first (a clean exit, in case Vizard has
-        anything to flush/save), ``kill()`` only if that doesn't work
-        within the timeout.
-
-        Waiting also frees the live-stream port. In Basilisk 2.12.0
-        ``vizInterface`` connects out to Vizard, so the Vizard process
-        started here is the one that listens on it (security analysis
-        S-06; the "binds" wording in ``docs/source/Vizard/vizardAdvanced/
-        vizardLiveComm.rst`` does not match the code). The tool itself
-        opens no port.
-        """
-        self._vizard_process.terminate()
-        try:
-            self._vizard_process.wait(timeout=5.0)
-        except subprocess.TimeoutExpired:
-            self._vizard_process.kill()
-            self._vizard_process.wait(timeout=5.0)
-        self._vizard_process = None
-        self._vizard_direct_comm_address = None
 
     def _confirm_script_blocks(self, blocks) -> bool:
         """Ask before running ``script_block`` code (SRS-S-03): it is
@@ -2545,52 +2292,6 @@ class MainWindow(QMainWindow):
         if blocks and not self._confirm_script_blocks(blocks):
             return
 
-        if self._vizard_request is not None and self._vizard_request.live_stream:
-            # Real user feedback: "when running a new simulation after a
-            # previous simulation finished, vizard should completely
-            # refresh so it actually displays only stuff from the current
-            # simulation, and not the previous one." Confirmed directly
-            # from Vizard's own Unity source (0h3xn4/vizard,
-            # MessageList.cs/ScenarioSceneManager.cs): a running Vizard
-            # Main Scene has NO live "reset" capability -- its scene
-            # objects are built exactly ONCE, from the very first message
-            # ever received, and every later message (from ANY later run
-            # that reconnects to the SAME process) just keeps appending to
-            # the same ever-growing timeline. on_launch_vizard()'s own
-            # "reuse an already-running, matching instance" behavior
-            # (deliberate, see its own docstring -- avoids forcing a
-            # needless extra "Start Visualization" click) is exactly what
-            # was causing a new run to reuse that stale scene. A run this
-            # session itself launched Vizard for is therefore always
-            # terminated and relaunched fresh here -- an instance this
-            # session never launched (started manually, or in an earlier
-            # session) is left alone, same as on_launch_vizard()'s own
-            # policy, since killing a process this app didn't start is
-            # not this app's call to make.
-            if self._vizard_process is not None and self._vizard_process.poll() is None:
-                self._terminate_vizard_process()
-
-            # Basilisk's InitializeSimulation() BLOCKS (inside native
-            # C++, with no Python-level hook -- see RunWorker's own
-            # module docstring on why there's no cancellation checkpoint
-            # reachable here) waiting for Vizard to reply to an initial
-            # handshake ping in live-stream mode -- direct user report:
-            # a run appeared to hang at 0% forever, with Abort having no
-            # effect, because Vizard was never actually connected.
-            # on_launch_vizard() launches Vizard with -directComm when
-            # needed (see its own docstring) so this handshake has
-            # something to actually reply to; if it can't even do that
-            # (Vizard not found/couldn't start), starting the run at all
-            # would just reproduce the same hang, so it's refused here
-            # instead, with a clear reason, rather than silently risking
-            # it.
-            if not self.on_launch_vizard():
-                self._report_run_problem(
-                    "Vizard is not connected: Vizard Configuration streams live, but Vizard could not be confirmed "
-                    "running, and the run would wait for it with no way to cancel. Use Launch Vizard (or turn the "
-                    "live stream off) first.")
-                return
-
         # engine.mission_engine.MissionEngine (used when scenario.
         # mission_sequence is non-empty) has no run_live() equivalent --
         # see RunWorker.run()'s docstring -- so live plotting only applies
@@ -2623,17 +2324,13 @@ class MainWindow(QMainWindow):
         self._last_run_scenario = scenario
         self._last_run_file = self._unchanged_file_record()
         self.results_widget.scenario_folder = self._current_path.parent if self._current_path is not None else None
-        save_file = getattr(self._vizard_request, "save_file", None)
-        self._last_run_vizard_file = str(vizard_playback_file(save_file)) if save_file else None
         self.results_widget.set_featured_series(featured_series(scenario))
         self.results_widget.set_layout_key(scenario.name)  # the plot grid is kept per scenario (U-24)
         _join_finished_worker(self._run_worker)
         extra = {"sil": sil} if sil is not None else {}  # a plain run builds its worker exactly as before
-        vizard_request = self._vizard_request
-        if vizard_request is not None and self._current_path is not None:
-            # A 3D model's relative mesh paths are relative to the scenario file.
-            vizard_request = dataclasses.replace(vizard_request, model_base_dir=str(self._current_path.parent))
-        self._run_worker = RunWorker(scenario, vizard_request=vizard_request, live=live,
+        # A 3D model's relative mesh paths are relative to the scenario file.
+        model_base_dir = str(self._current_path.parent) if self._current_path is not None else None
+        self._run_worker = RunWorker(scenario, model_base_dir=model_base_dir, live=live,
                                      allow_scripts=bool(blocks), **extra)
         self._last_run_sil = sil is not None
         _run_logger.info("Run %d started: %s (%s)", self.run_history.next_number, scenario.name,
@@ -2739,7 +2436,6 @@ class MainWindow(QMainWindow):
             self.mission_view_widget.set_run(self._last_run_scenario, result, self._scenario_dir())
             self.event_timeline_widget.set_result(result, self._last_run_epoch_utc)
             self._set_shown_run()
-            self._offer_vizard_playback()
             self._keep_run(result, cancelled=False)
             self.lifetime_widget.set_last_run(self._last_run_scenario, result)
             self.budget_widget.set_last_run(self._last_run_scenario, result)
@@ -2807,7 +2503,6 @@ class MainWindow(QMainWindow):
             self.mission_view_widget.set_run(self._last_run_scenario, partial_result, self._scenario_dir())
             self.event_timeline_widget.set_result(partial_result, self._last_run_epoch_utc)
             self._set_shown_run()
-            self._offer_vizard_playback()
             self._keep_run(partial_result, cancelled=True)
 
         self._show_run_end([

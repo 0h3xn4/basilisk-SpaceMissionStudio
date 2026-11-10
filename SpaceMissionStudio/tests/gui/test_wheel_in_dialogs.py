@@ -87,11 +87,7 @@ def _changed_by_wheel(root, qapp):
     return changed, count
 
 
-# The Vizard dialog has only text fields: nothing the wheel could change.
-_WHEEL_CASES = [(name, factory) for name, factory in _CASES if name != "vizard"]
-
-
-@pytest.mark.parametrize("factory", [f for _, f in _WHEEL_CASES], ids=[name for name, _ in _WHEEL_CASES])
+@pytest.mark.parametrize("factory", [f for _, f in _CASES], ids=[name for name, _ in _CASES])
 def test_mouse_wheel_changes_nothing(qtbot, qapp, factory):
     """Wheeling over every box, drop-down and tab bar of a dialog, on every
     tab, changes nothing."""

@@ -83,7 +83,6 @@ The tool lets a mission analyst do the following without writing code:
 | IERS-based Earth orientation files (NAIF PCKs) | `~/.cache/SpaceMissionStudio/earth_orientation/` or the installation's `share/` | Optional. Without them the Earth frame is less accurate and runs say so. `spacemissionstudio earth-orientation --fetch` |
 | 433 Eros ephemeris (NAIF) and shape model | `~/.cache/SpaceMissionStudio/small_bodies/`; the shape in Basilisk's data cache | Optional; only a run around Eros needs them, and it says so without them. `spacemissionstudio small-bodies --fetch` |
 | ITU-R P.676-13 Part 1 data file | `~/.cache/SpaceMissionStudio/itu_p676/` or the installation's `share/` | Optional; only the link budget's gaseous attenuation (`link.atmospheric_loss: itu_r_p676`) needs it. `spacemissionstudio gaseous-attenuation --fetch` |
-| Vizard (optional) | Your own installation only; never downloaded (AVS Lab's build enables Unity Analytics). Results › 3D View needs none | 3-D view in Vizard only |
 | Scenario files (`.json`) | Where you save them | Your data |
 | A scenario's change history (`<name>.history.jsonl`) | Beside the scenario file | Written at each save |
 | Project configuration files (`.yaml`) | Where the scenario's `config_file` names them | Optional; they change the named parameters (HT `project-configuration.md`) |
@@ -116,7 +115,7 @@ The tool lets a mission analyst do the following without writing code:
   - Disk: the audit's environment, with Basilisk and the development
     tools, took 1.4 GB. Basilisk's kernels and other reference data
     take about 117 MB (UM section 11), and the tool's data cache 42 MB.
-  - A display for the GUI. Vizard benefits from a graphics card.
+  - A display for the GUI.
 - **No FPGAs and no communications equipment.**
 
 ### 7.3 Software environment (H.2.1<7.3>)
@@ -125,7 +124,6 @@ The tool lets a mission analyst do the following without writing code:
   Operating system (Linux, Windows)
     Python 3.14 virtual environment
       SpaceMissionStudio  --uses-->  Basilisk 2.12.0, numpy, sgp4, pyerfa, PyYAML, PySide6, plotly
-      Vizard (optional, separate program)
 ```
 
 ### 7.4 Software organization and overview of operation (H.2.1<7.4>)
@@ -183,7 +181,6 @@ site. It has no schedule, operational profile or site personnel.
     installer needs the rights its wizard asks for.
 - **Configuration:** none is needed.
   - Data files are fetched on request (section 6).
-  - The Vizard path is remembered after the first launch.
 - **Removal:**
   - Linux: `sudo apt remove spacemissionstudio`.
   - Windows: **Settings > Apps**.
@@ -221,7 +218,7 @@ operating-system rights. See 9.9.
 | Edit a scenario | 6 (each field has a tooltip with its meaning and unit; **Form · JSON** edits the file's text, with completion, each key's help, problems marked in place, rename and quick fixes) |
 | Read the results; plots, epoch and elapsed time | 7 |
 | Save and open | 8 |
-| Vizard | 9 |
+| 3D view (Results › 3D View) | 9 |
 | Monte Carlo | 10 |
 | Lifetime, budgets, launch delays, altitude trade, long runs | 11 |
 | CLI | HT (`command-line.md`); AD1 (`ICD_cli.md`) |
@@ -267,18 +264,9 @@ in the CLI. An error never closes the application.
   load archives you did not create with Basilisk's own tools (AD3, S-04).
   **Results > Monte Carlo** and **Open Monte Carlo Results...** read only the
   pickle-free summary next to them (`batch_results.npz`, `.json`).
-- **Vizard live streaming:** the tool opens no network port. Vizard
-  listens on port 5556 while a run streams, and the simulation connects
-  to it.
-  - To see whether Vizard listens on all interfaces, run
-    `netstat -an | grep 5556` (Linux) or
-    `netstat -an | findstr 5556` (Windows) during a live run.
-  - On an untrusted network, block port 5556 in your firewall, or use a
-    save file instead (AD3, S-06).
 - **Downloads:**
   - These happen only when you agree, and only from the sources in
     section 6.
-  - Vizard is never downloaded (S-05).
 
 ## 10 Reference manual: commands and messages
 

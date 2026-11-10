@@ -300,7 +300,7 @@ def test_every_wizard_offers_every_setting_of_its_template(qtbot, filename):
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from spacemissionstudio.gui.template_wizard import TemplateCustomizeWizard, _paths_set_by, get_wizard_spec
     from spacemissionstudio.gui.wizard_settings import (
-        build_all_settings_pages, setting_paths, vizard_model_settings_hidden,
+        build_all_settings_pages, setting_paths,
     )
     from spacemissionstudio.schema import load_scenario
 
@@ -311,9 +311,8 @@ def test_every_wizard_offers_every_setting_of_its_template(qtbot, filename):
     for page in build_all_settings_pages(scenario, exclude=curated):
         for field in page.fields:
             generated.add(field.get.__defaults__[0])
-    hidden = set(vizard_model_settings_hidden(scenario))  # no effect without a Vizard model
     missing = [p for p in setting_paths(scenario) if p not in curated and p not in generated
-               and p[:-1] not in curated and p not in hidden]
+               and p[:-1] not in curated]
     assert not missing, missing
     assert not (curated & generated)  # nothing offered twice
 

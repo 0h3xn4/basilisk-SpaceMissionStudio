@@ -152,7 +152,6 @@ the test designs for each requirement.
 
 | Feature or combination | Reason |
 |---|---|
-| Vizard live streaming to a running Vizard | Needs the Vizard program and a display; the save-file path is tested |
 | The installers (Debian package, Windows installer) | Not part of the test suite. The Debian package was installed and launched by hand during development. |
 | Network downloads against the real servers | Network access is not available in tests; the downloads are tested with local stand-ins |
 | Every combination of scenario options | Not feasible. The 32 templates cover the supported features together, and each option is tested on its own. |

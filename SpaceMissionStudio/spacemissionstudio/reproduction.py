@@ -22,7 +22,7 @@ A bundle is a ``run --out-dir`` folder (the series CSVs, ``events.csv``,
 ``provenance.json`` and ``scenario_as_run.json``) with, in addition:
 
 - ``inputs/``: a copy of every file the scenario refers to (its project
-  configuration, model meshes, a Vizard model, the user's space-weather and
+  configuration, model meshes, the user's space-weather and
   MSFC files) and of the
   space-weather files the run read, which for the ``"bundled"`` source
   depend on the computer;
@@ -69,7 +69,6 @@ NOT_SERIES = {"events.csv", "command_summary.csv"}
 # agree within 3.8e-7 of their scale across computers (DECISIONS,
 # "The regression baseline").
 DEFAULT_RTOL = 1e-6  # [-]
-_SHAPES = ("CUBE", "CYLINDER", "SPHERE")  # vizard_model_path values that are not files
 
 
 class BundleError(Exception):
@@ -87,15 +86,13 @@ def _sha256(path: Path) -> str:
 def _references(scenario):
     """(role, owner, attribute, path given, relative to the scenario's
     folder) of each file ``scenario`` refers to; ``owner.attribute`` holds
-    the path. A model's meshes and Vizard model are read relative to the
+    the path. A model's meshes are read relative to the
     scenario file's folder; the space-weather files relative to the
     working folder, as ``engine.spaceweather`` opens them."""
     for sc in scenario.spacecraft:
         if sc.model is not None:
             for index, mesh in enumerate(sc.model.meshes):
                 yield f"spacecraft[{sc.name}].model.meshes[{index}]", mesh, "path", mesh.path, True
-        if sc.vizard_model_path and sc.vizard_model_path.upper() not in _SHAPES:
-            yield f"spacecraft[{sc.name}].vizard_model_path", sc, "vizard_model_path", sc.vizard_model_path, True
     if scenario.config_file:
         yield "config_file", scenario, "config_file", scenario.config_file, True
     weather = scenario.space_weather

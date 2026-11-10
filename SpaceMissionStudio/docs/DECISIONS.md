@@ -5,6 +5,53 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Vizard removed (2026-11-10)
+
+The owner: "I don't want any trace of vizard left in spacemissionstudio".
+**Results › 3D View** is the app's 3D view.
+
+- **Everything goes:** the playback file, the live stream, starting a
+  Vizard, its settings, Run options, export row, commands, icons, CLI
+  options, scenario fields and the controllers' messages that only fed
+  its panels. Why: the owner's request.
+- **The controllers' telemetry that feeds logs, results and events stays**
+  (`last*Km`, the battery, the fuel tank, the access messages, the
+  model's `.obj` groups). Why: no result may change; the golden outputs
+  are unchanged.
+- **Old files open; the retired fields are dropped on load and recorded**
+  (`schema/migrations.py`, step "retired fields", in the run's
+  `scenario_file_migrations`), and `Scenario.from_dict` drops them too.
+  Why: every saved scenario has them, and the loader refuses unknown
+  keys; stored run records (bundles, the run store, autosave) are read
+  through `from_dict`.
+- **No schema version change (it stays 4).** Why: files without the
+  fields open in 2.6.0, where they had defaults (checked: the 32
+  regenerated templates load and validate with 2.6.0's own code); a new
+  version would only stop 2.6.0 from opening files saved now.
+- **The migration names the retired fields;** nothing else in the product
+  does. Why: it must recognise them.
+- **`SimulationService` takes `model_base_dir`.** Why: the Vizard request
+  carried the folder a model's relative mesh paths are read from; the GUI
+  and the command line now pass it directly, so the model analyses read
+  the same files as before.
+- **The CLI refuses a `--vizard-*` option as an unknown argument** (exit
+  status 2). Why: the simplest; no special message keeps the name alive.
+- **The network guard's loopback allowance stays.** Why: it was never for
+  Vizard alone: the SIL socket (127.0.0.1), Basilisk's import-time request
+  sent to a closed local port and local name lookups use it.
+- **The temporary-folder kind for Vizard's model files is removed.** A
+  folder of that kind an earlier version left behind after a crash is no
+  longer cleaned up at start. Why: no trace; such folders are rare and
+  small.
+- **Records stay as written** (CHANGELOG releases, HISTORY, AUDIT, past
+  decisions, the UI overhaul plan and screenshots, audits, SRelD issues of
+  past releases); `tests/gui/test_shell_reachability.py` leaves out the
+  plan's rows that name the removed program. Why: records describe what
+  was true then.
+- **SRS-I-08, ICD-08 and security analysis S-05, S-06 and S-11 are
+  retired** with a one-line note, not deleted. Why: their numbers stay
+  taken, so references elsewhere still resolve.
+
 ## Landing page at start-up (2026-11-10)
 
 The owner's request: the app starts on a landing page, not on the last

@@ -393,9 +393,7 @@
   "propellant_budget": "see engine/propellant_budget.py",
   "roe_formation": "formation in relative orbital elements",
   "sensors": "list[SensorConfig]",
-  "solar_arrays": "SolarArrayConfig: flexible, hinged arrays",
-  "vizard_model_path": "path to a .obj file, or \"CUBE\"/\"CYLINDER\"/\"SPHERE\"",
-  "vizard_model_rotation_deg": "3-2-1 Euler (z,y,x)"
+  "solar_arrays": "SolarArrayConfig: flexible, hinged arrays"
  },
  "SpacecraftModelConfig": {
   "equipment": "list[MountedEquipmentConfig]",

@@ -36,8 +36,7 @@ The positions moved (:func:`move_origin`):
   ``mount.position_m`` (when not in a part's frame) and its ``r_B``
   (thruster) or ``rWB_B`` (wheel), the RF antenna's mount (when not in a
   part's frame), each facet's ``location_b``, the fuel
-  tank's ``tank_position_b_m``, each solar array's ``hinge_position_b``
-  and the Vizard model's ``vizard_model_offset_m``.
+  tank's ``tank_position_b_m`` and each solar array's ``hinge_position_b``.
 
 An import record keeps the values it wrote, to tell a value edited since
 from one it may update; :func:`shift_record_values` moves its positions
@@ -156,10 +155,6 @@ def move_spacecraft_origin(sc, d) -> list[str]:
         array.hinge_position_b = _moved(array.hinge_position_b, d)
     if arrays:
         moved.append(f"{len(arrays)} solar array hinge(s)")
-    offset = getattr(sc, "vizard_model_offset_m", None)
-    if _is_vector(offset) and getattr(sc, "vizard_model_path", None):
-        sc.vizard_model_offset_m = _moved(offset, d)
-        moved.append("the Vizard model's offset")
     return moved
 
 

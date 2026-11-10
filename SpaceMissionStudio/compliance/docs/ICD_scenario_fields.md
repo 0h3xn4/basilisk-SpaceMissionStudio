@@ -713,16 +713,12 @@ See engine/spaceweather.py and engine/service.py. Real data only (user requireme
 | `navigation_error` | NavigationErrorConfig / None | `None` |  |
 | `fuel_tank` | FuelTankConfig / None | `None` |  |
 | `propellant_budget` | PropellantBudgetConfig / None | `None` | see engine/propellant_budget.py |
-| `vizard_model_path` | str / None | `None` | path to a .obj file, or "CUBE"/"CYLINDER"/"SPHERE" |
-| `vizard_model_offset_m` | list | `[0.0, 0.0, 0.0]` |  |
-| `vizard_model_rotation_deg` | list | `[0.0, 0.0, 0.0]` | 3-2-1 Euler (z,y,x) |
-| `vizard_model_scale` | list | `[1.0, 1.0, 1.0]` |  |
 | `model` | SpacecraftModelConfig / None | `None` |  |
 | `model_analyses` | ModelAnalysesConfig / None | `None` |  |
 
 ## SpacecraftModelConfig
 
-A spacecraft's 3D model (see ``spacemissionstudio.model3d``): parts built from simple shapes or imported ``.obj`` groups. Applying it (``model3d.model.apply``) writes what it derives into the spacecraft's own fields -- ``dry_mass_kg``, ``center_of_mass_b_m``, ``inertia_kg_m2`` and ``facets`` -- which are what the simulation reads; the model is kept so it can be edited again. ``use_for_vizard`` shows the model in Vizard when ``vizard_model_path`` is not set.
+A spacecraft's 3D model (see ``spacemissionstudio.model3d``): parts built from simple shapes or imported ``.obj`` groups. Applying it (``model3d.model.apply``) writes what it derives into the spacecraft's own fields -- ``dry_mass_kg``, ``center_of_mass_b_m``, ``inertia_kg_m2`` and ``facets`` -- which are what the simulation reads; the model is kept so it can be edited again.
 
 | Field | Type | Default | Unit / note |
 |---|---|---|---|
@@ -732,7 +728,6 @@ A spacecraft's 3D model (see ``spacemissionstudio.model3d``): parts built from s
 | `mass_properties` | ModelMassPropertiesConfig / None | `None` | for "typed" and "imported" |
 | `apply_mass_properties` | bool | `True` |  |
 | `apply_facets` | bool | `True` |  |
-| `use_for_vizard` | bool | `True` |  |
 | `equipment` | list | `[]` | list[MountedEquipmentConfig] |
 | `stowed` | list | `[]` | list[PartPoseConfig]: the stowed configuration |
 | `face_properties` | list | `[]` | list[FacePropertyConfig] |

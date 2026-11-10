@@ -24,6 +24,7 @@ raising ScenarioValidationError for files that used to load fine.
 """
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -188,3 +189,62 @@ def test_what_loading_an_older_file_changes_is_recorded(tmp_path):
     assert [c["path"] for c in record["scenario_file_migrations"]] == ["space_weather.source"] * 2
     load_scenario(path).save(path)
     assert output_provenance.scenario_file_record(path)["scenario_file_migrations"] == []
+
+
+_TESTS = Path(__file__).resolve().parent
+_RETIRED = {"vizard_model_path": "CUBE", "vizard_model_offset_m": [0.0, 0.0, 0.1],
+            "vizard_model_rotation_deg": [0.0, 0.0, 0.0], "vizard_model_scale": [1.0, 1.0, 1.0]}
+
+
+def test_a_file_with_the_retired_fields_opens_and_says_what_was_dropped(tmp_path):
+    """Files saved before 2026-11-10 have a spacecraft's four Vizard model
+    fields and the 3D model's ``use_for_vizard``. They open: the fields
+    are dropped, nothing else changes, and the file's record lists each
+    one as removed (step "retired fields"). The schema version is not
+    changed by this."""
+    from spacemissionstudio import output_provenance
+    from spacemissionstudio.schema.migrations import RETIRED_STEP
+
+    template = _TESTS.parent / "spacemissionstudio" / "scenarios" / "templates" / "28_octagonal_bus_3d_model.json"
+    data = json.loads(template.read_text(encoding="utf-8"))
+    assert data["schema_version"] == CURRENT_SCHEMA_VERSION
+    data["spacecraft"][0].update(_RETIRED)
+    data["spacecraft"][0]["model"]["use_for_vizard"] = True
+    path = tmp_path / "old.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+    assert load_scenario(path).to_dict() == load_scenario(template).to_dict()
+    changes = output_provenance.scenario_file_record(path)["scenario_file_migrations"]
+    expected = [*(f"spacecraft[0].{name}" for name in _RETIRED), "spacecraft[0].model.use_for_vizard"]
+    assert sorted(c["path"] for c in changes) == sorted(expected)
+    assert all(c["step"] == RETIRED_STEP and "before" in c and "after" not in c for c in changes)
+    load_scenario(path).save(path)
+    saved = path.read_text(encoding="utf-8")
+    assert not [name for name in [*_RETIRED, "use_for_vizard"] if f'"{name}"' in saved]
+    assert output_provenance.scenario_file_record(path)["scenario_file_migrations"] == []
+
+
+def test_the_retired_fields_are_dropped_after_the_version_steps():
+    """An old version's file: the version steps run first, then the
+    retired fields go, recorded last."""
+    data = _v1_scenario({"source": "celestrak"})
+    data["spacecraft"][0].update(_RETIRED)
+    changes: list = []
+    migrated = migrate(data, changes)
+    assert migrated["schema_version"] == CURRENT_SCHEMA_VERSION
+    assert not set(_RETIRED) & set(migrated["spacecraft"][0])
+    assert [c["step"] for c in changes][-4:] == ["retired fields"] * 4
+    assert [c["step"] for c in changes][0] == "1 -> 2"
+
+
+def test_a_stored_run_record_with_the_retired_fields_still_opens():
+    """A run record written by an earlier version (the bundle's
+    scenario_as_run.json, schema 4, with the Vizard model fields) loads,
+    from the file and from its dict."""
+    from spacemissionstudio.schema import Scenario
+
+    path = _TESTS / "data" / "bundles" / "linux_two_body" / "scenario_as_run.json"
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    assert "vizard_model_path" in raw["spacecraft"][0]
+    assert load_scenario(path).spacecraft[0].name == "sat-1"
+    assert Scenario.from_dict(raw).spacecraft[0].name == "sat-1"

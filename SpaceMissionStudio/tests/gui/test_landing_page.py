@@ -122,7 +122,7 @@ def test_the_scenario_commands_are_disabled_until_a_scenario_is_open(window):
     palette are not. The palette lists the disabled commands greyed and
     does not run them, and offers none of the scenario's pages."""
     disabled = ("file.save", "file.save_as", "file.change_history", "edit.undo", "edit.redo", "run.run",
-                "run.mode.monte_carlo", "run.vizard_config", "run.open_monte_carlo", "tools.model_3d",
+                "run.mode.monte_carlo", "run.open_monte_carlo", "tools.model_3d",
                 "tools.ccsds_export", "analyses.budget", "tools.flight_software", "view.explain")
     for command_id in disabled:
         assert not window.commands.action(command_id).isEnabled(), command_id

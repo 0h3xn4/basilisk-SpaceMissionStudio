@@ -355,19 +355,6 @@ def test_run_with_allow_scripts_runs_them(tmp_path, capsys):
     assert marker.read_text() == "ran"
 
 
-def test_run_rejects_both_vizard_flags_at_once(tmp_path, capsys):
-    """run with both --vizard-save-file and --vizard-live-stream exits 1: at
-    most one is allowed."""
-    path = tmp_path / "scenario.json"
-    _write_scenario(path)
-    rc = cli.main([
-        "run", str(path), "--out-dir", str(tmp_path / "out"),
-        "--vizard-save-file", str(tmp_path / "viz.bin"), "--vizard-live-stream",
-    ])
-    assert rc == 1
-    assert "at most one of" in capsys.readouterr().err
-
-
 def test_help_opens_with_a_one_line_purpose_for_users():
     """``spacemissionstudio --help`` starts with what the tool does, examples
     and where the guide is, not the module's developer docstring."""
@@ -424,24 +411,15 @@ def test_version_before_a_command_prints_the_versions_and_exits(capsys):
     assert capsys.readouterr().out.startswith("SpaceMissionStudio ")
 
 
-def test_run_parses_vizard_camera_and_orbit_line_flags():
-    """run parses --vizard-camera-target and --vizard-no-orbit-lines."""
-    parser = cli.build_parser()
-    args = parser.parse_args([
-        "run", "scenario.json",
-        "--vizard-live-stream", "--vizard-camera-target", "sat-1", "--vizard-no-orbit-lines",
-    ])
-    assert args.vizard_camera_target == "sat-1"
-    assert args.vizard_no_orbit_lines is True
-
-
-def test_run_vizard_camera_target_defaults_to_none():
-    """Without the flags, run has no Vizard camera target and draws orbit
-    lines."""
-    parser = cli.build_parser()
-    args = parser.parse_args(["run", "scenario.json"])
-    assert args.vizard_camera_target is None
-    assert args.vizard_no_orbit_lines is False
+@pytest.mark.parametrize("flag", ["--vizard-save-file=viz.bin", "--vizard-live-stream", "--vizard-camera-target=sat-1",
+                                  "--vizard-no-orbit-lines", "--vizard-trail", "--vizard-ground-tracks"])
+def test_run_rejects_the_removed_vizard_flags(flag, capsys):
+    """The --vizard-* flags were removed (2026-11-10): run refuses them as
+    unknown arguments (argparse exits with status 2)."""
+    with pytest.raises(SystemExit) as exit_info:
+        cli.build_parser().parse_args(["run", "scenario.json", flag])
+    assert exit_info.value.code == 2
+    assert "unrecognized arguments" in capsys.readouterr().err
 
 
 def test_station_keeping_summary_reports_delta_v_and_propellant_used(capsys):
@@ -747,16 +725,6 @@ def test_phasing_defaults_agree_between_schema_generator_and_cli():
     for name in request_defaults.keys() & schema_defaults.keys():
         assert cli_defaults[name] == request_defaults[name], name
     assert schema_defaults["correction_window_days"] == 3.0  # [day]
-
-
-def test_run_parses_vizard_trail_and_ground_track_flags():
-    """--vizard-trail and --vizard-ground-tracks are off by default and on when
-    given."""
-    parser = cli.build_parser()
-    assert parser.parse_args(["run", "s.json"]).vizard_trail is False
-    assert parser.parse_args(["run", "s.json"]).vizard_ground_tracks is False
-    args = parser.parse_args(["run", "s.json", "--vizard-trail", "--vizard-ground-tracks"])
-    assert args.vizard_trail is True and args.vizard_ground_tracks is True
 
 
 @pytest.mark.requires_basilisk
@@ -1186,6 +1154,23 @@ def test_validate_and_run_say_what_loading_an_older_file_changed(tmp_path, capsy
     assert [(c["step"], c["path"]) for c in record["scenario_file_migrations"]] == [
         ("1 -> 2", "space_weather.source"), ("2 -> 3", "space_weather.source")]
     assert "effective_defaults" in record and record["effective_config_note"]
+
+
+def test_validate_sums_up_retired_fields_in_one_line(tmp_path, capsys):
+    """A file saved by an earlier version holds fields this version no
+    longer has (four per spacecraft, one per 3D model). ``validate``
+    sums them up in one line, not one line per field."""
+    from spacemissionstudio.schema.migrations import RETIRED_SPACECRAFT_FIELDS
+
+    path = tmp_path / "old.json"
+    data = _write_scenario(path).to_dict()
+    for sc in data["spacecraft"]:
+        sc.update({name: None for name in RETIRED_SPACECRAFT_FIELDS})
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert cli.main(["validate", str(path)]) == 0
+    lines = [line for line in capsys.readouterr().out.splitlines() if line.startswith("MIGRATED")]
+    count = len(data["spacecraft"]) * len(RETIRED_SPACECRAFT_FIELDS)
+    assert lines == [f"MIGRATED: schema retired fields: {count} field(s) this version no longer uses removed"]
 
 
 def test_run_keeps_the_scenario_as_run_and_the_file_it_came_from(tmp_path, capsys):

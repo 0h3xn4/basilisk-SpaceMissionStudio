@@ -108,7 +108,7 @@ A few seconds later **Results > Plots** shows the orbit and the
 - **Exchange:** CCSDS orbit messages, in the app and on the command
   line; IDM-CIC models (read only);
   flight-software export as a C project; software-in-the-loop testing.
-- **3D view** in Vizard; a **command line** for every analysis; a
+- **3D view** of a run inside the app; a **command line** for every analysis; a
   **Python API**; light and dark themes; **offline by design**.
 
 Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capabilities.md).
@@ -146,7 +146,7 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
   before you use them for a real mission.
 - **Version:** 2.6.0 ([release](https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.6.0),
   [changelog](SpaceMissionStudio/CHANGELOG.md)): a run plays back in 3D
-  inside the app (**Results › 3D View**), in place of the Vizard download;
+  inside the app (**Results › 3D View**);
   every network use is enforced, can be switched off and is logged, with
   an audit anyone can run; the installers are hash-checked and carry a
   bill of materials. 2.5.0 made the scenario's JSON page a code editor and
@@ -157,8 +157,7 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
   from the model's power modes and solar arrays, and the values your team
   keeps as properties) and a Walker constellation that holds its spacing;
   2.2.0 put CCSDS orbit files in the app; 2.1.1 fixed 2.1.0 (the 3D model editor
-  is a window of its own, the IDM-CIC import from a template, Vizard's
-  battery in watt-hours); 2.1.0 was the spacecraft as designed. Its 3D model carries the equipment, a stowed configuration
+  is a window of its own, the IDM-CIC import from a template); 2.1.0 was the spacecraft as designed. Its 3D model carries the equipment, a stowed configuration
   and materials; the tool checks fields of view, thrusters, the mass
   budget and launcher fit and analyses disturbances, blinding, shading,
   exposure, brightness and re-entry with it; and the model can be
@@ -184,7 +183,6 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 | Tool | Relation |
 |---|---|
 | [Basilisk](https://github.com/AVSLab/basilisk) | The simulation engine; this repository is its fork |
-| [Vizard](docs/source/Vizard/VizardDownload.rst) | Basilisk's 3D viewer; the app streams to it or writes playback files |
 | [GMAT](https://sourceforge.net/projects/gmat/) | NASA's mission analysis tool; used as a reference to validate the app |
 
 ## What this fork adds

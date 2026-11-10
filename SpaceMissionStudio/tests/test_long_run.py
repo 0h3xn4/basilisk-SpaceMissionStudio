@@ -50,12 +50,9 @@ def test_five_years_splits_into_whole_step_segments_under_the_limit():
     assert long_run.needs_segments(_scenario(1826.25)) and not long_run.needs_segments(_scenario(100.0))
 
 
-def test_the_vizard_view_and_phasing_keeping_are_refused():
-    """A split run with Vizard is refused; without it, it is allowed."""
-    scenario = _scenario(200.0)
-    with pytest.raises(long_run.LongRunError, match="turn Vizard off"):
-        long_run.check_segmentable(scenario, vizard_request=object())
-    long_run.check_segmentable(scenario)
+def test_a_plain_long_run_can_be_split():
+    """A 200-day run with nothing that cannot be split is allowed."""
+    long_run.check_segmentable(_scenario(200.0))
 
 
 def test_appending_shifts_time_drops_the_repeated_sample_and_offsets_delta_v():

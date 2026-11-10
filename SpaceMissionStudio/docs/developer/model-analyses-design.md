@@ -24,8 +24,8 @@ Basilisk modules only through their public API.
 - **Schema** (`schema/scenario.py`): `SpacecraftConfig.model` is a
   `SpacecraftModelConfig` holding `parts` (`ModelPartConfig`), `meshes`
   (imported `.obj` files), the mass-property source (computed, typed or
-  imported) and three switches: apply the mass properties, apply the
-  facets, use the model for Vizard.
+  imported) and two switches: apply the mass properties and apply the
+  facets.
 - **Primitives:** box, prism (regular n-gon), cylinder, cone, sphere,
   panel (a thin box), and a group of an imported `.obj` mesh. Each shape
   has its own local frame, centred on its bounding box.
@@ -64,7 +64,7 @@ Basilisk modules only through their public API.
 - **Optical and material properties:** only the specular and diffuse
   fractions per part (per facet once applied); absorption is the rest.
   There is no material name, absorptance, emissivity or material library.
-- **Vizard:** `engine/vizard.py` writes the visible parts as `.obj`.
+- **3D views:** the editor and Results › 3D View draw the visible parts.
 
 ### 1.2 Equipment
 

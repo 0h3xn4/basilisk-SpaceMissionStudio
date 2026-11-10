@@ -111,9 +111,9 @@ def _install_fake_engine_service(monkeypatch, run_live_impl):
     import types
 
     class FakeSimulationService:
-        def __init__(self, scenario, vizard_request=None):
+        def __init__(self, scenario, model_base_dir=None):
             self.scenario = scenario
-            self.vizard_request = vizard_request
+            self.model_base_dir = model_base_dir
 
         def run_live(self, on_progress, should_cancel=None):
             return run_live_impl(self, on_progress, should_cancel)

@@ -42,23 +42,6 @@ differs from the original:
   instead (one fewer thing ``engine.service`` needs to compute).
 * No ``log_decimation`` of its own: recording is thinned for every
   recorder alike by ``SimSettings.record_interval_s``.
-* Publishes ``fuelTankOutMsg`` (a real ``FuelTankMsgPayload``, not part of
-  the original ``AltitudeKeepingController``) purely so ``engine.vizard``
-  can drive a live "propellant remaining" bar in Vizard off of it (see
-  that module) -- this controller still does NOT use a Basilisk
-  ``fuelTank`` state effector for the actual physics, only for this one
-  output message.
-* Publishes ``deltaVOutMsg`` (a ``DataStorageStatusMsgPayload``, chosen
-  over reusing ``FuelTankMsgPayload`` a second time so a spacecraft's
-  "propellant remaining" and "delta-V used" Vizard panels are backed by
-  two genuinely distinct message instances, never two panels racing to
-  overwrite the same one) -- same "purely for a live Vizard gauge" reason
-  as ``fuelTankOutMsg``, this time driving a delta-V-used bar scaled
-  against :func:`~spacemissionstudio.engine.propellant_bookkeeping.total_delta_v_budget`'s
-  closed-form total for this controller's own tank. :class:`PhasingKeepingController`
-  publishes the same kind of message (its own delta-V, plus a live
-  along-track separation-from-chief reading) for the same reason -- see
-  that class's own docstring.
 
 Uses a dedicated ``extForceTorque`` effector for the reboost force
 (``extForce_N``, inertial-frame), independent of whatever effector
@@ -124,9 +107,7 @@ Verification status: the burn/bookkeeping logic is copied from
 memory (the shared-mass-bookkeeping fix above is this project's own,
 found and fixed after a full codebase audit). This whole module's
 ``requires_basilisk``-marked tests (``tests/test_orbit_maintenance.py``)
--- including the ``deltaVOutMsg``/``separationRadialOutMsg``/
-``separationTransverseOutMsg``/``separationNormalOutMsg`` telemetry this
-docstring describes above -- have been run for real against a genuine
+have been run for real against a genuine
 ``pip install "bsk[all]"`` Basilisk build (this project's own "vendoring"
 discovery -- see ``SpaceMissionStudio/README.md``'s "Getting started"), not
 left unexercised; this superseded an earlier, stale version of this note
@@ -149,7 +130,7 @@ from .. import constants
 from ..config import registry
 from ..schema.scenario import ConstantThrustConfig, PhasingKeepingConfig, StationKeepingConfig
 from .constellation import SeparationSchedule
-from .propellant_bookkeeping import apply_propellant_burn, total_delta_v_budget
+from .propellant_bookkeeping import apply_propellant_burn
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -345,37 +326,6 @@ def _wrap_pm_pi(angle_rad: float) -> float:
     return (angle_rad + np.pi) % (2.0 * np.pi) - np.pi
 
 
-def _clamp_magnitude(value: float, limit: float) -> float:
-    """Return ``abs(value)`` clamped to ``[0, limit]`` -- used for a live
-    Vizard GenericStorage panel's ``storageLevel`` (see
-    ``PhasingKeepingController.UpdateState``'s own comment).
-
-    GenericStorage's own field comments -- both
-    ``vizStructures.h``'s (``"current/maximum absolute value of the
-    storage device"``) and the wire-format ``vizMessage.proto``'s
-    (identical wording) -- document ``currentValue``/``maxValue`` as a
-    non-negative gauge, e.g. a battery charge or a propellant tank level.
-    An earlier revision of this function (``_clamp_symmetric``) clamped
-    to ``[-limit, limit]`` instead, to preserve "ahead of"/"behind the
-    chief" sign -- a real user screenshot then showed exactly the panels
-    that were negative at that moment (Radial, Normal) rendering
-    "Unavailable" in Vizard, while the one that happened to be positive
-    (Transverse) rendered normally.
-
-    CONFIRMED, not just inferred from the field comments: the ``0h3xn4/
-    vizard`` Unity project's own source --
-    ``VizardUnityProject/Assets/Scripts/MainScene/MainSceneGUI/
-    GenericStoragePanel/GenericStorageUnitMethods.cs``,
-    ``UpdateCurrentValue()`` -- branches on ``value >= 0`` with no
-    tolerance whatsoever: ``value < 0`` unconditionally sets
-    ``hoverText``/``verboseText`` to ``"Unavailable"`` (``"Stale"`` in
-    VR), grays the bar, and zeroes its width, regardless of
-    ``maxValue``/color thresholds/anything else. See this class's own
-    docstring for the full reasoning.
-    """
-    return min(abs(value), limit)
-
-
 def _eclipse_illumination_fraction(eclipse_payload) -> float:
     """[-] 0 = fully eclipsed, 1 = fully sunlit, from a real
     ``EclipseMsgPayload``.
@@ -451,18 +401,6 @@ class StationKeepingController(sysModel.SysModel):
 
         self.scStateInMsg = messaging.SCStatesMsgReader()
         self.eclipseInMsg = messaging.EclipseMsgReader()
-        # Live propellant telemetry, for Vizard's GenericStorage "fuel tank"
-        # panel (see engine.vizard) -- this controller tracks propellant as
-        # a plain Python scalar (see module docstring for why: no
-        # fuelTank state effector), so there is no Basilisk message
-        # carrying it unless this module publishes one itself.
-        self.fuelTankOutMsg = messaging.FuelTankMsg()
-        # Live delta-V-used telemetry, for Vizard's GenericStorage
-        # "delta-V" panel (see engine.vizard and this module's own
-        # docstring) -- a DataStorageStatusMsgPayload (not a second
-        # FuelTankMsgPayload) so the propellant and delta-V panels are
-        # backed by two distinct messages.
-        self.deltaVOutMsg = messaging.DataStorageStatusMsg()
 
         # Wired up externally (see build_station_keeping): the
         # extForceTorque effector this controller commands, and the
@@ -479,14 +417,6 @@ class StationKeepingController(sysModel.SysModel):
         self.g0 = g0_mps2  # [m/s^2]
         self.dryMass = dry_mass_kg  # [kg]
         self.propellant = propellant_kg  # [kg]
-        self._initialPropellantKg = propellant_kg  # [kg] fixed tank capacity, for fuelTankOutMsg.maxFuelMass
-        # [m/s] closed-form Tsiolkovsky total for a FULL tank -- the fixed
-        # "gauge max" deltaVOutMsg.storageCapacity below reports every
-        # tick; NOT recomputed from the depleting propellant_kg (that
-        # would shrink the gauge's own max as propellant burns, which is
-        # not what "how much of this tank's total budget have I used so
-        # far" should show).
-        self.dvBudgetMps = total_delta_v_budget(dry_mass_kg, propellant_kg, isp_s, g0_mps2)
         semi_major_axis_m = r_planet_m + nominal_alt_m  # [m]
         self.smoothingWindowS = float(2.0 * np.pi * np.sqrt(semi_major_axis_m ** 3 / mu))  # [s] orbit period
         self.sunlitThreshold = eclipse_sunlit_threshold  # [-]
@@ -609,7 +539,7 @@ class StationKeepingController(sysModel.SysModel):
             self._altHistory.pop(0)
         smoothAlt = float(np.mean([a for _, a in self._altHistory]))
 
-        # Real bug, found by reproducing a real Vizard screenshot showing
+        # Real bug, found by reproducing a real user's run showing
         # a co-located PhasingKeepingController's along-track separation
         # diverging without bound instead of converging toward its own
         # target (see that class's own docstring) -- traced to THIS
@@ -719,7 +649,7 @@ class StationKeepingController(sysModel.SysModel):
         # docstring note for why hub.mHub (not an absolute recomputed
         # value) is the correct base for this part.
         hubMass = self.scObject.hub.mHub if self.scObject is not None else (self.dryMass + self.propellant)
-        newMass, self.propellant, _burnedKg, mDot = apply_propellant_burn(
+        newMass, self.propellant, _burnedKg, _mDot = apply_propellant_burn(
             hubMass, self.propellant, thrustMag, self.ispS, dt, self.g0)
         if self.scObject is not None:
             self.scObject.hub.mHub = newMass
@@ -730,17 +660,6 @@ class StationKeepingController(sysModel.SysModel):
             forceVec = thrustMag * vHat
         if self.extForceEffector is not None:
             self.extForceEffector.extForce_N = forceVec.tolist()
-
-        fuelTankMsg = messaging.FuelTankMsgPayload()
-        fuelTankMsg.fuelMass = self.propellant  # [kg]
-        fuelTankMsg.fuelMassDot = -mDot  # [kg/s] negative: mass decreasing
-        fuelTankMsg.maxFuelMass = self._initialPropellantKg  # [kg]
-        self.fuelTankOutMsg.write(fuelTankMsg, CurrentSimNanos, self.moduleID)
-
-        deltaVMsg = messaging.DataStorageStatusMsgPayload()
-        deltaVMsg.storageLevel = self._cumulativeDv  # [m/s]
-        deltaVMsg.storageCapacity = self.dvBudgetMps  # [m/s]
-        self.deltaVOutMsg.write(deltaVMsg, CurrentSimNanos, self.moduleID)
 
         self._burnedSinceLog = self._burnedSinceLog or thrustMag > 0.0
         if self.logThinner.due(t):
@@ -825,10 +744,7 @@ class PhasingKeepingController(sysModel.SysModel):
     :func:`build_phasing_keeping` always reads them off the co-located
     ``StationKeepingController`` (see ``PhasingKeepingConfig``'s
     docstring for why: one physical thruster/tank, so there is no
-    schema-level way for the two to disagree about it). ``dv_budget_mps``
-    is read the same way (the co-located controller's own
-    ``dvBudgetMps`` -- see that class's docstring) rather than
-    recomputed here, for the same one-tank-no-disagreement reason.
+    schema-level way for the two to disagree about it).
 
     Numerical conditioning of the phase error
     ------------------------------------------
@@ -837,7 +753,7 @@ class PhasingKeepingController(sysModel.SysModel):
     (``orbitalMotion.rv2elem`` -> ``f2E`` -> ``E2M``, i.e. via each
     spacecraft's own, individually-decomposed eccentricity/argument-of
     -periapsis/true-anomaly). Real bug, found by audit after a real
-    user's Vizard screenshot kept showing the along-track separation
+    user's run kept showing the along-track separation
     diverging without bound even after the cold-start fix above had
     landed: reproduced directly against a genuine Basilisk build with
     real (degree >= 2) spherical-harmonics Earth gravity active on the
@@ -865,8 +781,7 @@ class PhasingKeepingController(sysModel.SysModel):
     such bogus cycle, suspending all further automatic correction for
     the rest of the run while the real separation then free-drifted,
     uncorrected, off whatever the bogus burn had left it at -- matching
-    a real user's "pinned at the Vizard gauge ceiling" screenshot
-    exactly.
+    a real user's run exactly.
 
     Fixed by :func:`_argument_of_latitude`: the angle ``u = omega + f``,
     computed DIRECTLY from each spacecraft's instantaneous position/
@@ -885,53 +800,12 @@ class PhasingKeepingController(sysModel.SysModel):
     classical-element-friendly high-``e`` regime this approximation does
     NOT cover) is a real, documented follow-on, not implemented here.
 
-    Publishes two more live-Vizard-only messages (see this module's
-    docstring and ``engine.vizard``), same "never fed back into simulated
-    physics" caveat as ``StationKeepingController.deltaVOutMsg``:
-
-    * ``deltaVOutMsg`` -- this controller's OWN cumulative delta-V (i.e.
-      phasing burns only, NOT the co-located ``StationKeepingController``'s
-      reboost delta-V -- the two are reported as separate Vizard panels
-      deliberately, so a user can see the propellant cost of altitude
-      -keeping and phasing-keeping separately, even though both draw from
-      the one shared tank).
-    * ``separationRadialOutMsg``/``separationTransverseOutMsg``/
-      ``separationNormalOutMsg`` -- the actual, LIVE chief/follower offset
-      in the chief's own Hill (RTN) frame (``storageLevel``, km each),
-      via ``orbitalMotion.rv2hill`` -- the exact same function
-      ``engine.formation``'s wizard itself uses to place a follower, so
-      these numbers are directly comparable to what a user typed into
-      that wizard's Radial/Along-track/Cross-track fields. Real user
-      feedback: a single scalar "separation" number wasn't interpretable
-      ("vague") -- three real distances in a named, familiar frame is
-      the fix. All three share ONE ``storageCapacity`` (2x the
-      currently-scheduled along-track target, km -- NOT the raw target
-      itself; see UpdateState's own comment: a target-sized max leaves a
-      normal, on-target transverse reading pegged at ~100% fill with no
-      room for an ordinary correction transient, which is what a real
-      Vizard screenshot caught overflowing the panel). ``storageLevel``
-      is ``abs(...)`` CLAMPED to ``[0, storageCapacity]`` (see
-      :func:`_clamp_magnitude`'s own docstring for why NOT signed --
-      GenericStorage is a non-negative gauge widget, and a real user
-      screenshot showed a signed, negative ``storageLevel`` rendering as
-      "Unavailable" rather than a bar). Live Vizard panels therefore show
-      MAGNITUDE only, not "ahead of"/"behind the chief" direction; the
-      true, signed numbers are ``self.lastRadialKm``/
-      ``self.lastTransverseKm``/``self.lastNormalKm``/
-      ``self.lastTargetSeparationKm`` (plain Python attributes, for
-      anything that needs the exact signed geometry -- nothing in this
-      codebase currently reads them, same as before this round's fix;
-      not fed into the exported CSV/results plots either, see this
-      module's own "None of this feeds back into simulated physics..."
-      note in ``engine.vizard``).
-    * ``chiefName`` -- the chief spacecraft's own ``ModelTag`` (a plain
-      ``str`` attribute, not a message), wired by :func:`build_phasing_keeping`
-      so ``engine.vizard`` can label each panel with WHICH chief the
-      number is measured against (e.g. ``"R vs chief-1"``) -- real user
-      feedback that "Radial (R)"/etc. alone didn't say whose offset it
-      was. Defaults to ``""`` (falls back to a generic "vs chief" label)
-      when constructed directly, e.g. in a unit test, rather than via
-      :func:`build_phasing_keeping`.
+    The live chief/follower offset in the chief's own Hill (RTN) frame
+    (km each, via ``orbitalMotion.rv2hill``, the function
+    ``engine.formation``'s wizard uses to place a follower) is kept,
+    signed, in ``self.lastRadialKm``/``self.lastTransverseKm``/
+    ``self.lastNormalKm``, with the scheduled target in
+    ``self.lastTargetSeparationKm``.
     """
 
     IDLE, BURN_OUT, DRIFT, BURN_RESTORE = range(4)
@@ -950,7 +824,6 @@ class PhasingKeepingController(sysModel.SysModel):
         thrust_n: float,
         isp_s: float,
         dry_mass_kg: float,
-        dv_budget_mps: float = 0.0,
         eclipse_sunlit_threshold: float = 0.99,
         g0_mps2: float = constants.STANDARD_GRAVITY_M_S2,
         scenario=None,
@@ -964,10 +837,6 @@ class PhasingKeepingController(sysModel.SysModel):
         self.scStateInMsgA = messaging.SCStatesMsgReader()  # chief
         self.scStateInMsgB = messaging.SCStatesMsgReader()  # follower (maneuvered)
         self.eclipseInMsgB = messaging.EclipseMsgReader()
-        self.deltaVOutMsg = messaging.DataStorageStatusMsg()
-        self.separationRadialOutMsg = messaging.DataStorageStatusMsg()
-        self.separationTransverseOutMsg = messaging.DataStorageStatusMsg()
-        self.separationNormalOutMsg = messaging.DataStorageStatusMsg()
 
         # Wired up externally (see build_phasing_keeping): the follower's
         # extForceTorque effector and hub, and the co-located
@@ -976,13 +845,6 @@ class PhasingKeepingController(sysModel.SysModel):
         self.extForceEffectorB = None
         self.scObjectB = None
         self.altitudeControllerB = None
-        # The chief spacecraft's own ModelTag -- plain str, not a message
-        # -- so engine.vizard can label the RTN panels with WHOSE offset
-        # they show (see this class's own docstring). "" (the default
-        # for a controller built directly, e.g. in a unit test, rather
-        # than via build_phasing_keeping) falls back to a generic label.
-        self.chiefName = ""
-
         self.mu = mu  # [m^3/s^2]
         self.aNom = nominal_a_m  # [m]
         self.separationSchedule = separation_schedule
@@ -1000,17 +862,14 @@ class PhasingKeepingController(sysModel.SysModel):
         self.ispS = isp_s  # [s]
         self.g0 = g0_mps2  # [m/s^2]
         self.dryMass = dry_mass_kg  # [kg]
-        self.dvBudgetMps = dv_budget_mps  # [m/s] see this class's docstring
         # Fallback propellant tracker, used only if altitudeControllerB is
         # never set -- see _propellant_tracker(). SpaceMissionStudio always
         # sets it (PhasingKeepingConfig requires station_keeping), so this
         # is defensive, not the normal path.
         self.propellant = 0.0  # [kg]
         self.sunlitThreshold = eclipse_sunlit_threshold  # [-]
-        # Unclamped RTN separation telemetry -- see UpdateState's own
-        # comment on why these (not the separation*OutMsg messages' own,
-        # possibly-clamped storageLevel) are the true numbers. Zero here
-        # only as a before-the-first-tick default.
+        # RTN separation telemetry (signed, see this class's docstring).
+        # Zero here only as a before-the-first-tick default.
         self.lastRadialKm = 0.0  # [km]
         self.lastTransverseKm = 0.0  # [km]
         self.lastNormalKm = 0.0  # [km]
@@ -1051,11 +910,9 @@ class PhasingKeepingController(sysModel.SysModel):
         self._lastScheduledTargetRad = 0.0  # [rad] detects the schedule ticking over to a new target
         # Public (not underscore-prefixed): real, user-visible telemetry --
         # True once automatic corrections have been suspended because they
-        # were not converging (see UpdateState's own comment). Not fed
-        # into any live Vizard panel yet (a reasonable follow-on, not done
-        # here -- this attribute exists so it's at least inspectable/
+        # were not converging (see UpdateState's own comment). Inspectable,
         # testable and logged, matching this project's own "surface it,
-        # don't silently drop it" discipline elsewhere).
+        # don't silently drop it" discipline elsewhere.
         self.suspendedDueToNonConvergence = False
 
         self.logThinner = LogThinner()  # see sim_settings.record_interval_s
@@ -1271,8 +1128,7 @@ class PhasingKeepingController(sysModel.SysModel):
             self._errorHistory.pop(0)
         error = self._circular_mean(np.array([e for _, e in self._errorHistory]))  # [rad]
 
-        # Live RTN separation-from-chief telemetry, for Vizard's
-        # GenericStorage "Radial"/"Transverse"/"Normal" panels -- see this
+        # Live RTN separation-from-chief telemetry -- see this
         # class's own docstring. The REAL geometric offset in the chief's
         # own Hill (RTN) frame, via ``orbitalMotion.rv2hill`` -- the exact
         # same function (and axis convention) ``engine.formation``'s
@@ -1293,61 +1149,6 @@ class PhasingKeepingController(sysModel.SysModel):
         self.lastNormalKm = normalKm
         self.lastTargetSeparationKm = targetKm
 
-        # Real bug found against a real running Vizard instance (screenshot
-        # from an actual user): a GenericStorage bar with storageLevel
-        # outside [-storageCapacity, storageCapacity] renders broken
-        # (overflowing its own panel, full window width) rather than
-        # clamping itself -- and storageCapacity == targetKm means NORMAL,
-        # on-target transverse holding already sits at ~100% fill (the
-        # opposite of the usual "full bar == bad" gauge convention),
-        # leaving no headroom before an ordinary correction transient (a
-        # fresh phasing error, right after a reconfiguration) pushes
-        # storageLevel past it. All three R/T/N panels share ONE capacity
-        # (2x the along-track target -- generous headroom for the
-        # actively-held T axis, and a common scale so the three bars'
-        # relative fill is directly comparable).
-        capacityKm = 2.0 * targetKm  # [km]
-
-        # A SECOND real bug found against a real running Vizard instance,
-        # a later screenshot: storageLevel was clamped SYMMETRICALLY at
-        # this point (preserving sign, so "ahead of"/"behind the chief"
-        # would still read correctly) -- but the Radial/Normal panels,
-        # negative at that moment, rendered "Unavailable" instead of a
-        # bar, while Transverse (positive at that moment) rendered fine.
-        # GenericStorage's own field comments document currentValue/
-        # maxValue as a non-negative gauge ("absolute value of the
-        # storage device") -- see _clamp_magnitude's own docstring for
-        # the full reasoning. Fixed by publishing magnitude, not signed
-        # value; the true signed numbers stay available as this
-        # instance's own lastRadialKm/lastTransverseKm/lastNormalKm.
-        radialMsg = messaging.DataStorageStatusMsgPayload()
-        radialMsg.storageCapacity = capacityKm
-        radialMsg.storageLevel = _clamp_magnitude(radialKm, capacityKm)
-        self.separationRadialOutMsg.write(radialMsg, CurrentSimNanos, self.moduleID)
-
-        transverseMsg = messaging.DataStorageStatusMsgPayload()
-        transverseMsg.storageCapacity = capacityKm
-        transverseMsg.storageLevel = _clamp_magnitude(transverseKm, capacityKm)
-        self.separationTransverseOutMsg.write(transverseMsg, CurrentSimNanos, self.moduleID)
-
-        normalMsg = messaging.DataStorageStatusMsgPayload()
-        normalMsg.storageCapacity = capacityKm
-        normalMsg.storageLevel = _clamp_magnitude(normalKm, capacityKm)
-        self.separationNormalOutMsg.write(normalMsg, CurrentSimNanos, self.moduleID)
-
-        # Also written here (not only in the final block below, which the
-        # thrusterHeldByAltCtrl arbitration branch just below returns
-        # before reaching): dvBudgetMps (the gauge's fixed "max") should
-        # read correctly from the very first tick, even on a spacecraft
-        # whose co-located StationKeepingController happens to hold the
-        # shared thruster for a long stretch -- the final block's write
-        # still runs (with a fresher storageLevel) on every tick that
-        # reaches it, so this one is only ever stale, never wrong.
-        deltaVMsg = messaging.DataStorageStatusMsgPayload()
-        deltaVMsg.storageLevel = self._cumulativeDv  # [m/s]
-        deltaVMsg.storageCapacity = self.dvBudgetMps  # [m/s]
-        self.deltaVOutMsg.write(deltaVMsg, CurrentSimNanos, self.moduleID)
-
         inSun = True
         if self.eclipseInMsgB.isLinked():
             # See _eclipse_illumination_fraction's own docstring: an
@@ -1356,9 +1157,8 @@ class PhasingKeepingController(sysModel.SysModel):
             # illuminationFactor -- wrong, since a real user's installed
             # Basilisk build turned out not to have illuminationFactor AT
             # ALL. That crash's actual root cause was later found
-            # (engine.vizard.enable_vizard()'s GenericStorage/GenericSensor
-            # dangling-pointer bug -- see that module's docstring); eclipse
-            # was never involved. This call site remains tolerant of both
+            # elsewhere (a dangling-pointer bug); eclipse was never
+            # involved. This call site remains tolerant of both
             # Basilisk API generations regardless.
             illumB = _eclipse_illumination_fraction(self.eclipseInMsgB())
             inSun = illumB > self.sunlitThreshold
@@ -1588,11 +1388,6 @@ class PhasingKeepingController(sysModel.SysModel):
         if self.extForceEffectorB is not None:
             self.extForceEffectorB.extForce_N = forceVec.tolist()
 
-        deltaVMsg = messaging.DataStorageStatusMsgPayload()
-        deltaVMsg.storageLevel = self._cumulativeDv  # [m/s] this controller's OWN phasing delta-V only
-        deltaVMsg.storageCapacity = self.dvBudgetMps  # [m/s] shared-tank total (see this class's docstring)
-        self.deltaVOutMsg.write(deltaVMsg, CurrentSimNanos, self.moduleID)
-
         if self.logThinner.due(t):
             self.tLog.append(t)
             self.errorDegLog.append(np.degrees(error))
@@ -1650,7 +1445,6 @@ def build_phasing_keeping(scSim, task_name: str, tag: str, mu: float, chief_sc_o
         thrust_n=follower_station_keeping_controller.thrustN,
         isp_s=follower_station_keeping_controller.ispS,
         dry_mass_kg=follower_station_keeping_controller.dryMass,
-        dv_budget_mps=follower_station_keeping_controller.dvBudgetMps,
         eclipse_sunlit_threshold=follower_station_keeping_controller.sunlitThreshold,
         scenario=scenario,
     )
@@ -1661,7 +1455,6 @@ def build_phasing_keeping(scSim, task_name: str, tag: str, mu: float, chief_sc_o
         controller.eclipseInMsgB.subscribeTo(follower_eclipse_out_msg)
     controller.extForceEffectorB = follower_station_keeping_controller.extForceEffector
     controller.scObjectB = follower_sc_object
-    controller.chiefName = chief_sc_object.ModelTag
     # Thruster-arbitration link: phasing pauses while the follower's own
     # altitude controller is actively reboosting (see UpdateState).
     controller.altitudeControllerB = follower_station_keeping_controller
@@ -1731,10 +1524,6 @@ class ConstantFrameThrustController(sysModel.SysModel):
         self.ModelTag = name
 
         self.scStateInMsg = messaging.SCStatesMsgReader()
-        # Live propellant telemetry for Vizard's GenericStorage "fuel tank"
-        # panel -- same rationale as StationKeepingController's own
-        # fuelTankOutMsg (see that class's docstring).
-        self.fuelTankOutMsg = messaging.FuelTankMsg()
 
         # Wired up externally (see build_constant_thrust): the
         # extForceTorque effector this controller commands, and the
@@ -1751,7 +1540,6 @@ class ConstantFrameThrustController(sysModel.SysModel):
         self.g0 = g0_mps2  # [m/s^2]
         self.dryMass = dry_mass_kg  # [kg]
         self.propellant = propellant_kg  # [kg]
-        self._initialPropellantKg = propellant_kg  # [kg] fixed tank capacity, for fuelTankOutMsg.maxFuelMass
 
         self._lastT: float | None = None  # [s]
         self.logThinner = LogThinner()  # see sim_settings.record_interval_s
@@ -1817,7 +1605,7 @@ class ConstantFrameThrustController(sysModel.SysModel):
         # StationKeepingController.UpdateState's identical comment (would
         # otherwise double-count a coexisting fuel_tank's own mass).
         hubMass = self.scObject.hub.mHub if self.scObject is not None else (self.dryMass + self.propellant)
-        newMass, self.propellant, _burnedKg, mDot = apply_propellant_burn(
+        newMass, self.propellant, _burnedKg, _mDot = apply_propellant_burn(
             hubMass, self.propellant, thrustMag, self.ispS, dt, self.g0)
         if self.scObject is not None:
             self.scObject.hub.mHub = newMass
@@ -1825,12 +1613,6 @@ class ConstantFrameThrustController(sysModel.SysModel):
         forceVec = thrustMag * dirHat_N
         if self.extForceEffector is not None:
             self.extForceEffector.extForce_N = forceVec.tolist()
-
-        fuelTankMsg = messaging.FuelTankMsgPayload()
-        fuelTankMsg.fuelMass = self.propellant  # [kg]
-        fuelTankMsg.fuelMassDot = -mDot  # [kg/s] negative: mass decreasing
-        fuelTankMsg.maxFuelMass = self._initialPropellantKg  # [kg]
-        self.fuelTankOutMsg.write(fuelTankMsg, CurrentSimNanos, self.moduleID)
 
         if self.logThinner.due(t):
             self.tLog.append(t)

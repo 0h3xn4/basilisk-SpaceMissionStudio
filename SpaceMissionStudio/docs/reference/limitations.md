@@ -162,8 +162,6 @@ Each item was checked against Basilisk's own source.
   * A *solid* mass distribution needs a closed mesh; an open one can only
     be a *shell*.
   * The center of mass is fixed: propellant draining does not move it.
-  * The model's orientation in Vizard follows Vizard's source (its
-    importer mirrors x); it has not been looked at in a running Vizard.
   * Facets apply only in full-attitude runs; an orbit-only run keeps
     `drag_area_m2` and `srp_area_m2`.
 
@@ -299,35 +297,13 @@ Each item was checked against Basilisk's own source.
   * The Sun's direction (the Astronomical Almanac's formula, about 0.01
     degrees) is drawn for Earth-centred runs only; other central bodies
     are plain spheres that do not turn.
-  * No instrument or camera views, no panels and no live streaming:
-    Vizard's, which the 3D View does not replace.
+  * No instrument or camera views, no panels, and no view while the run
+    is still going: it shows a run once it has ended.
 
 ## Planned, not yet built
 
-Scoped from real use, with the detail in
-[`HISTORY.md`](../../HISTORY.md):
-
-* **A live NUMERIC link-margin gauge in Vizard** -- still deliberately
-  not built: Vizard's `GenericStorage` only accepts Battery/DataStorage/
-  FuelTank-shaped messages, and forcing a dB margin value (which can be
-  legitimately negative) through would need a fabricated adapter message
-  with no natural floor/ceiling -- the same bug class the RTN separation
-  panels already hit once and had fixed (see `HISTORY.md`). What WAS
-  built instead, per direct user feedback that the Mission Dashboard's
-  live telemetry "shall also be in the vizard live visualization, not
-  only in the GUI itself": a colored "Link status" `GenericSensor` badge
-  (link OK vs. no/degraded link, computed live from the exact same
-  `engine.link_budget.link_margin_db` the GUI uses), plus "Mode" and
-  "Pointing Error" panels for the rest of that same dashboard -- see
-  `engine.vizard`'s own "Live-data panels" docstring section. The exact
-  dB breakdown still only appears in the GUI's dashboard; if a live
-  NUMBER (not just a status) is wanted in Vizard too, the right path
-  remains a real custom Vizard protobuf message/panel type, not a reused
-  `GenericStorage` shape.
-
-Beyond these, the list above is the rest of the map: spherical-harmonics
-gravity and magnetometers away from Earth, and richer Monte Carlo
-retention.
+The list above is the map: spherical-harmonics gravity and magnetometers
+away from Earth, and richer Monte Carlo retention, among others.
 
 ## Known limits of 2.0.0
 

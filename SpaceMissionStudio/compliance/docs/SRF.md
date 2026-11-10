@@ -50,14 +50,13 @@ and the conditions of use.
 
 | Item | Main features used | Developer | Version | Licence | Language | Execution environment |
 |---|---|---|---|---|---|---|
-| **Basilisk** (PyPI `bsk`) | Simulation framework: process, task and message architecture; the dynamics, environment, sensor, actuator and FSW modules listed below; `vizSupport` | AVS Lab, University of Colorado Boulder | 2.12.0 (pinned; checked at start-up) | ISC | C, C++ with SWIG Python bindings; Python utilities | Linux, Windows, macOS; Python ≥ 3.9 (abi3 wheels) |
+| **Basilisk** (PyPI `bsk`) | Simulation framework: process, task and message architecture; the dynamics, environment, sensor, actuator and FSW modules listed below | AVS Lab, University of Colorado Boulder | 2.12.0 (pinned; checked at start-up) | ISC | C, C++ with SWIG Python bindings; Python utilities | Linux, Windows, macOS; Python ≥ 3.9 (abi3 wheels) |
 | numpy | Arrays and linear algebra | NumPy developers | ≥ 1.24.4 (2.4.6 tested) | BSD-3-Clause (with 0BSD, MIT, Zlib, CC0 parts) | Python, C | Python |
 | sgp4 | SGP4/SDP4 propagation of TLEs | Brandon Rhodes, after Vallado et al. | ≥ 2.20 (2.25 tested) | MIT | Python, C++ | Python |
 | pyerfa | ERFA (SOFA-derived) time scales and precession and nutation | Astropy project | ≥ 2.0.1 (2.0.1.5 tested) | BSD-3-Clause | Python, C | Python |
 | PySide6 | Qt 6 GUI, including Qt WebEngine for the plots | The Qt Company | ≥ 6.6 (6.11.2 tested) | LGPL-3.0-only, GPL-2.0-only or GPL-3.0 | C++, Python bindings | Python; a display |
 | plotly | Interactive plots | Plotly, Inc. | ≥ 5.0 (7.1.0 tested) | MIT | Python, JavaScript | Python; Qt WebEngine |
 | Basilisk's own dependencies | Installed with `bsk`: bokeh, colorama, matplotlib, pandas, pillow, pooch, protobuf, requests, tqdm. The tool does not import them directly. | various | as resolved by pip | open-source licences, not reviewed one by one | – | – |
-| Vizard (optional) | 3-D visualisation of runs in a separate program; the built-in 3D View needs none | AVS Lab | a build the user chose; never downloaded by the tool (AVS Lab's published build enables Unity Analytics) | ISC (source); the Unity runtime under Unity's terms | Unity application | Separate process |
 
 ### Basilisk modules used
 
@@ -66,9 +65,9 @@ The tool uses these Basilisk modules (from its imports):
 | Package | Modules |
 |---|---|
 | `architecture` | `messaging`, `sysModel` |
-| `simulation` | `spacecraft`, `svIntegrators`, `GravityGradientEffector`, `dragDynamicEffector`, `facetDragDynamicEffector`, `facetSRPDynamicEffector`, `radiationPressure`, `extForceTorque`, `thrusterDynamicEffector`, `reactionWheelStateEffector`, `hingedRigidBodyStateEffector`, `MtbEffector`, `fuelTank`, `msisAtmosphere`, `exponentialAtmosphere`, `zeroWindModel`, `spaceWeatherData`, `magneticFieldWMM`, `eclipse`, `ephemerisConverter`, `groundLocation`, `simpleNav`, `starTracker`, `imuSensor`, `coarseSunSensor`, `magnetometer`, `sensorThermal`, `motorThermal`, `tempMeasurement`, `simpleSolarPanel`, `simpleBattery`, `simplePowerSink`, `simpleInstrument`, `partitionedStorageUnit`, `spaceToGroundTransmitter`, `vizInterface` |
+| `simulation` | `spacecraft`, `svIntegrators`, `GravityGradientEffector`, `dragDynamicEffector`, `facetDragDynamicEffector`, `facetSRPDynamicEffector`, `radiationPressure`, `extForceTorque`, `thrusterDynamicEffector`, `reactionWheelStateEffector`, `hingedRigidBodyStateEffector`, `MtbEffector`, `fuelTank`, `msisAtmosphere`, `exponentialAtmosphere`, `zeroWindModel`, `spaceWeatherData`, `magneticFieldWMM`, `eclipse`, `ephemerisConverter`, `groundLocation`, `simpleNav`, `starTracker`, `imuSensor`, `coarseSunSensor`, `magnetometer`, `sensorThermal`, `motorThermal`, `tempMeasurement`, `simpleSolarPanel`, `simpleBattery`, `simplePowerSink`, `simpleInstrument`, `partitionedStorageUnit`, `spaceToGroundTransmitter` |
 | `fswAlgorithms` | `inertial3D`, `hillPoint`, `velocityPoint`, `sunSafePoint`, `locationPointing`, `attTrackingError`, `mrpFeedback`, `rwMotorTorque`, `cssWlsEst`, `tamComm`, `mtbMomentumManagement`, `thrForceMapping`, `thrFiringSchmitt`, `thrMomentumManagement`, `thrMomentumDumping`, `lambertPlanner`, `lambertSolver`, `lambertValidator`, `meanOEFeedback`, `hillFrameRelativeControl` |
-| `utilities` | `SimulationBaseClass`, `macros`, `orbitalMotion`, `RigidBodyKinematics`, `simIncludeGravBody` (gravity bodies and the SPICE interface), `simIncludeRW`, `simIncludeThruster`, `simSetPlanetEnvironment`, `simHelpers`, `vizSupport`, the Monte Carlo `Controller` and dispersions, `DataFile`, `get_path` |
+| `utilities` | `SimulationBaseClass`, `macros`, `orbitalMotion`, `RigidBodyKinematics`, `simIncludeGravBody` (gravity bodies and the SPICE interface), `simIncludeRW`, `simIncludeThruster`, `simSetPlanetEnvironment`, `simHelpers`, the Monte Carlo `Controller` and dispersions, `DataFile`, `get_path` |
 
 The flight-software export (SRS-F-18) also redistributes Basilisk C
 sources: the include closure of the fifteen `fswAlgorithms` C modules
@@ -116,7 +115,6 @@ These data files are reused through Basilisk or by the tool:
 - Sensors, actuators and FSW (SRS-F-09).
 - Ground-station access geometry (SRS-F-08).
 - Lambert solution (SRS-F-11).
-- Vizard (SRS-F-16).
 - Time scales (pyerfa; SRS-F-07).
 - SGP4 (sgp4; SRS-F-02).
 - The GUI (PySide6, plotly; SRS-F-15).
@@ -174,7 +172,6 @@ These data files are reused through Basilisk or by the tool:
 | Basilisk 2.12.0 | Reuse, unmodified, pinned and checked at start-up (decision D5) | The whole simulation core: dynamics, environment, sensors, actuators, FSW. The tool adds configuration, two workarounds, analyses, data handling and the user interface. | Rebuilding an equivalent framework is not feasible for the tool; validation shows the results meet the SRS once F-01 and F-07 are corrected |
 | numpy, sgp4, pyerfa | Reuse, unmodified | Complete libraries, called through their public APIs | Reference implementations (SGP4, SOFA); checked against published values |
 | PySide6, plotly | Reuse, unmodified | User interface only; no effect on numerical results | Standard GUI toolkit; results are produced by the engine without them (CLI) |
-| Vizard | Optional reuse | Visualisation only | Not needed for any result |
 
 **Acceptance (H07, decision 13, 2026-10-08; recorded, not signed):**
 - **Basilisk 2.12.0:** accepted as-is by the user for every function the
@@ -182,7 +179,7 @@ These data files are reused through Basilisk or by the tool:
   thermal and power models and the FSW algorithms) rest on Basilisk's own
   tests; the user accepted that.
 - **Licences:** accepted as listed in section 4. The licences of
-  Basilisk's own dependencies and of Vizard have not been reviewed.
+  Basilisk's own dependencies have not been reviewed.
 - **Export status:** not identified; left open (ECSS-Q-ST-80C 5.5.6a).
   To be settled before the tool is passed outside the user's
   organisation.
