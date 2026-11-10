@@ -138,6 +138,9 @@ internet needed.
   `SpaceMissionStudio/` only: Basilisk, which it uses, remains under its
   ISC licence and its own copyright holders. Everything the packages
   bundle is listed with its licence in [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).
+  No copyright is claimed in SpaceMissionStudio's own code, which an AI
+  model wrote (see AI authorship above); 0h3xn4 publishes it under the
+  EUPL-1.2 as its licensor.
 - **Version:** 2.6.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.6.0),
   [changelog](CHANGELOG.md)): **Results › 3D View** plays a run back in
   3D inside the app, in place of the Vizard download; network use is

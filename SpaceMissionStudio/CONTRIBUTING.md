@@ -51,8 +51,8 @@ with:
 - **The licence.** SpaceMissionStudio is licensed under the EUPL-1.2
   ([`LICENSE`](LICENSE)); contributions are accepted under the EUPL-1.2.
   Every new source file starts with the licence header of
-  `spacemissionstudio/legal.py` (copyright notice, "Licensed under the
-  EUPL", `SPDX-License-Identifier: EUPL-1.2`); `tests/test_legal.py`
+  `spacemissionstudio/legal.py` (licensor, "Licensed under the EUPL",
+  `SPDX-License-Identifier: EUPL-1.2`; no copyright notice); `tests/test_legal.py`
   checks it. Code taken from Basilisk keeps Basilisk's ISC notice.
 - **No changes to Basilisk.** Do not edit `../src`, patch it, or
   monkey-patch its internals; work around a Basilisk limitation in the

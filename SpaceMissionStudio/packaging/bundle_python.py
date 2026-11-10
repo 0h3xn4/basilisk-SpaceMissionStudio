@@ -1,6 +1,6 @@
 #  SpaceMissionStudio
 #
-#  Copyright (c) 2026 0h3xn4 (https://github.com/0h3xn4)
+#  Licensor: 0h3xn4 (https://github.com/0h3xn4)
 #
 #  Licensed under the EUPL
 #
@@ -26,9 +26,11 @@ reference data runs read:
   with Basilisk's own checked fetch into ``site-packages/supportData``,
   the folder Basilisk's ``dataFetcher`` reads before its download cache;
 * the IERS-based Earth orientation files (NAIF ITRF93 PCKs) in
-  ``earth_orientation.SYSTEM_DIR``, which every user of the install reads;
-* ITU-R P.676-13's data file Part 1 (``link.atmospheric_loss``) in
-  ``gaseous_attenuation.SYSTEM_DIR``, checked against its pinned SHA-256.
+  ``earth_orientation.SYSTEM_DIR``, which every user of the install reads.
+
+ITU-R P.676-13's data file is not bundled: ITU allows its reproduction only
+with written permission, and the owner decided not to ask
+(docs/legal/DATA_TERMS.md, D1).
 
 The installers then copy that folder as it is: installing needs no Python
 on the machine and no internet.
@@ -61,6 +63,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -291,11 +294,9 @@ def add_support_data(python: Path, dest: Path) -> list:
     make_readable(target)
     eop_dir = Path(run_python(python, _EOP_FETCH).strip())
     make_readable(eop_dir)
-    itu_dir = Path(run_python(python, _ITU_FETCH).strip())
-    make_readable(itu_dir)
     return [{"path": path.relative_to(dest).as_posix(),
              "size_bytes": path.stat().st_size, "sha256": sha256_of(path)}
-            for folder in (target, eop_dir, itu_dir) for path in sorted(folder.rglob("*")) if path.is_file()]
+            for folder in (target, eop_dir) for path in sorted(folder.rglob("*")) if path.is_file()]
 
 
 _SUPPORT_DATA_FETCH = """
@@ -314,12 +315,6 @@ earth_orientation.fetch(earth_orientation.SYSTEM_DIR)
 print(earth_orientation.SYSTEM_DIR)
 """
 
-_ITU_FETCH = """
-from spacemissionstudio.engine import gaseous_attenuation
-gaseous_attenuation.fetch(gaseous_attenuation.SYSTEM_DIR)
-print(gaseous_attenuation.SYSTEM_DIR)
-"""
-
 #: Run with an empty download cache and no network: every support-data file
 #: and the Earth orientation files must come from the bundle.
 _OFFLINE_CHECK = """
@@ -330,12 +325,11 @@ socket.socket.connect = _refuse
 socket.create_connection = _refuse
 from pathlib import Path
 from Basilisk.utilities.supportDataTools import dataFetcher
-from spacemissionstudio.engine import earth_orientation, gaseous_attenuation, kernels
+from spacemissionstudio.engine import earth_orientation, kernels
 local = Path(dataFetcher.LOCAL_SUPPORT)
 for data_file in kernels.ALL_SUPPORT_DATA_FILES:
     assert local in kernels.cached_path(data_file).parents, data_file
 assert earth_orientation.installed(earth_orientation.SYSTEM_DIR), "no Earth orientation files"
-gaseous_attenuation.load_part1(gaseous_attenuation.part1_path())
 """
 
 
@@ -361,6 +355,42 @@ def relocate_earth_orientation(dest: Path, prefix: str) -> None:
         for entry in entries:
             entry["path"] = f"{prefix.rstrip('/')}/{folder}/{Path(entry['path']).name}"
         manifest.write_text(json.dumps(entries, indent=2), encoding="utf-8")
+
+
+#: Modules the app does not use, removed from the bundle (owner's decision D9,
+#: docs/legal/OBLIGATIONS.md): fewer licences to carry, a smaller installer.
+#: Qt: the modules Qt 6.11 offers only under the GPL v3 (https://doc.qt.io/qt-6.11/licensing.html,
+#: read 2026-11-10: Canvas Painter, CoAP, Graphs, GRPC, HTTP Server, Lottie Animation, MQTT, Network
+#: Authorization, Qml Compiler, Quick 3D and Quick 3D Physics, Quick Timeline, Virtual Keyboard, Wayland
+#: Compositor) and the plugins that load them. CPython: Tcl/Tk (tkinter, IDLE, turtle) and _dbm (Berkeley DB).
+#: Matched case-insensitively against each path relative to the bundle.
+PRUNE_QT = re.compile(
+    r"site-packages/PySide6/.*(canvaspainter|coap|qtgraphs|qt6graphs|graphswidgets|grpc|httpserver|lottie|mqtt"
+    r"|networkauth|qmlcompiler|quick3d|quicktimeline|qtquick/timeline|virtualkeyboard|waylandcompositor"
+    r"|waylandeglcompositorhwintegration|qtwayland/compositor|wayland-graphics-integration-server"
+    r"|assetimporters/|plugins/qmllint/)", re.IGNORECASE)
+PRUNE_PYTHON = re.compile(
+    r"^(lib/python3\.\d+/|Lib/)((tkinter|idlelib|turtledemo)(/|$)|turtle\.py)"
+    r"|^(lib/python3\.\d+/lib-dynload/|DLLs/)(_tkinter|_dbm|tcl\d|tk\d)"
+    r"|^lib/(tcl\d|tk\d|itcl\d|thread\d|libtcl\d|libtk\d)|^tcl/|^bin/idle", re.IGNORECASE)
+
+
+def prune_unused(dest: Path) -> list[str]:
+    """Delete the files of :data:`PRUNE_QT` and :data:`PRUNE_PYTHON` under ``dest``; return their
+    relative paths. Their ``RECORD`` entries stay, as after a manual deletion; the licence
+    gate only looks at files that exist."""
+    removed = []
+    for path in sorted(dest.rglob("*"), reverse=True):  # files before the folders that hold them
+        relative = path.relative_to(dest).as_posix()
+        if not (PRUNE_QT.search(relative) or PRUNE_PYTHON.search(relative)):
+            continue
+        if path.is_dir() and not path.is_symlink():
+            if not any(path.iterdir()):
+                path.rmdir()
+            continue
+        path.unlink()
+        removed.append(relative)
+    return removed
 
 
 def licence_gate(platform: str, dest: Path, mode: str) -> None:
@@ -413,8 +443,11 @@ def bundle(platform: str, dest: Path, wheel: Path, constraints: Path, cache: Pat
     problems = not_pinned(installed(python), read_pins(constraints), own)
     if problems:
         raise SystemExit("installed but not pinned in " + constraints.name + ": " + "; ".join(problems))
-    print("Fetching the support data, the Earth orientation files and ITU-R P.676-13 Part 1 ...", flush=True)
+    print("Fetching the support data and the Earth orientation files ...", flush=True)
     data = add_support_data(python, dest)
+    removed = prune_unused(dest)
+    print(f"Removed {len(removed)} files of modules the app does not use (GPL-only Qt modules, Tcl/Tk, dbm)",
+          flush=True)
     with tempfile.TemporaryDirectory() as empty_cache:
         run_python(python, _OFFLINE_CHECK, {"BSK_SUPPORT_DATA_CACHE": empty_cache})
     check = json.loads(run_python(

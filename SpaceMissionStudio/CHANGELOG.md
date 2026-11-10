@@ -24,9 +24,33 @@ fixes bugs.
   licence texts and the notices of everything the package contains. The
   flight-software export is unchanged: the C project it writes still
   carries the notice it carried before.
+  No copyright is claimed in the app's own code, which an AI model wrote:
+  the files name the licensor (0h3xn4) instead of a copyright holder.
+
+### Removed
+
+- **The installers no longer carry ITU-R P.676-13's data file Part 1**
+  (the gases' attenuation of the radio link, `link.atmospheric_loss:
+  itu_r_p676`). ITU allows its reproduction only with written permission.
+  No template uses that model; a project that chooses it downloads the
+  file from ITU with `spacemissionstudio gaseous-attenuation --fetch` or
+  the Reference data dialog, as before. The install scripts no longer
+  fetch it either.
+- **The installers leave out modules the app does not use:** the Qt
+  modules that Qt offers only under the GPL v3 (Qt Quick 3D, Graphs,
+  Virtual Keyboard, Wayland Compositor, HTTP Server, Network
+  Authorization, Lottie, Quick Timeline, Canvas Painter, the QML
+  compiler) with the plugins that load them, and Python's Tcl/Tk
+  (`tkinter`, IDLE, `turtle`) and `dbm.ndbm`. About 42 MB less; the app
+  never imported any of them.
 
 ### Added
 
+- **The Qt and PySide6 source code with every release.** The installers
+  carry Qt 6.11.2 and PySide6 6.11.2 under the LGPL-3.0; each release now
+  carries their complete source archives too (`qt-everywhere-src-6.11.2.tar.xz`,
+  `pyside-setup-everywhere-src-6.11.2.tar.xz`, with `SHA256SUMS-sources`),
+  checked against the sizes and SHA-256 Qt publishes.
 - **A licence check for every package.** `packaging/legal/licences.py` lists
   every file of the wheel and of the installers' bundled Python, ties each to a
   component with a known licence, and fails the build on an unknown licence, a

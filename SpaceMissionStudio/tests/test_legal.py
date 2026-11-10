@@ -1,7 +1,7 @@
 #
 #  SpaceMissionStudio
 #
-#  Copyright (c) 2026 0h3xn4 (https://github.com/0h3xn4)
+#  Licensor: 0h3xn4 (https://github.com/0h3xn4)
 #
 #  Licensed under the EUPL
 #
@@ -51,15 +51,15 @@ def test_nothing_found_is_an_empty_list_not_an_error(tmp_path, monkeypatch):
 
 
 def test_the_about_text_names_the_licence_the_isc_releases_and_basilisk():
-    """The About box: the copyright line, "Licensed under the EUPL", the last ISC release and Basilisk's own licence."""
+    """The About box: the licensor, "Licensed under the EUPL", no copyright claim, the last ISC release and
+    Basilisk's own licence."""
     text = legal.about_html()
-    assert legal.COPYRIGHT in text and "Licensed under the EUPL" in text
+    assert legal.LICENSOR in text and "Licensed under the EUPL" in text and "No copyright is claimed" in text
     assert "2.6.0" in text and "ISC" in text and "Basilisk" in text
 
 
 def test_every_source_file_carries_the_eupl_notice():
-    """Every Python and shell file of the app, its tests and tools names its licence (SPDX) right after the
-    copyright notice, as the EUPL asks. The flight-software templates are the generated project's text and
+    """Every Python and shell file of the app, its tests and tools names its licensor and its licence (SPDX). The flight-software templates are the generated project's text and
     keep their notice (an output may not change without the owner's approval)."""
     skip = ("spacemissionstudio/fsw_export/templates/", "tests/golden/", "tests/data/", "packaging/legal/texts/")
     missing = []

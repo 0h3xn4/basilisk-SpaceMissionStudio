@@ -9,6 +9,7 @@ LGPL-3.0. The installers redistribute them, so the bundle adds:
   <https://raw.githubusercontent.com/spdx/license-list-data/main/text/LGPL-3.0-only.txt>
   (read 2026-11-09, SHA-256 `996af0513df21f7496288951c41428a03c174e9e4a9d63665c57d670f845ccb1`).
   It already includes the GPL-3.0 text that the LGPL refers to.
-* `QT_NOTICE.txt`: a factual notice (draft, waiting for approval).
+* `QT_NOTICE.txt`: the notice; it points to the Qt and PySide6 source
+  archives the release workflow attaches (`packaging/legal/qt-sources.json`).
 
 `bundle_python.py` copies both into `licenses/` of the bundled Python.

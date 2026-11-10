@@ -91,7 +91,7 @@ earth-orientation --rollback`.
 | Support data | Installed with the `.deb` or the Windows setup: inside the install folder (`.../site-packages/supportData/`). Otherwise Basilisk's cache, for example `~/.cache/bsk_support_data/` |
 | Space-weather downloads | `~/.cache/SpaceMissionStudio/spaceweather/` |
 | Earth orientation | Downloads and imports: `~/.cache/SpaceMissionStudio/earth_orientation/`, used first. The installers also put a copy, as current as the installer, inside the install folder |
-| ITU-R P.676-13 Part 1 | Downloads and imports: `~/.cache/SpaceMissionStudio/itu_p676/`, used first. The installers also put a copy inside the install folder |
+| ITU-R P.676-13 Part 1 | Downloads and imports: `~/.cache/SpaceMissionStudio/itu_p676/`. The installers do not carry it (ITU allows its reproduction only with permission); download it with **Download...** or `gaseous-attenuation --fetch` |
 | Eros ephemeris | `~/.cache/SpaceMissionStudio/small_bodies/` (the shape model goes into Basilisk's cache, with the support data) |
 
 **More detail:** User Manual section 7, the **Reference data** paragraph of

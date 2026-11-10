@@ -1,9 +1,6 @@
 Qt and PySide6 in this package
 ==============================
 
-DRAFT FOR APPROVAL (docs/legal/OBLIGATIONS.md, decision D8). The statements
-below are facts about this package. The wording is not final.
-
 SpaceMissionStudio uses the Qt toolkit (Qt 6.11.2, including Qt WebEngine,
 which contains Chromium) through PySide6 (Qt for Python) 6.11.2. These
 libraries are used under the GNU Lesser General Public License, version 3
@@ -15,11 +12,14 @@ other authors named in the Qt source code.
 * The libraries are separate shared files (the .so files, or .dll files on
   Windows, and the PySide6 extension modules) in the folder
   lib/python3.14/site-packages/PySide6 and the folders next to it. They are
-  not changed. You may replace them with your own build of Qt and PySide6 of
-  a compatible version.
-* The complete corresponding source code of Qt 6.11.2 is published by The
-  Qt Company at https://download.qt.io/official_releases/qt/6.11/6.11.2/ .
-  The source code of PySide6 6.11.2 is on PyPI (the sdist of "PySide6").
+  not changed, except that the Qt modules SpaceMissionStudio does not use and
+  that Qt offers only under the GPL are left out. You may replace the
+  libraries with your own build of Qt and PySide6 of a compatible version.
+* The complete corresponding source code is attached to every
+  SpaceMissionStudio release on GitHub as qt-everywhere-src-6.11.2.tar.xz and
+  pyside-setup-everywhere-src-6.11.2.tar.xz, with their SHA-256 in
+  SHA256SUMS-sources: https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases
+  The Qt Company publishes the same archives at https://download.qt.io/ .
   The licences of the third-party code inside Qt and Qt WebEngine are listed
   at https://doc.qt.io/qt-6.11/licenses-used-in-qt.html and
   https://doc.qt.io/qt-6.11/qtwebengine-licensing.html, and are in the source

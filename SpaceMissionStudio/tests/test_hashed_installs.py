@@ -1,7 +1,7 @@
 #
 #  SpaceMissionStudio
 #
-#  Copyright (c) 2026 0h3xn4 (https://github.com/0h3xn4)
+#  Licensor: 0h3xn4 (https://github.com/0h3xn4)
 #
 #  Licensed under the EUPL
 #
@@ -25,6 +25,7 @@ installed and its SHA-256."""
 
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -175,3 +176,85 @@ def test_the_bill_of_materials(bundle, monkeypatch):
     assert "hashes" not in by_ref["pkg:pypi/six@1.17.0"]
     assert by_ref["file:lib/supportData/de430.bsp"]["type"] == "file"
     assert not any("spacemissionstudio@" in ref for ref in by_ref)
+
+
+# The modules the installers leave out (legal decision D9: GPL-only Qt
+# modules, Tcl/Tk, dbm), on file names of the real Linux and Windows bundles.
+_PRUNED = [
+    "lib/python3.14/site-packages/PySide6/Qt/lib/libQt6Quick3D.so.6",
+    "lib/python3.14/site-packages/PySide6/Qt/lib/libQt6Graphs.so.6",
+    "lib/python3.14/site-packages/PySide6/Qt/lib/libQt6VirtualKeyboard.so.6",
+    "lib/python3.14/site-packages/PySide6/Qt/lib/libQt6WaylandCompositor.so.6",
+    "lib/python3.14/site-packages/PySide6/Qt/lib/libQt6QmlCompiler.so.6",
+    "lib/python3.14/site-packages/PySide6/Qt/plugins/assetimporters/libassimp.so",
+    "lib/python3.14/site-packages/PySide6/Qt/plugins/qmllint/libquicklintplugin.so",
+    "lib/python3.14/site-packages/PySide6/Qt/qml/QtQuick/Timeline/qmldir",
+    "lib/python3.14/site-packages/PySide6/QtHttpServer.abi3.so",
+    "lib/python3.14/site-packages/PySide6/QtNetworkAuth.pyi",
+    "lib/python3.14/lib-dynload/_tkinter.cpython-314-x86_64-linux-gnu.so",
+    "lib/python3.14/lib-dynload/_dbm.cpython-314-x86_64-linux-gnu.so",
+    "lib/python3.14/tkinter/__init__.py",
+    "lib/python3.14/idlelib/idle.py",
+    "lib/tcl9.0/init.tcl",
+    "lib/libtcl9.0.so",
+    "bin/idle3",
+    "Lib/site-packages/PySide6/Qt6Quick3D.dll",
+    "Lib/site-packages/PySide6/qml/QtQuick/VirtualKeyboard/qmldir",
+    "DLLs/_tkinter.pyd",
+    "tcl/tcl9.0/init.tcl",
+]
+_KEPT = [
+    "lib/python3.14/site-packages/PySide6/Qt/lib/libQt6WebEngineCore.so.6",
+    "lib/python3.14/site-packages/PySide6/Qt/lib/libQt6Quick.so.6",
+    "lib/python3.14/site-packages/PySide6/Qt/lib/libQt6Qml.so.6",
+    "lib/python3.14/site-packages/PySide6/Qt/qml/Qt5Compat/GraphicalEffects/qmldir",
+    "lib/python3.14/site-packages/PySide6/QtWebEngineWidgets.abi3.so",
+    "lib/python3.14/site-packages/PySide6/QtSvg.abi3.so",
+    "lib/python3.14/dbm/__init__.py",
+    "lib/python3.14/turtle_like_name_kept_by_nobody.py",
+    "lib/python3.14/site-packages/matplotlib/backends/backend_tkagg.py",
+    "Lib/site-packages/PySide6/Qt6WebEngineCore.dll",
+]
+
+
+def test_the_unused_modules_are_removed_and_the_ones_the_app_needs_kept(bundle, tmp_path):
+    """Legal decision D9: the GPL-only Qt modules, the plugins that load them, Tcl/Tk and _dbm leave
+    the bundle; Qt WebEngine, Qt Quick, Qt Qml and the rest of the standard library stay."""
+    for relative in _PRUNED + _KEPT:
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("x", encoding="utf-8")
+    removed = bundle.prune_unused(tmp_path)
+    assert sorted(removed) == sorted(_PRUNED)
+    assert all((tmp_path / relative).is_file() for relative in _KEPT)
+    assert not (tmp_path / "lib/python3.14/tkinter").exists()  # its emptied folder goes too
+
+
+def test_no_qt_module_the_app_imports_is_pruned(bundle):
+    """Every ``PySide6.Qt*`` module the app imports survives the pruning, on Linux and Windows."""
+    package = Path(__file__).resolve().parents[1] / "spacemissionstudio"
+    imported = set()
+    for source in package.rglob("*.py"):
+        imported.update(re.findall(r"PySide6\.(Qt\w+)", source.read_text(encoding="utf-8")))
+    assert {"QtCore", "QtGui", "QtWidgets", "QtWebEngineWidgets"} <= imported
+    for module in imported:
+        for relative in (f"lib/python3.14/site-packages/PySide6/{module}.abi3.so",
+                         f"lib/python3.14/site-packages/PySide6/Qt/lib/libQt6{module[2:]}.so.6",
+                         f"Lib/site-packages/PySide6/Qt6{module[2:]}.dll"):
+            assert not bundle.PRUNE_QT.search(relative), relative
+
+
+def test_the_qt_source_archives_match_the_pinned_pyside6():
+    """Legal decision D8: every release carries the source of the Qt and PySide6 it bundles. The
+    archives named in packaging/legal/qt-sources.json must be those of the PySide6 version pinned in
+    constraints.txt, each with a size and a SHA-256; a PySide6 update without new archives fails here."""
+    spec = json.loads((_PACKAGING / "legal" / "qt-sources.json").read_text(encoding="utf-8"))
+    pins = dict(line.split("==", 1) for line in (_PACKAGING / "constraints.txt").read_text(encoding="utf-8").splitlines()
+                if "==" in line and not line.startswith("#"))
+    version = pins["PySide6"].strip()
+    assert spec["pyside6_version"] == version
+    names = [archive["name"] for archive in spec["archives"]]
+    assert names == [f"qt-everywhere-src-{version}.tar.xz", f"pyside-setup-everywhere-src-{version}.tar.xz"]
+    for archive in spec["archives"]:
+        assert archive["url"].startswith("https://download.qt.io/official_releases/") and archive["url"].endswith(archive["name"])
+        assert archive["size_bytes"] > 0 and re.fullmatch(r"[0-9a-f]{64}", archive["sha256"])
