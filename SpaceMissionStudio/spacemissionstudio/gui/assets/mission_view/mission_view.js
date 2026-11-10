@@ -84,8 +84,9 @@ MV.createRenderer = function (options) {
   return new THREE.WebGLRenderer(options);
 };
 
-// The WebGL renderer: antialiased in full quality, not in reduced quality
-// (multisampling is most of a software renderer's cost). The logarithmic
+// The WebGL renderer, made once: antialiased if the page starts in full
+// quality, not if it starts reduced (multisampling is most of a software
+// renderer's cost); a later quality switch keeps it. The logarithmic
 // depth buffer keeps millimetres and the Moon's distance in one view.
 MV.makeRenderer = function () {
   const host = document.getElementById('view'), full = MV.quality === 'full';
@@ -825,9 +826,14 @@ MV.setQuality = function (quality) {
   const wanted = quality === 'reduced' ? 'reduced' : 'full';
   if (wanted === MV.quality) return;
   MV.quality = wanted;
-  const limits = MV.controls ? [MV.controls.minDistance, MV.controls.maxDistance] : null;
-  MV.makeRenderer();
-  if (limits) { MV.controls.minDistance = limits[0]; MV.controls.maxDistance = limits[1]; }
+  // The same renderer: a new WebGL context per switch is slow, and on
+  // software GL the second one could fail (Windows CI). Antialiasing
+  // stays as the renderer was made; the pixel ratio, textures and
+  // atmosphere follow the quality.
+  if (MV.renderer) {
+    MV.renderer.setPixelRatio(wanted === 'full' ? (window.devicePixelRatio || 1) : 1);
+    MV.resize();
+  }
   MV.loadTextures();
   MV.dirty = true;
 };

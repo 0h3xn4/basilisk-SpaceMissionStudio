@@ -1510,9 +1510,10 @@ The slider and the shared time cursor (Section 7) move together.
 Drag to turn the view, scroll to zoom, right-drag to pan; double-click
 (or Home) resets it. **Show** switches each part on or off (remembered
 for next time) and **Reduced quality**: smaller textures, no atmosphere
-rim, no smoothing of edges. The view chooses reduced quality by itself
-when a frame takes longer than 50 ms, as on a computer without a
-graphics card.
+rim, one pixel per screen pixel (edges are smoothed only when the view
+opens in full quality). The view chooses reduced quality by itself when
+a frame takes longer than 50 ms, as on a computer without a graphics
+card.
 
 Without an attitude in the run a spacecraft is drawn aligned with the
 inertial axes, and the note says so. The Earth's turning, the Sun and
