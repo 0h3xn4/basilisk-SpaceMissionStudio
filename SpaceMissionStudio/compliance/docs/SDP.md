@@ -64,7 +64,7 @@ the user's requests. Releases are made when the user decides, tagged, not
 signed (decision 11). The current release is 2.6.0, the run in 3D
 inside the app in place of the Vizard download, network use enforced
 and audited, and hash-checked installers with a bill of materials
-(prepared 2026-11-09); before it 2.5.0, the JSON page as a code editor
+(published 2026-11-10); before it 2.5.0, the JSON page as a code editor
 and IDM-CIC thrusters on the 3D model (published 2026-11-08), 2.4.0, device axes from the IDM-CIC model's
 shapes and the body frame's origin at the centre of gravity (published
 2026-11-05), 2.3.0, the

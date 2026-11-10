@@ -278,7 +278,7 @@ reported 1.0.0 with Basilisk 2.12.0.
 rebuilt from the release commit `f288e0c73` and the `.deb` installed
 again (it reported 1.0.0 with Basilisk 2.12.0, validated the 28
 templates and ran template 01). Those are the files attached to the
-[1.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0):
+[1.0.0 release](https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v1.0.0):
 GitHub's SHA-256 digest of each attached file equals the built file's
 (`SHA256SUMS-linux`).
 
@@ -326,7 +326,7 @@ write access, also uploads the setup program and `SHA256SUMS-windows` to
 the release, replacing earlier copies. A push to `packaging/windows/`,
 `bundle_python.py` or `constraints.txt` builds and tests without
 attaching. It first passed on
-2026-10-12 ([run 38315713727](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/38315713727)). Not yet done: the wizard clicked
+2026-10-12 ([run 38315713727](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/38315713727)). Not yet done: the wizard clicked
 through by hand, and the GUI opened from the Start Menu shortcut, on a
 real Windows 10/11 machine.
 
@@ -497,7 +497,7 @@ its files is still 1.1.0):
 
 **Verified on Windows (2026-10-20, `windows-latest`, the release
 workflow's pull-request run for this change,
-[run 39504407640](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/39504407640)):**
+[run 39504407640](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/39504407640)):**
 `bundle_python.py --platform windows` built the bundle in the runner's
 short temporary folder; Inno Setup compiled it in 143 s into
 `spacemissionstudio-1.1.0-setup.exe` (about 395 MB); the silent install

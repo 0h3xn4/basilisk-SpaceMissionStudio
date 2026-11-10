@@ -1924,6 +1924,16 @@ output file changed.
 | `tests/test_network.py::test_every_download_is_a_purpose_with_https_hosts` | the purposes include `vizard` | they do not | the purpose is removed |
 | `tests/gui/test_workspace.py::test_the_areas_and_what_they_hold` | Results tabs: Overview, Plots, Dashboard, Output, Compare | 3D View after Plots | the new tab; the other tabs and their order are unchanged |
 
+## The repository renamed (2026-11-10)
+
+The repository is now `0h3xn4/basilisk_space-mission-studio`, and the
+`.deb`'s `Homepage` and `copyright` source name it. No test removed, no
+assertion weakened, no golden or output file changed:
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/test_dependencies.py::test_the_debian_copyright_file_names_each_bundled_part_and_its_licence` (the `.deb`'s `copyright` header and `control` fields) | `Source:` and `Homepage:` are `https://github.com/0h3xn4/basilisk-SpaceMissionStudio` | `https://github.com/0h3xn4/basilisk_space-mission-studio` | The repository's new address; the same fields are checked, as strictly |
+
 ## Landing page at start-up (2026-11-10)
 
 The window now starts on Home with no scenario open (the owner's
