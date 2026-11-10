@@ -234,7 +234,7 @@ def test_the_instrument_view_looks_along_a_body_axis(shown, qtbot):
     qtbot.waitUntil(lambda: _js(qtbot, view, "MV.dirty") is False, timeout=10000)
     camera = json.loads(_js(qtbot, view, "JSON.stringify([MV.camera.position.toArray(), "
                                          "MV.camera.getWorldDirection(new THREE.Vector3()).toArray(), MV.camera.fov])"))
-    np.testing.assert_allclose(camera[0], [0.0, 0.00052, 0.0], atol=1e-6)  # [km]
+    np.testing.assert_allclose(camera[0], [0.0, 0.00052, 0.0], atol=1e-5)  # [km] frame 75 is 0.3 deg past a quarter
     assert camera[2] == 60
     np.testing.assert_allclose(camera[1], [0.0, 1.0, 0.0], atol=0.03)
 
