@@ -46,6 +46,12 @@ fixes bugs.
 
 ### Added
 
+- **Independence and no warranty, stated.** The READMEs and the user
+  manual now say that SpaceMissionStudio is an independent personal
+  project, not affiliated with or endorsed by the organisations its
+  documentation names, and that it is free of charge and comes without
+  warranty (Articles 7 and 8 of the EUPL-1.2). **Settings > About** says
+  the latter too.
 - **The Qt and PySide6 source code with every release.** The installers
   carry Qt 6.11.2 and PySide6 6.11.2 under the LGPL-3.0; each release now
   carries their complete source archives too (`qt-everywhere-src-6.11.2.tar.xz`,

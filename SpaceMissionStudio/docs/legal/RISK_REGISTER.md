@@ -17,17 +17,17 @@ decision). Sources are the ones named in the plan and in
 
 | # | Area | State | Open for the owner |
 |---|---|---|---|
-| R1 | Liability for the use of results | EUPL Articles 7 and 8 apply; wording drafted, not inserted | approve or change the drafts in [`WORDING_DRAFTS.md`](WORDING_DRAFTS.md) |
+| R1 | Liability for the use of results | EUPL Articles 7 and 8 apply; no-warranty sentence (W2) in the READMEs, the manual and the About box; W3 rejected | none (owner's accepted risk) |
 | R2 | Export control | everything is public; no classification made | ask BAFA, or accept the risk |
 | R3 | Third-party data in the repository | terms read where reachable (D1 to D7) | D2 to D7 |
 | R4 | Standards text (ECSS, CCSDS) | ECSS forbids reproduction without consent | D3, D5 |
 | R5 | Name and trademarks | no register search made | run the searches |
 | R6 | Personal data and secrets | scanned: no secret; one third-party address in test data | none required |
-| R7 | Privacy inside the app | no telemetry; two places store a user name or a path | decide P2 |
+| R7 | Privacy inside the app | no telemetry; two places store a user name or a path; P2 declined | none (owner's accepted risk) |
 | R8 | Security and supply chain | `SECURITY.md`, signed provenance, hashes | switch on private reporting |
 | R9 | Contributions | sign-off checked for forks | none |
-| R10 | Repository presentation | wording drafted | approve the drafts |
-| R11 | Third-party files in the installers | Linux gate fails on any gap; Windows gate in warn mode | D10 (Microsoft runtime) |
+| R10 | Repository presentation | non-affiliation sentence (W1) in the READMEs and the manual | none |
+| R11 | Third-party files in the installers | Linux gate fails on any gap; Microsoft runtime verified (D10); Windows gate in warn mode until a full build is clean | switch the Windows gate to fail mode |
 | R12 | Non-commercial status | a test fails on funding links | none |
 | R13 | Website | cancelled (Q7) | none |
 
@@ -47,11 +47,14 @@ not qualified for flight, and non-affiliation. Each draft lists where it
 could go and what that changes. See [`WORDING_DRAFTS.md`](WORDING_DRAFTS.md).
 Nothing has been inserted.
 
-**Open.** The owner approves, changes or rejects the drafts. The drafts
-that would change the generated C project or the About box change
-output or the app, and they need the owner's explicit yes. How Article 8
-applies to a free, non-commercial project is an **owner's accepted
-risk**.
+**Decided (owner, 2026-11-10).** W1 and W2 are approved and used: the
+READMEs and the user manual's introduction carry both sentences, and the
+About box carries W2 (`legal.NO_WARRANTY`, tested). W3 (the generated
+flight-software project's README) is rejected: the generated project is
+unchanged.
+
+**Open.** How Article 8 applies to a free, non-commercial project is an
+**owner's accepted risk**.
 
 ## R2 Export control
 
@@ -170,10 +173,13 @@ names can be confused is an **owner's accepted risk**.
 - **Local files:** logs, settings and autosaves stay in
   `~/.spacemissionstudio/` and are never sent anywhere.
 
-**Proposal P2 (app change, waits for the owner).** Use an empty author
-until the user sets one. Store the import source as a path relative to
-the scenario, or as the file name only. Both changes alter scenario
-files and CLI output, so they are not made here.
+**Proposal P2, declined (owner, 2026-11-10).** The proposal was: use an
+empty author until the user sets one, and store the import source as a
+path relative to the scenario, or as the file name only. The owner
+declined it: the author name and the absolute import paths stay as they
+are, and scenario files and CLI output are unchanged. That a shared
+scenario file can carry the user's account name and home folder is an
+**owner's accepted risk**.
 
 ## R8 Security and supply chain
 
@@ -216,8 +222,9 @@ files and CLI output, so they are not made here.
 The data documentation already says that the project is not affiliated
 with CNES. No third-party logo is shown.
 
-**Open.** The non-affiliation and no-warranty drafts (R1) need the
-owner's approval.
+**Done (owner's approval, 2026-11-10).** The non-affiliation sentence
+(W1) and the no-warranty sentence (W2) are in both READMEs and the user
+manual's introduction.
 
 ## R11 Third-party files in the installers
 
@@ -252,10 +259,11 @@ owner's approval.
 
 **Open.**
 
-- **D10:** the owner decides whether to rely on CPython's statement for
-  the Microsoft runtime (then the status becomes `verified`, with this
-  decision as the basis). Until then, this is an **owner's accepted
-  risk**.
+- **D10, decided (owner, 2026-11-10): yes.** The project relies on
+  CPython's statement for the Microsoft runtime; its redistribution
+  status is `verified`, with this decision as the basis
+  (`packaging/legal/components.json`). That Microsoft's own terms were
+  not read is an **owner's accepted risk**.
 - **Windows gate mode:** the Windows gate stays in warn mode until a
   full Windows build shows only warnings. Then it fails like the Linux
   gate.
@@ -279,8 +287,10 @@ Cancelled: no website, no hosting (Q7).
 ## Owner's to-do list
 
 1. Switch on private vulnerability reporting (R8).
-2. Approve, change or reject the wording drafts (R1, R10).
-3. Decide D10, the Microsoft runtime (R11).
-4. Decide P2, the author name and import paths (R7).
+2. ~~Approve, change or reject the wording drafts (R1, R10).~~ Done
+   2026-11-10: W1 and W2 approved, W3 rejected.
+3. ~~Decide D10, the Microsoft runtime (R11).~~ Done 2026-11-10: yes.
+4. ~~Decide P2, the author name and import paths (R7).~~ Done
+   2026-11-10: declined.
 5. Optional: write to the data providers (D2 to D7), ask ECSS (D3), search
    the trademark registers (R5), and ask BAFA (R2).

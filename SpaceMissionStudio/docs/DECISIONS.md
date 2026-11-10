@@ -2925,14 +2925,17 @@ what is open. Not legal advice.
   `fnmatch` ignores case, and Tcl's pattern `lib/thread*` claimed
   `Lib/threading.py`.
 - **The Microsoft C++ runtime in the Windows Python is a component of its
-  own, with its redistribution status open** (D10). Why: the only text read
-  is CPython's statement in its Windows `LICENSE.txt`; relying on it is the
-  owner's decision.
+  own** (D10). Its redistribution status was open until the owner decided
+  D10 on 2026-11-10: rely on CPython's statement in its Windows
+  `LICENSE.txt`, so the status is `verified`. Why: that statement is the
+  only text read, and relying on it was the owner's call.
 - **`libtommath.dll` is pruned with Tcl/Tk.** Why: Tcl is its only user;
   this is within the owner's decision Q3 (D9).
-- **Wording for no warranty, flight use and non-affiliation is drafted, not
-  used** (`docs/legal/WORDING_DRAFTS.md`). Why: the brief forbids legal text
-  without the owner's approval.
+- **Non-affiliation (W1) and no warranty (W2) are stated; the flight-use
+  sentence (W3) is not** (`docs/legal/WORDING_DRAFTS.md`). W1 and W2 are in
+  both READMEs and the manual's introduction, and W2 in the About box. Why:
+  the owner approved W1 and W2 and rejected W3 on 2026-11-10; the brief
+  allows legal text only with the owner's approval.
 - **The author name and import paths in scenario files stay as they are**
-  (proposal P2 in the register). Why: changing them changes scenario files
-  and CLI output.
+  (proposal P2 in the register, declined by the owner on 2026-11-10). Why:
+  changing them changes scenario files and CLI output.

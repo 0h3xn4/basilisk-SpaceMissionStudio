@@ -137,6 +137,13 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
   model wrote (see AI authorship above); 0h3xn4 publishes it under the
   EUPL-1.2 as its licensor.
   The repository's root [`LICENSE`](LICENSE) is Basilisk's.
+- **Independence and warranty:** SpaceMissionStudio is an independent
+  personal project. It is not affiliated with or endorsed by the
+  organisations named in its documentation, such as NASA, ESA, the AVS
+  Lab of the University of Colorado Boulder, CNES or The Qt Company.
+  SpaceMissionStudio is free of charge and comes without warranty; see
+  Articles 7 and 8 of the EUPL-1.2. Check its results independently
+  before you use them for a real mission.
 - **Version:** 2.6.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.6.0),
   [changelog](SpaceMissionStudio/CHANGELOG.md)): a run plays back in 3D
   inside the app (**Results › 3D View**), in place of the Vizard download;
