@@ -35,7 +35,9 @@ const MV = {
   loaded: {earth: '', stars: ''}, textures: {}, playback: {speed: '', playing: false}, live: false,
   crafts: [], stations: [], links: [], labels: [], lastRotation: 0, rendererName: '', software: false,
 };
-const SOFTWARE_RENDERER = /swiftshader|llvmpipe|softpipe|software/i;  // no graphics card: start in reduced quality
+// No graphics card: start in reduced quality. Chromium's SwiftShader,
+// Mesa's llvmpipe/softpipe, Windows' WARP ("Microsoft Basic Render Driver").
+const SOFTWARE_RENDERER = /swiftshader|llvmpipe|softpipe|software|basic render driver|\bwarp\b/i;
 const TRACK_REBUILD_MS = 500;  // [ms] a live ground track is rebuilt at most this often
 const ZAXIS = new THREE.Vector3(0, 0, 1);
 const TRAIL_FRACTION = 0.1;  // [-] of the run's frames shown as each spacecraft's trail

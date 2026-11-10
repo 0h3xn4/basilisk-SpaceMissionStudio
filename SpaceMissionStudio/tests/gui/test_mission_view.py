@@ -506,15 +506,17 @@ def test_a_software_renderer_starts_in_reduced_quality(shown, qtbot):
     the menu says so; real graphics cards start in full quality."""
     view, _cursor = shown
     state = _state(qtbot, view)
-    assert state["software"] is True and re.search("swiftshader|llvmpipe", state["rendererName"], re.IGNORECASE)
+    assert state["software"] is True, state["rendererName"]
     assert state["quality"] == "reduced" and state["autoReduced"] is True
     qtbot.waitUntil(view.quality_action.isChecked, timeout=10000)
     assert json.loads(_js(qtbot, view, "JSON.stringify(['ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device "
                                        "(Subzero) (0x0000C0DE)), SwiftShader driver)', 'llvmpipe (LLVM 15.0.7, "
                                        "256 bits)', 'Software Rasterizer', 'NVIDIA GeForce RTX 3060/PCIe/SSE2', "
-                                       "'ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)']"
+                                       "'ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)', "
+                                       "'ANGLE (Microsoft, Microsoft Basic Render Driver (0x0000008C) Direct3D11 "
+                                       "vs_5_0 ps_5_0, D3D11)']"
                                        ".map(function (s) { return SOFTWARE_RENDERER.test(s); }))")) == [
-        True, True, True, False, False]
+        True, True, True, False, False, True]
 
 
 def test_a_quality_chosen_in_the_menu_is_kept_over_the_page_s_own(qtbot):
