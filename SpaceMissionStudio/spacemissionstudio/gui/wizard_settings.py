@@ -417,4 +417,3 @@ def build_all_settings_pages(scenario: Scenario, exclude=frozenset()):
 
     titles = sorted(pages, key=rank)  # stable: scenario order within each rank
     return [WizardPageSpec(title=title, intro="", fields=pages[title]) for title in titles]
-
