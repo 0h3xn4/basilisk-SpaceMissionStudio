@@ -100,6 +100,39 @@ def _migrate_3_to_4(data: dict) -> dict:
     return data
 
 
+#: Fields this version no longer has, dropped on load whatever the file's
+#: version (step "retired fields"): a spacecraft's and its 3D model's.
+#: Files without them also open in versions that still had them (they had
+#: defaults), so the schema version did not change.
+RETIRED_SPACECRAFT_FIELDS = ("vizard_model_path", "vizard_model_offset_m", "vizard_model_rotation_deg",
+                             "vizard_model_scale")
+RETIRED_MODEL_FIELDS = ("use_for_vizard",)
+RETIRED_STEP = "retired fields"
+
+
+def drop_retired_spacecraft_fields(spacecraft: dict) -> None:
+    """Removes :data:`RETIRED_SPACECRAFT_FIELDS` from one spacecraft's dict."""
+    for name in RETIRED_SPACECRAFT_FIELDS:
+        spacecraft.pop(name, None)
+
+
+def drop_retired_model_fields(model: dict) -> None:
+    """Removes :data:`RETIRED_MODEL_FIELDS` from one 3D model's dict."""
+    for name in RETIRED_MODEL_FIELDS:
+        model.pop(name, None)
+
+
+def _drop_retired_fields(data: dict) -> dict:
+    """``data`` with the retired fields of every spacecraft removed."""
+    spacecraft = data.get("spacecraft")
+    for sc in spacecraft if isinstance(spacecraft, list) else ():
+        if isinstance(sc, dict):
+            drop_retired_spacecraft_fields(sc)
+            if isinstance(sc.get("model"), dict):
+                drop_retired_model_fields(sc["model"])
+    return data
+
+
 # {old_version: migration_function}.
 MIGRATIONS: dict[int, Callable[[dict], dict]] = {
     1: _migrate_1_to_2,
@@ -133,7 +166,9 @@ def migrate(data: dict, changes: list | None = None) -> dict:
     ``CURRENT_SCHEMA_VERSION`` one step at a time. With ``changes``, each
     value a step changed, added or removed is appended to it (``_diff``;
     the version number itself left out): what loading the file changed,
-    for the run's provenance (transparency audit, Phase 2c)."""
+    for the run's provenance (transparency audit, Phase 2c). The retired
+    fields are then dropped, at any version, and recorded the same way
+    (step :data:`RETIRED_STEP`)."""
     version = data.get("schema_version")
     # bool is a subclass of int in Python (isinstance(True, int) is True),
     # so a malformed file with "schema_version": true/false would
@@ -176,4 +211,8 @@ def migrate(data: dict, changes: list | None = None) -> dict:
                 f"{version + 1} (got {new_version!r}) -- this indicates a bug in the migration."
             )
         version = new_version
+    before = copy.deepcopy(data) if changes is not None else None
+    data = _drop_retired_fields(data)
+    if changes is not None:
+        _diff(before, data, "", RETIRED_STEP, changes)
     return data

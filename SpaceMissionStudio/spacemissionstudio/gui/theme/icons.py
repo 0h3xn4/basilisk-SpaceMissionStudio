@@ -51,8 +51,6 @@ ACTION_ICONS = {
     "abort": "circle-stop",
     "live-plot": "activity",
     "check-kernels": "file-check",
-    "vizard-config": "sliders-horizontal",
-    "vizard-launch": "monitor-play",
     "model-3d": "box",
     "change-history": "file-text",
     "open-monte-carlo": "folder-open",

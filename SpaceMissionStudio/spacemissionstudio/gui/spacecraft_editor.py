@@ -58,7 +58,6 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
-    QFileDialog,
     QFormLayout,
     QGridLayout,
     QGroupBox,
@@ -283,13 +282,11 @@ _SECTION_PREFIXES = {"station_keeping": "sk_", "geo_station_keeping": "geo_", "c
                      "optical_navigation": "on_", "landmark_navigation": "ln_",
                      "magnetic_momentum_management": "mmm_", "fuel_tank": "ft_", "rf_link": "rf_",
                      "data_handling": "dh_"}
-_FIELD_WIDGETS = {"name": "name_edit", "propellant_budget": "budget_group", "vizard_model_offset_m": "viz_offset_x",
-                  "vizard_model_rotation_deg": "viz_rotation_z", "vizard_model_scale": "viz_scale_x",
-                  "inertia_kg_m2": "ixx", "center_of_mass_b_m": "com_x", "sigma_bn_init": "sigma1",
+_FIELD_WIDGETS = {"name": "name_edit", "propellant_budget": "budget_group", "inertia_kg_m2": "ixx", "center_of_mass_b_m": "com_x", "sigma_bn_init": "sigma1",
                   "omega_bn_b_init_rad_s": "omega1", "enable_gravity_gradient": "gravity_gradient_check",
                   "facets": "facet_table", "solar_arrays": "solar_array_table", "sensors": "sensor_list",
                   "actuators": "actuator_list", "model": "open_model_button", "fsw_params": "fsw_param_form",
-                  "control_params": "control_param_form", "vizard_model_path": "viz_model_path_edit",
+                  "control_params": "control_param_form",
                   "power.panel_normal_b": "panel_normal_x", "rf_link.frequency_hz": "frequency_ghz",
                   "rf_link.data_rate_bps": "data_rate_mbps", "rf_link.tx_power_w": "tx_power_w",
                   "rf_link.tx_antenna_gain_dbi": "tx_antenna_gain_dbi",
@@ -309,7 +306,7 @@ _TOP_FIELDS = frozenset(f.name for f in dataclasses.fields(SpacecraftConfig))  #
 # The editor's tabs, in order. The Scenario Editor's tree shows each as a
 # node under the spacecraft (its sections) before the form is built.
 TAB_TITLES = ("Orbit / mass", "Sensors / actuators", "Attitude control", "Power / propulsion / link budget",
-              "3D model", "Vizard model", "Budget (AD10)")
+              "3D model", "Budget (AD10)")
 _ATTITUDE_TABS = ("Sensors / actuators", "Attitude control")  # hidden in orbit_only mode
 
 
@@ -402,7 +399,7 @@ class SpacecraftEditorDialog(QDialog):
             ("Orbit / mass", self._build_orbit_section), ("Sensors / actuators", self._build_sensors_section),
             ("Attitude control", self._build_attitude_section),
             ("Power / propulsion / link budget", self._build_power_section),
-            ("Vizard model", self._build_vizard_section), ("3D model", self._build_model_tab),
+            ("3D model", self._build_model_tab),
             ("Budget (AD10)", self._build_budget_section)]
         if self._orbit_only:
             tabs.setTabVisible(self._sensors_tab_index, False)
@@ -442,7 +439,7 @@ class SpacecraftEditorDialog(QDialog):
         self.build_sections()
         widest_tab_content = max(tabs.widget(i).widget().sizeHint().width() for i in range(tabs.count()))
         # Also wide enough for the tab bar itself -- sized from content
-        # alone, the last tab ("Vizard model") was clipped to a sliver.
+        # alone, the last tab was clipped to a sliver.
         # ensurePolished() first: the theme's bold tab font only applies
         # once the stylesheet polishes the bar, and the unpolished
         # sizeHint() comes out ~100 px short, still scrolling the bar.
@@ -825,8 +822,8 @@ class SpacecraftEditorDialog(QDialog):
         # sun_pointing_axis_b is Optional with a real semantic default
         # (falls back to the power panel's own normal, or [0,0,1] with no
         # power budget configured) -- same "tri-state: a checkbox gates
-        # whether the typed value is even used" idiom as viz_model_group's
-        # own isChecked() gating _viz_model_to_dataclass_path() below.
+        # whether the typed value is even used" idiom as the other
+        # checkable groups.
         self.cp_sun_axis_default_check = QCheckBox("Sun axis: use the solar-panel normal")
         self.cp_sun_axis_default_check.setChecked(cp0 is None or cp0.sun_pointing_axis_b is None)
         self.cp_sun_axis_default_check.toggled.connect(self._on_cp_sun_axis_default_toggled)
@@ -1712,82 +1709,6 @@ class SpacecraftEditorDialog(QDialog):
         power_layout.addWidget(self.data_handling_group)
         power_layout.addStretch(1)
 
-    def _build_vizard_section(self, viz_model_tab: QWidget) -> None:
-        """The Vizard model section."""
-        config = self._init_config
-        # -- Vizard 3D model tab (Phase 5) -------------------------------------
-        # PURELY COSMETIC -- see SpacecraftConfig.vizard_model_path's
-        # docstring. Deliberately its own tab, not folded into another one,
-        # so it reads as clearly separate from anything that affects
-        # simulated physics.
-        viz_model_layout = QVBoxLayout(viz_model_tab)
-        viz_model_description_label = QLabel(
-            "A 3D model shown in Vizard instead of the default cube. Display only: it never "
-            "changes the simulation."
-        )
-        # See phasing_formation_dialog.py's identical fix (same
-        # copy-pasted top-description-QLabel shape, same missing
-        # word-wrap) for the real screenshot that found this bug.
-        viz_model_description_label.setWordWrap(True)
-        viz_model_layout.addWidget(viz_model_description_label)
-
-        model0 = config if config else None
-        self.viz_model_group = QGroupBox("Custom 3D model")
-        self.viz_model_group.setCheckable(True)
-        self.viz_model_group.setChecked(bool(model0.vizard_model_path) if model0 else False)
-        viz_model_form = QFormLayout(self.viz_model_group)
-
-        path_row = QHBoxLayout()
-        self.viz_model_path_edit = QLineEdit(model0.vizard_model_path if model0 and model0.vizard_model_path else "")
-        self.viz_model_path_edit.setPlaceholderText("path to a .obj file, or CUBE / CYLINDER / SPHERE")
-        self.viz_model_path_edit.setToolTip(
-            "Replaces Vizard's default spacecraft icon (a plain cube) with this model instead -- "
-            "either a path to a real .obj 3D model file, or one of the built-in primitive "
-            "shapes (CUBE / CYLINDER / SPHERE)."
-        )
-        path_row.addWidget(self.viz_model_path_edit)
-        self.viz_model_browse_button = QPushButton("Browse...")
-        self.viz_model_browse_button.clicked.connect(self._on_browse_viz_model)
-        path_row.addWidget(self.viz_model_browse_button)
-        viz_model_form.addRow("Model path", path_row)
-
-        offset0 = model0.vizard_model_offset_m if model0 else [0.0, 0.0, 0.0]
-        self.viz_offset_x = _spin(-1.0e6, 1.0e6, decimals=4, step=0.1, value=offset0[0])
-        self.viz_offset_y = _spin(-1.0e6, 1.0e6, decimals=4, step=0.1, value=offset0[1])
-        self.viz_offset_z = _spin(-1.0e6, 1.0e6, decimals=4, step=0.1, value=offset0[2])
-        _viz_offset_tip = "Shifts the model's origin away from the spacecraft's body reference point, in the body frame."
-        for box in (self.viz_offset_x, self.viz_offset_y, self.viz_offset_z):
-            box.setToolTip(_viz_offset_tip)
-        viz_model_form.addRow("Offset [m] (body frame, 3 components)",
-                               _hbox(self.viz_offset_x, self.viz_offset_y, self.viz_offset_z))
-
-        rot0 = model0.vizard_model_rotation_deg if model0 else [0.0, 0.0, 0.0]
-        self.viz_rotation_z = _spin(-360.0, 360.0, decimals=3, step=1.0, value=rot0[0])
-        self.viz_rotation_y = _spin(-360.0, 360.0, decimals=3, step=1.0, value=rot0[1])
-        self.viz_rotation_x = _spin(-360.0, 360.0, decimals=3, step=1.0, value=rot0[2])
-        _viz_rotation_tip = (
-            "Rotates the model relative to the body frame, applied as a 3-2-1 Euler sequence "
-            "(Z first, then Y, then X) -- use this if the model's own built-in orientation "
-            "doesn't already match the spacecraft's body axes."
-        )
-        for box in (self.viz_rotation_z, self.viz_rotation_y, self.viz_rotation_x):
-            box.setToolTip(_viz_rotation_tip)
-        viz_model_form.addRow("Rotation [deg] (3-2-1 Euler: Z, Y, X)",
-                               _hbox(self.viz_rotation_z, self.viz_rotation_y, self.viz_rotation_x))
-
-        scale0 = model0.vizard_model_scale if model0 else [1.0, 1.0, 1.0]
-        self.viz_scale_x = _spin(0.0001, 1.0e6, decimals=4, step=0.1, value=scale0[0])
-        self.viz_scale_y = _spin(0.0001, 1.0e6, decimals=4, step=0.1, value=scale0[1])
-        self.viz_scale_z = _spin(0.0001, 1.0e6, decimals=4, step=0.1, value=scale0[2])
-        _viz_scale_tip = "Stretches/shrinks the model along each body axis -- 1.0 keeps its original, modeled size."
-        for box in (self.viz_scale_x, self.viz_scale_y, self.viz_scale_z):
-            box.setToolTip(_viz_scale_tip)
-        viz_model_form.addRow("Scale [-] (body x, y, z axes, 3 components)",
-                               _hbox(self.viz_scale_x, self.viz_scale_y, self.viz_scale_z))
-
-        viz_model_layout.addWidget(self.viz_model_group)
-        viz_model_layout.addStretch(1)
-
     def _build_budget_section(self, budget_tab: QWidget) -> None:
         """The Budget (AD10) section."""
         config = self._init_config
@@ -2185,11 +2106,6 @@ class SpacecraftEditorDialog(QDialog):
             facets=[] if self._orbit_only else self.facet_table.to_list(),
             solar_arrays=[] if self._orbit_only else self.solar_array_table.to_list(),
             enable_gravity_gradient=self.gravity_gradient_check.isChecked(),
-            vizard_model_path=self._viz_model_to_dataclass_path(),
-            vizard_model_offset_m=[self.viz_offset_x.value(), self.viz_offset_y.value(), self.viz_offset_z.value()],
-            vizard_model_rotation_deg=[self.viz_rotation_z.value(), self.viz_rotation_y.value(),
-                                        self.viz_rotation_x.value()],
-            vizard_model_scale=[self.viz_scale_x.value(), self.viz_scale_y.value(), self.viz_scale_z.value()],
         )
         config.validate()  # raises ScenarioValidationError with a specific message on anything bad
         return config
@@ -2231,7 +2147,7 @@ class SpacecraftEditorDialog(QDialog):
     def _build_model_tab(self, tab: QWidget) -> None:
         layout = QVBoxLayout(tab)
         intro = QLabel("Build the spacecraft from shapes or an .obj file: it gives the mass, center of mass, "
-                       "inertia and facets, and Vizard shows it.")
+                       "inertia and facets, and the 3D views show it.")
         intro.setWordWrap(True)
         layout.addWidget(intro)
         self.model_summary = QLabel()
@@ -2416,9 +2332,6 @@ class SpacecraftEditorDialog(QDialog):
             for box, value in zip((self.ft_tank_pos_x, self.ft_tank_pos_y, self.ft_tank_pos_z),
                                   config.fuel_tank.tank_position_b_m, strict=True):
                 box.setValue(value)
-        for box, value in zip((self.viz_offset_x, self.viz_offset_y, self.viz_offset_z),
-                              config.vizard_model_offset_m, strict=True):
-            box.setValue(value)
         if config.rf_link is not None:
             self._rf_antenna_mount = config.rf_link.antenna_mount
         previous = self.pending_devices_import or _devices_import(self._imports_provider, config.name)
@@ -2522,17 +2435,6 @@ class SpacecraftEditorDialog(QDialog):
     def _on_remove_model(self) -> None:
         self._model = None
         self._refresh_model_tab()
-
-    def _viz_model_to_dataclass_path(self) -> str | None:
-        if not self.viz_model_group.isChecked():
-            return None
-        path = self.viz_model_path_edit.text().strip()
-        return path or None
-
-    def _on_browse_viz_model(self) -> None:
-        path, _filter = QFileDialog.getOpenFileName(self, "Select a 3D model (.obj)", "", "Wavefront OBJ (*.obj)")
-        if path:
-            self.viz_model_path_edit.setText(path)
 
     def _comms_pointing_to_dataclass(self) -> CommsPointingConfig | None:
         if not self.comms_pointing_group.isChecked():

@@ -2129,8 +2129,7 @@ class SpacecraftModelConfig:
     (``model3d.model.apply``) writes what it derives into the spacecraft's
     own fields -- ``dry_mass_kg``, ``center_of_mass_b_m``, ``inertia_kg_m2``
     and ``facets`` -- which are what the simulation reads; the model is
-    kept so it can be edited again. ``use_for_vizard`` shows the model in
-    Vizard when ``vizard_model_path`` is not set."""
+    kept so it can be edited again."""
 
     parts: list = field(default_factory=list)  # list[ModelPartConfig]
     meshes: list = field(default_factory=list)  # list[ModelMeshConfig]
@@ -2138,7 +2137,6 @@ class SpacecraftModelConfig:
     mass_properties: ModelMassPropertiesConfig | None = None  # for "typed" and "imported"
     apply_mass_properties: bool = True
     apply_facets: bool = True
-    use_for_vizard: bool = True
     # The analyses built on the model (docs/developer/model-analyses-design.md),
     # each written only when set.
     equipment: list = field(default_factory=list)  # list[MountedEquipmentConfig]
@@ -2302,17 +2300,6 @@ class SpacecraftConfig:
     fuel_tank: FuelTankConfig | None = None
     propellant_budget: PropellantBudgetConfig | None = None  # see engine/propellant_budget.py
 
-    # Phase 5: PURELY COSMETIC Vizard display -- replaces this spacecraft's
-    # default cube icon with a custom CAD model
-    # (Basilisk.utilities.vizSupport.createCustomModel()). Never affects
-    # simulated physics: mass properties, drag/SRP area, etc. still come
-    # from dry_mass_kg/inertia_kg_m2/drag_area_m2/srp_area_m2 above, same
-    # as when this is unset. None (the default) leaves Vizard's own
-    # default icon in place.
-    vizard_model_path: str | None = None  # path to a .obj file, or "CUBE"/"CYLINDER"/"SPHERE"
-    vizard_model_offset_m: list = field(default_factory=lambda: [0.0, 0.0, 0.0])
-    vizard_model_rotation_deg: list = field(default_factory=lambda: [0.0, 0.0, 0.0])  # 3-2-1 Euler (z,y,x)
-    vizard_model_scale: list = field(default_factory=lambda: [1.0, 1.0, 1.0])
     # The spacecraft's 3D model, if one was built or imported in the model
     # editor; see SpacecraftModelConfig.
     model: SpacecraftModelConfig | None = None
@@ -2766,13 +2753,6 @@ class SpacecraftConfig:
                       f"{self.name}: fuel_tank needs at least one 'thruster' actuator on this spacecraft to "
                       "draw propellant from")
             self.fuel_tank.validate(self.name)
-
-        if self.vizard_model_path is not None:
-            _require(bool(self.vizard_model_path.strip()), f"{self.name}: vizard_model_path must not be blank")
-        _require(len(self.vizard_model_offset_m) == 3, f"{self.name}: vizard_model_offset_m must have 3 elements")
-        _require(len(self.vizard_model_rotation_deg) == 3,
-                  f"{self.name}: vizard_model_rotation_deg must have 3 elements")
-        _require(len(self.vizard_model_scale) == 3, f"{self.name}: vizard_model_scale must have 3 elements")
 
 
 @dataclass
@@ -4045,6 +4025,8 @@ class Scenario:
 
     @staticmethod
     def from_dict(data: dict) -> Scenario:
+        from .migrations import drop_retired_model_fields, drop_retired_spacecraft_fields  # avoids an import cycle
+
         data = _fields_of(data, "the scenario")  # a copy: the caller's dict is not changed
         if "configuration" in data and data["configuration"] is None:
             # dataclasses.asdict() writes the transient field as null; that carries nothing. Any other value is
@@ -4063,6 +4045,7 @@ class Scenario:
         for index, sc in enumerate(_items(data.pop("spacecraft", []), "spacecraft")):
             where = f"spacecraft[{index}]"
             sc = _fields_of(sc, where)
+            drop_retired_spacecraft_fields(sc)  # a stored run's scenario may still have them
             if "orbit" not in sc:
                 raise _StructureError(f"{where}: missing field 'orbit'")
             sc["orbit"] = _record(OrbitIC, sc["orbit"], f"{where}.orbit")
@@ -4075,6 +4058,7 @@ class Scenario:
                         item.mount = _record(MountConfig, item.mount, f"{where}.{name}[{k}].mount")
             if sc.get("model") is not None:
                 model_data = _fields_of(sc["model"], f"{where}.model")
+                drop_retired_model_fields(model_data)
                 model_data["parts"] = _records(ModelPartConfig, model_data.pop("parts", []), f"{where}.model.parts")
                 model_data["meshes"] = _records(ModelMeshConfig, model_data.pop("meshes", []),
                                                 f"{where}.model.meshes")

@@ -187,8 +187,8 @@ from Basilisk.simulation import (
 from Basilisk.utilities import macros, simIncludeRW, simIncludeThruster
 
 from ..config import registry
-from ..schema.scenario import SUPPORTED_FSW_MODES, GroundStationConfig, RFLinkConfig
-from . import control_gains, environment_models, geodesy, link_budget
+from ..schema.scenario import SUPPORTED_FSW_MODES
+from . import control_gains, environment_models, geodesy
 from .orbit_maintenance import LogThinner
 
 # The default gains and their inertia scaling live in engine.control_gains,
@@ -368,13 +368,9 @@ def build_css_sun_estimation(scSim, task_name: str, tag: str, sc_object, css_sen
     ``InitializeSimulation()``/``ExecuteSimulation()`` on the now-dangling
     reference, with no error message pointing at the cause. Confirmed by
     reproducing it both ways (segfaults when discarded, works when kept
-    alive) against a real Basilisk build -- the same category of lifetime
-    hazard this codebase's own Vizard wiring already documents
-    (``access_indicator_bridges``/``generic_storage_list``/
-    ``generic_sensor_list`` -- "the caller MUST keep ALL FOUR alive").
+    alive) against a real Basilisk build.
     The caller must hold this list alive for as long as the simulation
-    runs (e.g. as an attribute on a long-lived object), exactly like
-    those Vizard lists.
+    runs (e.g. as an attribute on a long-lived object).
     """
     css_devices = []
     for sensor in css_sensor_configs:
@@ -565,10 +561,7 @@ class _CommsPointingArbitrator(sysModel.SysModel):
     function wires every input/output message this needs.
     """
 
-    def __init__(self, name: str, comms_power_w: float,
-                 rf_link: RFLinkConfig | None = None,
-                 ground_station_config: GroundStationConfig | None = None, scenario=None,
-                 station_latitudes: tuple[float, float] | None = None):
+    def __init__(self, name: str, comms_power_w: float):
         super().__init__()
         self.ModelTag = name
 
@@ -585,39 +578,6 @@ class _CommsPointingArbitrator(sysModel.SysModel):
         # means "model the attitude switch only, no extra power draw").
         self.commsPowerSink = None
         self.commsPowerW = comms_power_w  # [W]
-
-        # Live Vizard telemetry (engine.vizard's "Live-data panels" section):
-        # real user feedback was that the mission dashboard's live readout
-        # (gui.mission_dashboard_widget) -- active mode, pointing error, RF
-        # link status -- "shall also be in the vizard live visualization,
-        # not only in the GUI itself". These three messages mirror exactly
-        # what that widget already shows, computed from the SAME real,
-        # already-simulated quantities (this arbitrator's own hasAccess/
-        # sigma_BR, not a re-derivation), so engine.vizard.enable_vizard()
-        # can wire them straight into native Vizard panels with no second
-        # source of truth.
-        self.modeCmdOutMsg = messaging.DeviceCmdMsg()  # 1 = Sun-pointing, 2 = ground-station-pointing (see vizard.py's 1/2 GenericSensor convention -- never 0, a real Vizard-source finding)
-        self.pointingErrorOutMsg = messaging.DataStorageStatusMsg()  # storageLevel/storageCapacity = theta_deg/180.0 [deg]
-        self.linkStatusCmdOutMsg = messaging.DeviceCmdMsg()  # 1 = no link (no access / not comms-pointing / degraded), 2 = link OK
-
-        # Only set when the caller (build_comms_pointing, from
-        # engine.service) passed both -- enables the live link-status
-        # computation above, gated the SAME way
-        # engine.link_budget.link_margin_series()/
-        # gui.mission_dashboard_widget already gate their own margin:
-        # real access AND actually comms-pointing, never geometric
-        # visibility alone. Left None (either, or both) when the
-        # spacecraft has no rf_link configured -- linkStatusCmdOutMsg then
-        # always reports "no link", matching mission_dashboard_widget's
-        # own "no rf_link configured" fallback.
-        self.rfLink = rf_link
-        self.groundStationConfig = ground_station_config
-        self.scenario = scenario  # its project configuration's link parameters, if any
-        self.requiredMarginDb = link_budget.rule("required_margin_db", scenario)  # [dB]
-        # The gases' attenuation takes the elevation (link.atmospheric_loss): from the geodetic horizon,
-        # with the station's (geocentric, geodetic) latitudes [rad], as the recorded series.
-        self.stationLatitudes = station_latitudes
-        self.atmosphericLoss = link_budget.atmospheric_loss_function(rf_link, scenario) if rf_link is not None else None
 
         # Python-side telemetry -- same convention as
         # engine.orbit_maintenance's controllers (see class docstring).
@@ -648,39 +608,6 @@ class _CommsPointingArbitrator(sysModel.SysModel):
         sigma_br_norm = float(np.linalg.norm(guid.sigma_BR))
         theta_deg = float(np.degrees(4.0 * np.arctan(sigma_br_norm)))
 
-        # 1/2, never 0 -- see engine.vizard's own "Live-data panels"
-        # docstring section (the "Ground-station access windows" bullet's
-        # real-Vizard-source finding) for why a GenericSensor commanded 0
-        # renders permanently invisible regardless of its configured
-        # color, not just "the 0th color".
-        mode_cmd = messaging.DeviceCmdMsgPayload()
-        mode_cmd.deviceCmd = 2 if active_comms else 1
-        self.modeCmdOutMsg.write(mode_cmd, CurrentSimNanos, self.moduleID)
-
-        # GenericStorage requires a non-negative storageLevel (a negative
-        # value renders the panel "Unavailable" -- see engine.vizard's own
-        # "Real bug found ... FOURTH round" docstring note); theta_deg is
-        # always >= 0 by construction above, so no clamping is needed here,
-        # unlike that earlier RTN-panel bug.
-        pointing_msg = messaging.DataStorageStatusMsgPayload()
-        pointing_msg.storageLevel = theta_deg
-        pointing_msg.storageCapacity = 180.0  # [deg] the max possible principal rotation angle
-        self.pointingErrorOutMsg.write(pointing_msg, CurrentSimNanos, self.moduleID)
-
-        link_ok_cmd = 1  # "no link" -- 1, never 0, same reason as mode_cmd above
-        if active_comms and self.rfLink is not None and self.groundStationConfig is not None:
-            margin_db = link_budget.link_margin_db(
-                float(access_payload.slantRange), self.rfLink, self.groundStationConfig, theta_deg, self.scenario
-            )
-            if self.atmosphericLoss is not None:  # [dB] the atmosphere's loss at this step's elevation
-                margin_db -= self.atmosphericLoss(
-                    link_budget.access_elevation_deg(access_payload, self.stationLatitudes))
-            if link_budget.link_closes(margin_db, required_margin_db=self.requiredMarginDb):
-                link_ok_cmd = 2
-        link_cmd = messaging.DeviceCmdMsgPayload()
-        link_cmd.deviceCmd = link_ok_cmd
-        self.linkStatusCmdOutMsg.write(link_cmd, CurrentSimNanos, self.moduleID)
-
         if self.logThinner.due(t):
             self.tLog.append(t)
             self.modeLog.append(1 if active_comms else 0)
@@ -688,10 +615,7 @@ class _CommsPointingArbitrator(sysModel.SysModel):
 
 
 def build_comms_pointing(scSim, task_name: str, tag: str, comms_config, sun_guid_msg, comms_guid_msg,
-                          access_out_msg, comms_power_sink=None, rf_link: RFLinkConfig | None = None,
-                          ground_station_config: GroundStationConfig | None = None,
-                          scenario=None,
-                          station_latitudes: tuple[float, float] | None = None) -> _CommsPointingArbitrator:
+                          access_out_msg, comms_power_sink=None) -> _CommsPointingArbitrator:
     """Builds and wires one spacecraft's :class:`_CommsPointingArbitrator`.
 
     Args:
@@ -715,24 +639,6 @@ def build_comms_pointing(scSim, task_name: str, tag: str, comms_config, sun_guid
             whose ``nodePowerOut`` this arbitrator drives live while
             ground-station-pointing is active -- omit (default ``None``)
             when ``comms_config.comms_power_w == 0.0``.
-        rf_link: the spacecraft's own ``schema.scenario.RFLinkConfig``
-            (``sc_config.rf_link``), or ``None`` if not configured --
-            enables the arbitrator's own live ``linkStatusCmdOutMsg``
-            (see that message's own comment in
-            :meth:`_CommsPointingArbitrator.__init__`) when given
-            together with ``ground_station_config``.
-        ground_station_config: ``comms_config.target_ground_station``'s
-            own ``schema.scenario.GroundStationConfig`` (looked up by name
-            from ``scenario.ground_stations``), or ``None``. Both this and
-            ``rf_link`` must be given for the live link-status message to
-            report anything other than "no link".
-        scenario: gives the link parameters (``link.required_margin_db``,
-            the pointing loss; config.parameters), or None for their
-            defaults.
-        station_latitudes: the target station's (geocentric, geodetic)
-            latitude [rad], for the elevation the gases' attenuation takes
-            (``link_budget.access_elevation_deg``); None: Basilisk's own.
-
     Returns the arbitrator (feed its ``attGuidOutMsg`` to
     :func:`build_mrp_feedback`) -- the CALLER must keep this object alive
     for the simulation's lifetime (store it on the spacecraft's handle),
@@ -742,8 +648,6 @@ def build_comms_pointing(scSim, task_name: str, tag: str, comms_config, sun_guid
     """
     arbitrator = _CommsPointingArbitrator(
         name=f"{tag}_commsPointing", comms_power_w=comms_config.comms_power_w,
-        rf_link=rf_link, ground_station_config=ground_station_config, scenario=scenario,
-        station_latitudes=station_latitudes,
     )
     arbitrator.accessInMsg.subscribeTo(access_out_msg)
     arbitrator.sunGuidInMsg.subscribeTo(sun_guid_msg)
@@ -847,7 +751,7 @@ def build_reaction_wheels(scSim, task_name: str, tag: str, sc_object, actuator_c
     accepted ``params`` key -- ``gsHat_B`` is required by schema validation,
     everything else is optional and defaults exactly as ``rwFactory.create()``
     itself defaults). Returns ``(rw_state_effector, rw_config_msg)`` for
-    :func:`build_rw_motor_torque`/:func:`build_mrp_feedback` and Vizard.
+    :func:`build_rw_motor_torque`/:func:`build_mrp_feedback`.
 
     RW device labels use ``"RW1"``, ``"RW2"``, ... (the module's own
     auto-labeling scheme) rather than ``actuator.name``, because
@@ -943,7 +847,7 @@ def build_thrusters(scSim, task_name: str, tag: str, sc_object, actuator_configs
     by schema validation, everything else is optional and defaults exactly
     as ``thrusterFactory.create()`` itself defaults). Returns
     ``(thruster_effector, thr_config_msg)`` for
-    :func:`build_thruster_force_mapping` and Vizard.
+    :func:`build_thruster_force_mapping`.
 
     ``thruster_type`` defaults to ``"Blank_Thruster"`` -- ``thrusterFactory``
     has no bare "custom" type the way ``rwFactory`` does (confirmed by
@@ -1006,7 +910,7 @@ def build_fuel_tank(scSim, task_name: str, tag: str, sc_object, thruster_effecto
     Returns the ``fuelTank.FuelTank()`` state effector itself (its
     ``fuelTankOutMsg`` -- a real ``FuelTankMsgPayload`` -- is what
     ``engine.service`` records for the ``{name}.fuel_mass_remaining``
-    result series and any live Vizard propellant gauge).
+    result series).
     """
     tank_model = fuelTank.FuelTankModelUniformBurn()
     tank_model.propMassInit = float(fuel_tank_config.propellant_mass_kg)
