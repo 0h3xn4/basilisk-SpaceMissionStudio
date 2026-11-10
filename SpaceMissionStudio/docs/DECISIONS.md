@@ -165,6 +165,15 @@ live. This entry supersedes "plotly.js, not a new 3D library" of the
   logic reads their length, so samples can be appended
   (`MV.append`) without a new design.
 
+- **Software WebGL where no driver can start it:** the web views add
+  Chromium's `--enable-unsafe-swiftshader`. The Windows CI machines (and
+  some virtual machines and remote desktops) could not create a WebGL
+  context at all, so the 3D View drew nothing. With the flag Chromium
+  falls back to SwiftShader; "unsafe" concerns untrusted web content,
+  and the views load only the app's own files (`webengine_setup`). If
+  WebGL still cannot start, the page says so in the view instead of
+  failing on every frame.
+
 ## Landing page at start-up (2026-11-10)
 
 The owner's request: the app starts on a landing page, not on the last

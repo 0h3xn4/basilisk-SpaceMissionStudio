@@ -27,6 +27,15 @@ that imports it imports this one first: importing it sets the flags.
   WebGL, and the view shows "WebGL is not supported". Found in this
   project's own GPU-less test environment; with the flag the same view
   rendered. A machine with a working GPU uses it as before.
+- ``--enable-unsafe-swiftshader``: Results › 3D View draws with WebGL.
+  Where no graphics driver can start a WebGL context (the Windows test
+  machines of CI, some virtual machines and remote desktops), Chromium
+  falls back to its software renderer, SwiftShader, only with this flag;
+  without it the view could not draw at all. Chromium calls the fallback
+  "unsafe" because SwiftShader exposed to web pages from the internet is
+  a larger attack surface; the app's views load only the app's own files
+  (:func:`guard_profile`), so that does not apply. A machine with a
+  working GPU uses it as before.
 - ``--no-sandbox``, only when running as root: Chromium will not start its
   renderer as root otherwise (its sandbox works by dropping privileges).
 
@@ -82,7 +91,7 @@ def configure() -> None:
     """Set the flags (see the module docstring), unless the user did."""
     if "QTWEBENGINE_CHROMIUM_FLAGS" in os.environ:
         return
-    flags = ["--ignore-gpu-blocklist", *NO_BACKGROUND_NETWORK]
+    flags = ["--ignore-gpu-blocklist", "--enable-unsafe-swiftshader", *NO_BACKGROUND_NETWORK]
     if hasattr(os, "geteuid") and os.geteuid() == 0:
         flags.append("--no-sandbox")
     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(flags)
