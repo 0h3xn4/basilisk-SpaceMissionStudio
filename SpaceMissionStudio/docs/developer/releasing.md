@@ -148,7 +148,8 @@ what has been verified where.
   workflow again for the tag.
 - Read the draft on
   <https://github.com/0h3xn4/basilisk_space-mission-studio/releases>: the
-  six files, and the notes, which say which platform has which file and
+  eight files (the wheel, the sdist, each installer and its bill of
+  materials, `SHA256SUMS-linux` and `SHA256SUMS-windows`), and the notes, which say which platform has which file and
   name the workflow run that installed them. Then publish it.
 - After publishing, download the assets from the release and run
   `sha256sum -c SHA256SUMS-linux` and `sha256sum -c SHA256SUMS-windows`.
