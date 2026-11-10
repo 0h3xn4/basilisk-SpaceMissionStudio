@@ -165,5 +165,3 @@ def test_toasts_fade_unless_motion_is_reduced(window, qtbot):
     toast = show_toast(window, "Saved", duration_ms=600)
     assert toast.graphicsEffect() is None and toast.isVisible()
     qtbot.waitUntil(lambda: not toast.isVisible(), timeout=5000)
-
-

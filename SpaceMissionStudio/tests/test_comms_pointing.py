@@ -227,5 +227,3 @@ def test_switching_guidance_reference_does_not_reset_integrated_attitude():
         f"attitude step at the mode switch ({step_at_switch:.3e}) looks like a discontinuity, "
         f"not a continuous slew (typical step elsewhere: {typical_step:.3e})"
     )
-
-

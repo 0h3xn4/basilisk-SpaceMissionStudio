@@ -93,7 +93,7 @@ Files in the package:
 | `fonts/jetbrains-mono/JetBrainsMono-Regular.ttf` | `a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f` |
 | `fonts/jetbrains-mono/JetBrainsMono-Medium.ttf` | `31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d` |
 | `fonts/jetbrains-mono/OFL.txt` | `60d55f23c6ce05a81099a762cb67ca2c9b6ea251c7912720998b4c89ebfd4faa` (the release's text with one trailing space removed, for the repository's whitespace check) |
-| `mission_view/three.bundle.min.js` (769,945 bytes) | `aab5271f6e46c060e3ae87449ff27aa4c5d8154593e5f75be8ca5cba6a00e91c` |
+| `mission_view/three.bundle.min.js` (769,928 bytes) | `cbe5b681be63dee0b83dda9946b5992c95be4372fddd8904789956d527a2ba4c` |
 | `mission_view/THREE_LICENSE.txt` | `8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc` |
 | `mission_view/earth_day_4k.jpg` (1,066,107 bytes) | `32f859e19f9ad25cd9fbca17350fd73766a6985c95c5c7fef4378324af4527b8` |
 | `mission_view/earth_day_2k.jpg` (259,363 bytes) | `7d5d8192d45944e0f196e21c80008de0853fa31b25a148fa8986cf236bb05c14` |
