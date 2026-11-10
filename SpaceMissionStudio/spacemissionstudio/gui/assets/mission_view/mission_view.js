@@ -33,7 +33,7 @@ const MV = {
 };
 const ZAXIS = new THREE.Vector3(0, 0, 1);
 const TRAIL_FRACTION = 0.1;  // [-] of the run's frames shown as each spacecraft's trail
-const ORBIT_VIEW = new THREE.Vector3(1.0, 1.0, 0.6).normalize();  // [-] Whole orbit looks from here
+const ORBIT_VIEW = new THREE.Vector3(1.0, 1.0, 0.6).normalize();  // [-] Whole orbit looks from here without a Sun
 
 // ---------------------------------------------------------------- setup
 MV.init = function () {
@@ -556,8 +556,9 @@ MV.resetView = function () {
     cam.up.copy(ZAXIS);
     MV.makeControls();
     const distance = d.extent / Math.tan(cam.fov * Math.PI / 360) * 1.1;
-    cam.position.copy(ORBIT_VIEW).multiplyScalar(distance);
+    cam.position.copy(MV.orbitDirection()).multiplyScalar(distance);
     MV.controls.target.set(0, 0, 0);
+    MV.controls.update();
     MV.controls.minDistance = Math.max(d.body.radius * 1.02, 1e-3);
     MV.controls.maxDistance = distance * 20;
     MV.controls.enabled = true;
@@ -571,6 +572,7 @@ MV.resetView = function () {
     MV.makeControls();
     cam.position.copy(back.multiplyScalar(2.6 * c.size).addScaledVector(up, 1.1 * c.size));
     MV.controls.target.set(0, 0, 0);
+    MV.controls.update();
     MV.controls.minDistance = 0.3 * c.size;
     MV.controls.maxDistance = 1e6;
     MV.controls.enabled = true;
@@ -586,12 +588,34 @@ MV.resetView = function () {
   MV.dirty = true;
 };
 
+// Whole orbit looks from three quarters towards the Sun and a little from
+// the north, so the body is seen mostly lit.
+MV.orbitDirection = function () {
+  const d = MV.data;
+  if (!d.sun) return ORBIT_VIEW.clone();
+  const sun = new THREE.Vector3().fromArray(d.sun[MV.frame]);
+  const side = new THREE.Vector3().crossVectors(ZAXIS, sun);
+  if (side.lengthSq() < 1e-6) side.set(1, 0, 0);
+  return sun.multiplyScalar(0.75).addScaledVector(side.normalize(), 0.6).addScaledVector(ZAXIS, 0.35).normalize();
+};
+
 // Where the camera of an instrument view is, and where it looks: from a
-// body axis (`axis`, e.g. [0, 0, 1]) or a mounted item (`item`), in N.
+// body axis (`axis`, e.g. [0, 0, 1]), just outside the model along it, or
+// from a mounted item (`item`), a little in front of it; in N.
 MV.instrumentPose = function () {
   const d = MV.data, v = MV.view, c = d.crafts[v.craft], dcm = MV.dcm(c);
   let position = [0, 0, 0], look = v.axis || [1, 0, 0];
-  if (v.item !== undefined) { const item = c.equipment[v.item]; position = item.p; look = item.b; }
+  if (v.item !== undefined) {
+    const item = c.equipment[v.item];
+    look = item.b;
+    position = [0, 1, 2].map(function (k) { return item.p[k] + 0.02 * c.size * look[k]; });
+  } else {
+    let reach = 0;
+    for (let i = 0; i < c.mesh.p.length; i += 3) {
+      reach = Math.max(reach, c.mesh.p[i] * look[0] + c.mesh.p[i + 1] * look[1] + c.mesh.p[i + 2] * look[2]);
+    }
+    position = look.map(function (x) { return x * (reach + 0.02 * c.size); });
+  }
   const lookN = MV.toN(dcm, look).normalize();
   const ref = Math.abs(look[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0];
   const upN = MV.toN(dcm, ref);
@@ -627,17 +651,17 @@ MV.update = function () {
     const m = new THREE.Matrix4().set(dcm[0], dcm[3], dcm[6], 0, dcm[1], dcm[4], dcm[7], 0, dcm[2], dcm[5], dcm[8], 0,
                                       0, 0, 0, 1);
     c.body.quaternion.setFromRotationMatrix(m);
-    c.axes.forEach(function (a) { a.visible = t.axes; });
-    const instrument = v.mode === 'instrument' && v.craft === n;
+    const instrument = v.mode === 'instrument' && v.craft === n;  // seen from it: its own arrows are not drawn
+    c.axes.forEach(function (a) { a.visible = t.axes && !instrument; });
     c.cones.forEach(function (cone) {
       cone.visible = t.cones && !(instrument && v.item === cone.userData.item && !cone.userData.plume);
     });
-    c.sunArrow.visible = t.headings && sun !== null;
+    c.sunArrow.visible = t.headings && sun !== null && !instrument;
     if (sun) c.sunArrow.setDirection(sun);
-    c.nadirArrow.visible = t.headings;
+    c.nadirArrow.visible = t.headings && !instrument;
     c.nadirArrow.setDirection(new THREE.Vector3(-p[0], -p[1], -p[2]).normalize());
     const vel = new THREE.Vector3().fromArray(c.data.vel[f]);
-    c.velocityArrow.visible = t.headings && vel.lengthSq() > 0;
+    c.velocityArrow.visible = t.headings && vel.lengthSq() > 0 && !instrument;
     if (vel.lengthSq() > 0) c.velocityArrow.setDirection(vel.normalize());
     // The path and the trail, relative to the floating origin.
     c.path.visible = t.paths;

@@ -222,8 +222,10 @@ def test_the_earth_fixed_view_turns_with_the_earth(shown, qtbot):
 
 
 def test_the_instrument_view_looks_along_a_body_axis(shown, qtbot):
-    """From the spacecraft along +x_B: the camera at the spacecraft (the
-    origin), looking along x_B in N, with the view's 60 degree field."""
+    """From the spacecraft along +x_B: the camera just outside the model on
+    its x_B axis (the 1 m cube's face 0.5 m from B, plus 2 % of its size),
+    near the origin (the spacecraft), looking along x_B in N, with the
+    view's 60 degree field."""
     view, _cursor = shown
     index = view.view_combo.findText(f"From {view.scene.crafts[0].name} along +x_B")
     view.show_frame(75)  # a quarter orbit: x_B is +y_N
@@ -232,7 +234,8 @@ def test_the_instrument_view_looks_along_a_body_axis(shown, qtbot):
     qtbot.waitUntil(lambda: _js(qtbot, view, "MV.dirty") is False, timeout=10000)
     camera = json.loads(_js(qtbot, view, "JSON.stringify([MV.camera.position.toArray(), "
                                          "MV.camera.getWorldDirection(new THREE.Vector3()).toArray(), MV.camera.fov])"))
-    assert np.linalg.norm(camera[0]) < 1e-9 and camera[2] == 60
+    np.testing.assert_allclose(camera[0], [0.0, 0.00052, 0.0], atol=1e-6)  # [km]
+    assert camera[2] == 60
     np.testing.assert_allclose(camera[1], [0.0, 1.0, 0.0], atol=0.03)
 
 
