@@ -68,9 +68,12 @@ MV.init = function () {
   MV.rendererName = MV.glRenderer();
   MV.software = SOFTWARE_RENDERER.test(MV.rendererName);
   if (MV.software && MV.autoQuality) {  // reduced from the start, not after slow frames
+    // The same renderer, as for any quality switch (a second WebGL
+    // context could fail on software GL): pixel ratio 1, 2k textures,
+    // no atmosphere.
     MV.quality = 'reduced';
     MV.autoReduced = true;
-    MV.makeRenderer();
+    if (MV.renderer) MV.renderer.setPixelRatio(1);
   }
   window.addEventListener('resize', MV.resize);
   MV.loadTextures();
