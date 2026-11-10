@@ -2847,6 +2847,10 @@ The owner asked to proceed on the recommended answers of
   `849b8890...65b5d67f`). Why: no other official source; the repository's
   whitespace hooks reject BOM-free CRLF text with trailing spaces, as for the
   JetBrains Mono licence before.
+- **The header names only the file's own licence.** Its first version also
+  said that earlier releases and Basilisk are ISC; ScanCode then read every
+  file as "EUPL-1.2 AND ISC". Why: a scanner or a distribution must read
+  one licence per file; the history is in README, CHANGELOG and the About box.
 - **The new header keeps the old header's 16 lines.** Why: about 2,100
   `file.py:line` references in the audit and history records stay valid.
   The 65 files that had no header got one at the top.
