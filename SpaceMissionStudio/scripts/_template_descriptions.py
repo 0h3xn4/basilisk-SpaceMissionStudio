@@ -471,7 +471,7 @@ Note:
     "28": """\
 A 300 kg satellite built in the 3D model editor: an octagonal bus, two solar panels, a dish, a star \
 tracker and, inside, a battery off to one side. Its mass, center of mass, inertia, drag and sunlight \
-surfaces and its look in the 3D views all come from the model. Sun-safe pointing, wheels only; three orbits.
+surfaces and 3D look all come from the model. Sun-safe pointing, wheels only; three orbits.
 
 What to look at:
 - Spacecraft > Edit... > 3D model: the center of mass is 4.8 cm toward +x and 6.3 cm toward -z of B, the \
