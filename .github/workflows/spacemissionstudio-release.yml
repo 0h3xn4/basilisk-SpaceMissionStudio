@@ -325,6 +325,8 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
+      id-token: write      # the OIDC token for the Sigstore signing certificate (actions/attest)
+      attestations: write  # to store the signed build provenance in the repository
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ needs.linux.outputs.version }}
@@ -376,6 +378,20 @@ jobs:
           test "${#packages[@]}" = 4
           sboms=(./*.cdx.json)
           test "${#sboms[@]}" = 2
+      - name: Signed build provenance of every release file (Sigstore)
+        # A SLSA build-provenance attestation for each file, signed with a
+        # short-lived Sigstore certificate issued to this workflow run (free
+        # for a public repository; docs/legal/RISK_REGISTER.md R8). Anyone can
+        # check a downloaded file with
+        #   gh attestation verify <file> --repo 0h3xn4/basilisk_space-mission-studio
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            ${{ github.workspace }}/release/*.whl
+            ${{ github.workspace }}/release/*.tar.gz
+            ${{ github.workspace }}/release/*.deb
+            ${{ github.workspace }}/release/*-setup.exe
+            ${{ github.workspace }}/release/*.cdx.json
       - name: Release notes from the CHANGELOG and the built files
         # Summary, who should update, downloads with sizes, install, the
         # installers' SHA-256, what is new, contents, checks and known
