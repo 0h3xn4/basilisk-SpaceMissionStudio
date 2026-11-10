@@ -99,6 +99,7 @@ from .undo_history import ScenarioHistory
 from .run_history import RunHistory
 from .run_history_view import HistoryEntry, RunHistoryView, run_entry, utc_text
 from .results_overview import ResultsOverview
+from ..engine.live_view import LiveFeed
 from .mission_view_widget import MissionViewWidget
 from .run_page import RunModeControl, RunPage
 from .widgets import TabWidget, make_window, show_window
@@ -231,6 +232,7 @@ class MainWindow(QMainWindow):
         self._runs_since_open: set[int] = set()  # numbers of the runs kept since the scenario was opened
         self._extras_since_open: set[int] = set()  # id() of History's extra entries since then
         self._run_worker: RunWorker | None = None
+        self._live_feed: LiveFeed | None = None  # the run shown live in Results › 3D View (engine.live_view)
         self._mc_worker: MonteCarloWorker | None = None
         self._mc_archive_dir: Path | None = None  # where the running or last batch saves (on_run_monte_carlo)
         self._progress_error_shown = False  # see _on_run_progress's own comment
@@ -374,6 +376,7 @@ class MainWindow(QMainWindow):
         # Run > Run (M5b): what the next run uses, for the mode chosen.
         self.run_page = RunPage()
         self.run_page.archive_changed.connect(self._remember_archive_dir)
+        self.run_page.pacing_changed.connect(self._on_pacing_changed)
         # The Run page says Monte Carlo is off before Run is pressed (audit G5).
         monte_carlo_enabled = self.scenario_editor.monte_carlo_group.enabled_check
         monte_carlo_enabled.toggled.connect(self.run_page.set_monte_carlo_enabled)
@@ -2297,6 +2300,12 @@ class MainWindow(QMainWindow):
         # see RunWorker.run()'s docstring -- so live plotting only applies
         # when there's no mission sequence to execute instead.
         live = self.live_plot_action.isChecked() and (sil is not None or not runs_sequence(scenario.mission_sequence))
+        # Show in 3D View while running (Run › Run): every Single run --
+        # Mission Sequences and segmented long runs too -- not SIL, whose
+        # run is built by sil.runner (engine.live_view).
+        self._live_feed = (LiveFeed(pacing=self.run_page.pacing(),
+                                    duration_s=scenario.sim_settings.duration_days * 86400.0)  # [s]
+                           if sil is None and self.run_page.live_view() else None)
         self._start_busy(f"Running {scenario.name}" + (f" with {sil[0]}'s flight software in the loop..."
                                                         if sil is not None else "..."), determinate=live)
         # Always clear the PREVIOUS run's results before this one starts --
@@ -2307,7 +2316,7 @@ class MainWindow(QMainWindow):
         # actually does -- part of the "running another simulation seems
         # to break a lot of things" feedback).
         self._clear_run_views()
-        if live:
+        if self._live_feed is None and live:
             self.show_view(self.results_widget)
         # Reset once per run -- see _on_run_progress's own comment for why
         # this exists: suppresses a dialog-per-chunk storm if something
@@ -2328,6 +2337,8 @@ class MainWindow(QMainWindow):
         self.results_widget.set_layout_key(scenario.name)  # the plot grid is kept per scenario (U-24)
         _join_finished_worker(self._run_worker)
         extra = {"sil": sil} if sil is not None else {}  # a plain run builds its worker exactly as before
+        if self._live_feed is not None:
+            extra["live_feed"] = self._live_feed
         # A 3D model's relative mesh paths are relative to the scenario file.
         model_base_dir = str(self._current_path.parent) if self._current_path is not None else None
         self._run_worker = RunWorker(scenario, model_base_dir=model_base_dir, live=live,
@@ -2344,6 +2355,9 @@ class MainWindow(QMainWindow):
         self._run_worker.finished_ok.connect(self._on_run_finished)
         self._run_worker.failed.connect(self._on_run_failed)
         self._run_worker.cancelled.connect(self._on_run_cancelled)
+        if self._live_feed is not None:
+            self.mission_view_widget.start_live(scenario, self._live_feed, self._scenario_dir())
+            self.show_view(self.mission_view_widget)
         self._run_worker.start()
         # Only RunWorker has a request_cancel() to call (see on_abort_run
         # and this action's own construction comment) -- enabled here,
@@ -2412,7 +2426,21 @@ class MainWindow(QMainWindow):
         except OSError:
             return None
 
+    def _ending_live_view(self) -> bool:
+        """The run just ended was shown live: True if its 3D View is on
+        screen (it stays there, the result replacing the live frames)."""
+        live, self._live_feed = self._live_feed, None
+        if live is None:
+            return False
+        return self.mission_view_widget.isVisible()
+
+    def _on_pacing_changed(self, pacing: float) -> None:
+        """The pace chosen on Run › Run, during a live run too."""
+        if self._live_feed is not None:
+            self._live_feed.set_pacing(pacing)
+
     def _on_run_finished(self, result, command_summary=None) -> None:
+        stay_in_3d = self._ending_live_view()
         file_record = self._last_run_file
         if file_record is not None and result.provenance is not None:
             result.provenance = dataclasses.replace(result.provenance, **file_record)
@@ -2442,7 +2470,9 @@ class MainWindow(QMainWindow):
             self._set_model_analyses_tab(self._last_run_scenario, result)
 
         def shown() -> None:
-            if command_summary is not None:
+            if stay_in_3d:
+                self.show_view(self.mission_view_widget)
+            elif command_summary is not None:
                 self.show_view(self.mission_output_widget)
             elif getattr(self, "_last_run_sil", False):
                 self.show_view(self.flight_software_widget)
@@ -2468,6 +2498,8 @@ class MainWindow(QMainWindow):
         """A failed run: the Log opens at its error (SIL: the Flight Software
         page, with its report), and a toast says what failed (U-23)."""
         self._stop_busy("Run failed.", "failed", "Failed")
+        self._ending_live_view()
+        self.mission_view_widget.end_live()
         self._report_run_problem(_with_log_file_hint(f"Run failed: {message}"))
         self._add_history_extra("failed", "SIL" if getattr(self, "_last_run_sil", False) else "Single", message)
         if getattr(self, "_last_run_sil", False):
@@ -2488,6 +2520,7 @@ class MainWindow(QMainWindow):
         normal finish would show it, just with "cancelled" messaging
         instead of "complete".
         """
+        stay_in_3d = self._ending_live_view()
         number = self.run_history.next_number
         self._stop_busy(f"Run {number} cancelled.", "cancelled", "Cancelled", run_name=f"Run {number}")
         show_toast(self, f"Run {number} cancelled: what was computed is shown", kind="info")
@@ -2509,7 +2542,8 @@ class MainWindow(QMainWindow):
             lambda: self.results_widget.set_live_result(partial_result, self._last_run_epoch_utc), views,
             lambda: (command_summary is not None
                      and self.mission_output_widget.set_command_summary(command_summary, partial_result)),
-            lambda: self.show_view(self.mission_output_widget if command_summary is not None
+            lambda: self.show_view(self.mission_view_widget if stay_in_3d
+                                   else self.mission_output_widget if command_summary is not None
                                    else self.results_widget)], failed)
 
     # -- the end of a run, in steps (M6b) ------------------------------------------------------

@@ -371,3 +371,143 @@ def test_the_page_data_and_style_come_from_the_scene_and_the_theme():
         assert style["crafts"] == categorical(mode) and style["axes"] == list(AXIS_COLOURS)
         assert tokens(mode)["bg.raised"] in style["css"] and tokens(mode)["text.primary"] in style["css"]
         assert style["fov"] == tokens(mode)["accent"] and style["plume"] == tokens(mode)["status.caution"]
+
+
+# -- live: the run shown as it is computed ---------------------------------------------------------
+def _feed_samples(feed, start: int, stop: int, period_s: float = 5800.0, step_s: float = 20.0) -> None:
+    """Samples ``start`` to ``stop`` of a circular orbit, ``step_s`` apart, as the probe pushes them."""
+    for n in range(start, stop):
+        t = n * step_s  # [s]
+        angle = 2.0 * math.pi * t / period_s  # [rad]
+        speed = 2.0 * math.pi * _RADIUS_M / period_s  # [m/s]
+        feed.push(t, [(_RADIUS_M * math.cos(angle), _RADIUS_M * math.sin(angle), 0.0)],
+                  [(-speed * math.sin(angle), speed * math.cos(angle), 0.0)], [(0.0, 0.0, math.tan(angle / 4.0))])
+
+
+def _live_view(qtbot, samples: int = 30):
+    """A view showing a live run fed by hand, its scene built and drawn."""
+    from spacemissionstudio import api
+    from spacemissionstudio.engine.live_view import LiveFeed
+    from spacemissionstudio.gui.mission_view_widget import MissionViewWidget
+    from spacemissionstudio.gui.time_cursor import TimeCursor
+
+    scenario = api.load(api.template("01_two_body_circular_orbit"))
+    feed = LiveFeed(duration_s=5800.0)
+    feed.start([scenario.spacecraft[0].name], [True], _RADIUS_M)
+    feed.interval_used_s = 20.0  # [s]
+    view = MissionViewWidget()
+    qtbot.addWidget(view)
+    view.set_time_cursor(TimeCursor())
+    view.resize(900, 600)
+    view.show()
+    view.start_live(scenario, feed)
+    assert view.is_live() and "Waiting" in view.empty.text()
+    _feed_samples(feed, 0, samples)
+    qtbot.waitUntil(lambda: view.scene is not None, timeout=30000)
+    qtbot.waitUntil(lambda: view._page_ready, timeout=60000)
+    qtbot.waitUntil(lambda: _js(qtbot, view, "MV.ready === true && MV.style !== null") is True, timeout=60000)
+    return view, feed, scenario
+
+
+def test_a_live_run_is_drawn_as_it_is_computed(qtbot):
+    """Samples pushed by the run reach the page (``MV.append``), the path
+    grows, the view follows the newest state with the LIVE badge, and
+    the frames' Earth rotation and Sun are the scene's own
+    (``scene3d.extend_scene``)."""
+    from spacemissionstudio.engine import scene3d
+
+    view, feed, _scenario = _live_view(qtbot)
+    qtbot.waitUntil(lambda: _state(qtbot, view)["frames"] == 30, timeout=20000)
+    _feed_samples(feed, 30, 120)
+    qtbot.waitUntil(lambda: _state(qtbot, view)["frames"] == 120, timeout=20000)
+    qtbot.waitUntil(lambda: _js(qtbot, view, "MV.dirty") is False, timeout=10000)
+    state = _state(qtbot, view)
+    assert state["live"] is True and state["frame"] == 119
+    assert _js(qtbot, view, "[document.getElementById('live').style.display, "
+                            "document.getElementById('live').textContent].join(' ')") == "inline-block LIVE"
+    assert state["pathPoints"] == [120] and state["times"] == [0.0, 2380.0]
+    assert view.following and view.slider.maximum() == 119 and view.slider.value() == 119
+    assert view.play_button.text() == "Pause" and not view.live_button.isEnabled()
+    rotation = json.loads(_js(qtbot, view, "JSON.stringify(MV.data.body.rotation)"))
+    epoch = datetime.fromisoformat(view.scene.epoch_utc.replace("Z", ""))
+    expected = scene3d.earth_rotation_angle(scene3d.julian_date(epoch, np.arange(120) * 20.0))
+    np.testing.assert_allclose(rotation, expected, atol=1e-6)
+    np.testing.assert_allclose(view.scene.sun_direction_N, scene3d.sun_direction_eci(
+        scene3d.julian_date(epoch, np.arange(120) * 20.0)))
+    np.testing.assert_allclose(view.scene.crafts[0].dcm_BN[60], scene3d.mrp_to_dcm(
+        np.array([[0.0, 0.0, math.tan(2.0 * math.pi * 1200.0 / 5800.0 / 4.0)]]))[0], atol=1e-12)
+
+
+def test_pausing_a_live_run_and_going_live_again(qtbot):
+    """Pause or the slider leave the view where it is while the run goes
+    on (no LIVE badge, Go live enabled); Go live (End) returns to the
+    newest state."""
+    view, feed, _scenario = _live_view(qtbot)
+    qtbot.waitUntil(lambda: _state(qtbot, view)["frames"] == 30, timeout=20000)
+    view.slider.setValue(10)
+    assert not view.following and view.live_button.isEnabled() and view.play_button.text() == "Play"
+    _feed_samples(feed, 30, 60)
+    qtbot.waitUntil(lambda: _state(qtbot, view)["frames"] == 60, timeout=20000)
+    state = _state(qtbot, view)
+    assert state["frame"] == 10 and state["live"] is False and view.slider.value() == 10
+    view.go_live()
+    qtbot.waitUntil(lambda: _state(qtbot, view)["frame"] == 59, timeout=10000)
+    assert view.following and _state(qtbot, view)["live"] is True and not view.live_button.isEnabled()
+    view.toggle_play()  # Pause
+    assert not view.following and view.play_button.text() == "Play"
+    _feed_samples(feed, 60, 70)
+    qtbot.waitUntil(lambda: view.slider.maximum() == 69, timeout=10000)
+    assert view.slider.value() == 59
+    view.toggle_play()  # Play: catches up with the run, then follows it
+    qtbot.waitUntil(lambda: view.following, timeout=10000)
+    qtbot.waitUntil(lambda: _state(qtbot, view)["frame"] == 69, timeout=10000)
+
+
+def test_the_run_s_result_replaces_the_live_frames_in_the_same_view(qtbot):
+    """At the end the full result replaces the live frames (``set_run``):
+    the view and its camera stay, the newest time is shown, no LIVE badge."""
+    view, feed, scenario = _live_view(qtbot)
+    qtbot.waitUntil(lambda: _state(qtbot, view)["frames"] == 30, timeout=20000)
+    view.view_combo.setCurrentIndex(1)  # Follow
+    qtbot.waitUntil(lambda: _state(qtbot, view)["view"].get("mode") == "follow", timeout=10000)
+    _js(qtbot, view, "MV.camera.position.set(0.001, 0.002, 0.003); MV.dirty = true; 1")
+    view.go_live()
+    _scenario, result = _run()
+    view.set_run(scenario, result)
+    assert not view.is_live()
+    qtbot.waitUntil(lambda: view.scene is not None and len(view.scene.times_s) == 300, timeout=30000)
+    qtbot.waitUntil(lambda: _state(qtbot, view)["frames"] == 300, timeout=20000)
+    state = _state(qtbot, view)
+    assert state["view"]["mode"] == "follow" and view.view_combo.currentIndex() == 1
+    assert state["frame"] == 299 and view.slider.value() == 299 and state["live"] is False
+    np.testing.assert_allclose(json.loads(_js(qtbot, view, "JSON.stringify(MV.camera.position.toArray())")),
+                               [0.001, 0.002, 0.003], atol=1e-9)
+    assert view.live_button.isHidden()
+
+
+def test_a_software_renderer_starts_in_reduced_quality(shown, qtbot):
+    """Without a graphics card (SwiftShader, llvmpipe: as in this test
+    run) the page starts in reduced quality, before any slow frame, and
+    the menu says so; real graphics cards start in full quality."""
+    view, _cursor = shown
+    state = _state(qtbot, view)
+    assert state["software"] is True and re.search("swiftshader|llvmpipe", state["rendererName"], re.IGNORECASE)
+    assert state["quality"] == "reduced" and state["autoReduced"] is True
+    qtbot.waitUntil(view.quality_action.isChecked, timeout=10000)
+    assert json.loads(_js(qtbot, view, "JSON.stringify(['ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device "
+                                       "(Subzero) (0x0000C0DE)), SwiftShader driver)', 'llvmpipe (LLVM 15.0.7, "
+                                       "256 bits)', 'Software Rasterizer', 'NVIDIA GeForce RTX 3060/PCIe/SSE2', "
+                                       "'ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)']"
+                                       ".map(function (s) { return SOFTWARE_RENDERER.test(s); }))")) == [
+        True, True, True, False, False]
+
+
+def test_a_quality_chosen_in_the_menu_is_kept_over_the_page_s_own(qtbot):
+    """Full quality chosen in Show is kept on the next view, even with a
+    software renderer."""
+    from spacemissionstudio.gui.mission_view_widget import _settings
+
+    _settings().setValue("mission_view/reduced", False)
+    view, _cursor = _open(qtbot, _run())
+    qtbot.waitUntil(lambda: _state(qtbot, view)["quality"] == "full", timeout=10000)
+    assert not view.quality_action.isChecked() and _js(qtbot, view, "MV.autoQuality") is False
