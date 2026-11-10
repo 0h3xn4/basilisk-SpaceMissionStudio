@@ -371,7 +371,7 @@ PRUNE_QT = re.compile(
     r"|assetimporters/|plugins/qmllint/)", re.IGNORECASE)
 PRUNE_PYTHON = re.compile(
     r"^(lib/python3\.\d+/|Lib/)((tkinter|idlelib|turtledemo)(/|$)|turtle\.py)"
-    r"|^(lib/python3\.\d+/lib-dynload/|DLLs/)(_tkinter|_dbm|tcl\d|tk\d)"
+    r"|^(lib/python3\.\d+/lib-dynload/|DLLs/)(_tkinter|_dbm|tcl\d|tk\d|libtommath)"
     r"|^lib/(tcl\d|tk\d|itcl\d|thread\d|libtcl\d|libtk\d)|^tcl/|^bin/idle", re.IGNORECASE)
 
 
@@ -379,6 +379,8 @@ PRUNE_PYTHON = re.compile(
 #: ``_dbm`` (Tcl/Tk, Tix, the X11 client libraries, Berkeley DB): not copied into the bundle.
 PRUNED_LIBRARY_TEXTS = {"LICENSE.bdb.txt", "LICENSE.libX11.txt", "LICENSE.libXau.txt", "LICENSE.libxcb.txt",
                         "LICENSE.tcl.txt", "LICENSE.tix.txt"}
+#: Texts of libraries only the Linux build links (the Windows build of CPython does not use them).
+LINUX_ONLY_LIBRARY_TEXTS = {"LICENSE.libedit.txt", "LICENSE.ncurses.txt", "LICENSE.libuuid.txt"}
 
 
 def prune_unused(dest: Path) -> list[str]:
@@ -402,8 +404,8 @@ def prune_unused(dest: Path) -> list[str]:
 def licence_gate(platform: str, dest: Path, mode: str) -> None:
     """Write the licence texts, the licence SBOM and THIRD_PARTY_NOTICES into the bundle, and run
     the gate (packaging/legal/licences.py check). ``mode`` is ``fail`` (a problem stops the build),
-    ``warn`` (a problem is printed) or ``off``. The Windows component list is not complete yet
-    (docs/legal/OBLIGATIONS.md), so it defaults to ``warn``."""
+    ``warn`` (a problem is printed) or ``off``. The Windows component list is new (2026-11-10) and
+    not yet proven on a full build (docs/legal/OBLIGATIONS.md), so it defaults to ``warn``."""
     if mode == "off":
         return
     import importlib.util
@@ -414,10 +416,11 @@ def licence_gate(platform: str, dest: Path, mode: str) -> None:
     target.mkdir(exist_ok=True)
     for text in sorted(QT_LICENCE_TEXTS.glob("*.txt")):  # PySide6's wheels carry no licence text
         shutil.copy2(text, target / text.name)
-    if platform == "linux":
-        for text in sorted(PBS_LICENCE_TEXTS.glob("LICENSE.*.txt")):
-            if text.name not in PRUNED_LIBRARY_TEXTS:
-                shutil.copy2(text, target / text.name)
+    # The same texts are in the Windows release's full archive (CRLF line ends aside; compared 2026-11-10).
+    skip = PRUNED_LIBRARY_TEXTS | (LINUX_ONLY_LIBRARY_TEXTS if platform == "windows" else set())
+    for text in sorted(PBS_LICENCE_TEXTS.glob("LICENSE.*.txt")):
+        if text.name not in skip:
+            shutil.copy2(text, target / text.name)
     sbom_data = licences.build_sbom(dest, f"spacemissionstudio-{platform}")
     (dest / LICENCE_SBOM_NAME).write_text(json.dumps(sbom_data, indent=2) + "\n", encoding="utf-8")
     licences.write_notices(sbom_data, dest, dest / NOTICES_NAME)

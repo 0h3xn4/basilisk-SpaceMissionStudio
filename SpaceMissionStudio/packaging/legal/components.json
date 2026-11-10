@@ -101,7 +101,7 @@
       "copyright": "2001-2026 Python Software Foundation",
       "url": "https://www.python.org/",
       "type": "application",
-      "licence_basis": "python-build-standalone PYTHON.json lists Python-2.0 and CNRI-Python; the text is lib/python3.14/LICENSE.txt",
+      "licence_basis": "python-build-standalone PYTHON.json lists Python-2.0 and CNRI-Python; the text is lib/python3.14/LICENSE.txt (Linux) or LICENSE.txt (Windows)",
       "match": [
         "lib/python3.14/*",
         "bin/*",
@@ -109,14 +109,47 @@
         "lib/libpython*",
         "lib/pkgconfig/*",
         "share/*",
-        "lib/python3.14/site-packages/README.txt"
+        "lib/python3.14/site-packages/README.txt",
+        "Lib/*",
+        "DLLs/*",
+        "libs/*",
+        "Scripts/*",
+        "python.exe",
+        "pythonw.exe",
+        "python3*.dll",
+        "LICENSE.txt"
       ],
       "exclude": [
         "lib/python3.14/site-packages/*/*",
-        "share/spacemissionstudio/*"
+        "share/spacemissionstudio/*",
+        "Lib/site-packages/*/*",
+        "DLLs/libcrypto-*.dll",
+        "DLLs/libssl-*.dll",
+        "DLLs/libffi-*.dll",
+        "DLLs/sqlite3.dll",
+        "DLLs/zlib1.dll"
       ],
       "licence_match": [
-        "lib/python3.14/LICENSE.txt"
+        "lib/python3.14/LICENSE.txt",
+        "LICENSE.txt"
+      ]
+    },
+    {
+      "name": "Microsoft Visual C++ runtime (vcruntime140.dll, vcruntime140_1.dll)",
+      "version": "as in python-build-standalone 20261013",
+      "licence": "LicenseRef-Microsoft-Distributable-Code",
+      "holder": "Microsoft Corporation",
+      "url": "https://www.microsoft.com/",
+      "type": "library",
+      "licence_basis": "CPython's Windows LICENSE.txt, section 'Additional Conditions for this Windows binary build' (python-build-standalone 20261013, read 2026-11-10); Microsoft's own terms not read",
+      "redistribution_status": "open",
+      "redistribution": "CPython's Windows LICENSE.txt says that redistributing the Windows binary build of the interpreter complies with Microsoft's terms, provided the distributor does not alter Microsoft's notices, use Microsoft's trademarks in a program's name or to suggest endorsement, ship the files for a non-Microsoft platform, or include them in malicious, deceptive or unlawful programs. Owner's decision D10 (docs/legal/RISK_REGISTER.md)",
+      "text_source": "LICENSE.txt of the bundled Python (Windows)",
+      "match": [
+        "vcruntime140*.dll"
+      ],
+      "licence_match": [
+        "LICENSE.txt"
       ]
     },
     {
@@ -126,12 +159,16 @@
       "holder": "The OpenSSL Project Authors",
       "url": "https://www.openssl.org/",
       "type": "library",
-      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped, Linux and Windows); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
       "present_if": [
         "lib/libpython3.14.so*"
       ],
       "licence_match": [
         "licenses/LICENSE.openssl-3.txt"
+      ],
+      "match": [
+        "DLLs/libcrypto-3*.dll",
+        "DLLs/libssl-3*.dll"
       ]
     },
     {
@@ -141,12 +178,15 @@
       "holder": "SQLite authors (public domain)",
       "url": "https://sqlite.org/",
       "type": "library",
-      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped, Linux and Windows); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
       "present_if": [
         "lib/libpython3.14.so*"
       ],
       "licence_match": [
         "licenses/LICENSE.sqlite.txt"
+      ],
+      "match": [
+        "DLLs/sqlite3.dll"
       ]
     },
     {
@@ -156,12 +196,15 @@
       "holder": "Anthony Green, Red Hat, Inc and others",
       "url": "https://github.com/libffi/libffi",
       "type": "library",
-      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped, Linux and Windows); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
       "present_if": [
         "lib/libpython3.14.so*"
       ],
       "licence_match": [
         "licenses/LICENSE.libffi.txt"
+      ],
+      "match": [
+        "DLLs/libffi-*.dll"
       ]
     },
     {
@@ -171,9 +214,10 @@
       "holder": "Thai Open Source Software Center Ltd, Clark Cooper, Expat maintainers",
       "url": "https://libexpat.github.io/",
       "type": "library",
-      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped, Linux and Windows); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
       "present_if": [
-        "lib/libpython3.14.so*"
+        "lib/libpython3.14.so*",
+        "DLLs/pyexpat.pyd"
       ],
       "licence_match": [
         "licenses/LICENSE.expat.txt"
@@ -186,9 +230,10 @@
       "holder": "Stefan Krah",
       "url": "https://www.bytereef.org/mpdecimal/",
       "type": "library",
-      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped, Linux and Windows); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
       "present_if": [
-        "lib/libpython3.14.so*"
+        "lib/libpython3.14.so*",
+        "DLLs/_decimal.pyd"
       ],
       "licence_match": [
         "licenses/LICENSE.mpdecimal.txt"
@@ -201,9 +246,10 @@
       "holder": "The XZ Utils authors and contributors",
       "url": "https://tukaani.org/xz/",
       "type": "library",
-      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped, Linux and Windows); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
       "present_if": [
-        "lib/libpython3.14.so*"
+        "lib/libpython3.14.so*",
+        "DLLs/_lzma.pyd"
       ],
       "licence_match": [
         "licenses/LICENSE.liblzma.txt"
@@ -216,9 +262,10 @@
       "holder": "Julian R Seward",
       "url": "https://sourceware.org/bzip2/",
       "type": "library",
-      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped, Linux and Windows); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
       "present_if": [
-        "lib/libpython3.14.so*"
+        "lib/libpython3.14.so*",
+        "DLLs/_bz2.pyd"
       ],
       "licence_match": [
         "licenses/LICENSE.bzip2.txt"
@@ -231,12 +278,16 @@
       "holder": "Jean-loup Gailly and Mark Adler",
       "url": "https://zlib.net/",
       "type": "library",
-      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
+      "licence_basis": "python-build-standalone 20261013 (cpython-3.14.8+20261013, install_only_stripped, Linux and Windows); licence text from its full archive, packaging/legal/texts/python-build-standalone-20261013/",
       "present_if": [
-        "lib/libpython3.14.so*"
+        "lib/libpython3.14.so*",
+        "python3*.dll"
       ],
       "licence_match": [
         "licenses/LICENSE.zlib.txt"
+      ],
+      "match": [
+        "DLLs/zlib1.dll"
       ]
     },
     {
@@ -248,7 +299,8 @@
       "type": "library",
       "licence_basis": "python-build-standalone links libzstd but its licenses/ folder has no text; the text is the project's LICENSE file (packaging/legal/texts/.../README.md)",
       "present_if": [
-        "lib/libpython3.14.so*"
+        "lib/libpython3.14.so*",
+        "DLLs/_zstd.pyd"
       ],
       "licence_match": [
         "licenses/LICENSE.zstd.txt"
