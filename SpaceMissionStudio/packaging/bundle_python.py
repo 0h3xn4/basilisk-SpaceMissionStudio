@@ -375,6 +375,12 @@ PRUNE_PYTHON = re.compile(
     r"|^lib/(tcl\d|tk\d|itcl\d|thread\d|libtcl\d|libtk\d)|^tcl/|^bin/idle", re.IGNORECASE)
 
 
+#: The texts of the libraries that :data:`PRUNE_PYTHON` removes with ``_tkinter`` and
+#: ``_dbm`` (Tcl/Tk, Tix, the X11 client libraries, Berkeley DB): not copied into the bundle.
+PRUNED_LIBRARY_TEXTS = {"LICENSE.bdb.txt", "LICENSE.libX11.txt", "LICENSE.libXau.txt", "LICENSE.libxcb.txt",
+                        "LICENSE.tcl.txt", "LICENSE.tix.txt"}
+
+
 def prune_unused(dest: Path) -> list[str]:
     """Delete the files of :data:`PRUNE_QT` and :data:`PRUNE_PYTHON` under ``dest``; return their
     relative paths. Their ``RECORD`` entries stay, as after a manual deletion; the licence
@@ -410,7 +416,8 @@ def licence_gate(platform: str, dest: Path, mode: str) -> None:
         shutil.copy2(text, target / text.name)
     if platform == "linux":
         for text in sorted(PBS_LICENCE_TEXTS.glob("LICENSE.*.txt")):
-            shutil.copy2(text, target / text.name)
+            if text.name not in PRUNED_LIBRARY_TEXTS:
+                shutil.copy2(text, target / text.name)
     sbom_data = licences.build_sbom(dest, f"spacemissionstudio-{platform}")
     (dest / LICENCE_SBOM_NAME).write_text(json.dumps(sbom_data, indent=2) + "\n", encoding="utf-8")
     licences.write_notices(sbom_data, dest, dest / NOTICES_NAME)

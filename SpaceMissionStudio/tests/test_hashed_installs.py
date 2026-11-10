@@ -258,3 +258,11 @@ def test_the_qt_source_archives_match_the_pinned_pyside6():
     for archive in spec["archives"]:
         assert archive["url"].startswith("https://download.qt.io/official_releases/") and archive["url"].endswith(archive["name"])
         assert archive["size_bytes"] > 0 and re.fullmatch(r"[0-9a-f]{64}", archive["sha256"])
+
+
+def test_the_texts_of_pruned_libraries_are_not_copied(bundle):
+    """The licence gate fails on a licence text no component owns: the texts of the libraries that
+    leave with ``_tkinter`` and ``_dbm`` are not copied, and every other vendored text is."""
+    vendored = {path.name for path in bundle.PBS_LICENCE_TEXTS.glob("LICENSE.*.txt")}
+    assert bundle.PRUNED_LIBRARY_TEXTS <= vendored
+    assert {"LICENSE.openssl-3.txt", "LICENSE.sqlite.txt", "LICENSE.zstd.txt"} <= vendored - bundle.PRUNED_LIBRARY_TEXTS
