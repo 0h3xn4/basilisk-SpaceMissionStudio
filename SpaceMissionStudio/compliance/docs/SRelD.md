@@ -1,9 +1,9 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 31, 2026-11-09. Remediation R14.
+Document: SMS-SRelD, issue 32, 2026-11-10. Remediation R14.
 
-**Status:** release **2.6.0**, prepared 2026-11-09: the run in 3D inside
+**Status:** release **2.6.0**, published 2026-11-10 (06:51 UTC): the run in 3D inside
 the app in place of the Vizard download (#239, SRS-F-16), network use
 enforced and offline mode (#235, SRS-S-05), the network audit (#236),
 and hash-checked installers with a bill of materials (#237, security
@@ -32,8 +32,34 @@ No template, golden file or scenario field changed: every template's
 outputs are as in 2.5.0, and 2.5.0 opens the files 2.6.0 saves (checked
 with 2.5.0's code on the 32 templates as 2.6.0 saves them). The bundled
 space weather is still 1.3.0's: CelesTrak reset the connection again
-(K-13). The release pull request is merged once CI is green; tagging and
-publishing are the user's (the environment cannot push tags).
+(K-13). The release pull request (#240) was merged once CI was green;
+tagging and publishing were the user's (the environment cannot push tags).
+- Tagged `spacemissionstudio-v2.6.0` (not signed, D-13) on commit
+  `dcbb95e09` (`dcbb95e097c42013433438cc92196ee78139f97d`), the merge of
+  #240 into `develop`, by the user. GitHub release "Space Mission Studio
+  2.6.0", published by the user with notes written for it
+  (<https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.6.0>).
+  The user saved it as a draft first and published it at 06:51:54 UTC,
+  about 1 minute 40 s after the tag started the release workflow, so it
+  was public without files until the workflow attached them at 07:29.
+- Its eight files were built, installed, checked and attached by the
+  release workflow
+  ([run 42771178369](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/42771178369)),
+  which kept the release's notes. GitHub's SHA-256 digests: `.deb`
+  (`spacemissionstudio_2.6.0_amd64.deb`, 451 353 268 bytes)
+  `a853e7b6...4505`, setup program (`spacemissionstudio-2.6.0-setup.exe`,
+  395 789 722 bytes) `1d655470...2c9e`, wheel (4 952 642 bytes)
+  `b56926b2...e541`, sdist (5 155 285 bytes) `37515fb5...73f4`, the
+  `.deb`'s bill of materials (`spacemissionstudio_2.6.0_amd64.cdx.json`,
+  36 033 bytes) `f3dd942b...2c5b`, the setup program's
+  (`spacemissionstudio-2.6.0-setup.cdx.json`, 37 155 bytes)
+  `f9748a6f...c1c5`, `SHA256SUMS-linux` `1df98586...dae5`,
+  `SHA256SUMS-windows` `514a9fe8...74cc`.
+- The repository was renamed on 2026-11-10, after the release, from
+  `0h3xn4/basilisk-SpaceMissionStudio` to
+  `0h3xn4/basilisk_space-mission-studio`. GitHub redirects the old
+  addresses, so the release's notes, which use them, still work; this
+  document and the others now use the new name.
 
 **Previous release:** 2.5.0, published 2026-11-08 (19:29 UTC): thrusters from the
 IDM-CIC model (#230, SRS-F-28, decision IDM-32) and the JSON page as a
@@ -62,13 +88,13 @@ tagging and publishing were the user's (the environment cannot push tags).
   `1951a028c` (`1951a028ce436c6ba0452056da4c4dfed2c05b6c`), the merge of
   #233 into `develop`, by the user. GitHub release "Space Mission Studio
   2.5.0", published by the user with notes written for it
-  (<https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.5.0>).
+  (<https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.5.0>).
   It was published at 19:29:07 UTC, one second before the release
   workflow started, so it was public without files until the workflow
   attached them at 20:01.
 - Its six files were built, installed, checked and attached by the
   release workflow
-  ([run 42515265320](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/42515265320)),
+  ([run 42515265320](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/42515265320)),
   which kept the release's notes. GitHub's SHA-256 digests: `.deb`
   (`spacemissionstudio_2.5.0_amd64.deb`, 451 057 276 bytes)
   `ef4d8e89...a530`, setup program (`spacemissionstudio-2.5.0-setup.exe`,
@@ -104,13 +130,13 @@ and publishing were the user's (the environment cannot push tags).
   `ac4b90065` (`ac4b9006573dee84f68bcb1cf7800edc2a843544`), the merge of
   #228 into `develop`, by the user. GitHub release "Space Mission Studio
   2.4.0", published by the user with notes written for it
-  (<https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.4.0>).
+  (<https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.4.0>).
   It was published at 20:58:24 UTC, two seconds before the release
   workflow started, so it was public without files until the workflow
   attached them at 21:33.
 - Its six files were built, installed, checked and attached by the
   release workflow
-  ([run 42108301360](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/42108301360)),
+  ([run 42108301360](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/42108301360)),
   which kept the release's notes. GitHub's SHA-256 digests: `.deb`
   (`spacemissionstudio_2.4.0_amd64.deb`, 451 140 540 bytes)
   `890a7bc9...71a7`, setup program (`spacemissionstudio-2.4.0-setup.exe`,
@@ -141,13 +167,13 @@ environment cannot push tags).
   `3f11a0227` (`3f11a022715c41bc16094d34937b586c1eb0910b`), the merge of
   #225 into `develop`, by the user. GitHub release "Space Mission Studio
   2.3.0", published by the user with notes written for it
-  (<https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.3.0>).
+  (<https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.3.0>).
   It was published at 16:17:58 UTC, two seconds before the release
   workflow started, so it was public without files until the workflow
   attached them at 16:56.
 - Its six files were built, installed, checked and attached by the
   release workflow
-  ([run 42062956336](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/42062956336)),
+  ([run 42062956336](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/42062956336)),
   which kept the release's notes. GitHub's SHA-256 digests: `.deb`
   (`spacemissionstudio_2.3.0_amd64.deb`, 451 386 808 bytes)
   `d5622c3b...b616`, setup program (`spacemissionstudio-2.3.0-setup.exe`,
@@ -175,13 +201,13 @@ environment cannot push tags).
   `fa9d2b6b9` (`fa9d2b6b9f015d70cdec7f21360a762b2d26fd22`), the merge of
   #219 into `develop`, by the user. GitHub release "Space Mission Studio
   2.2.0", published by the user with notes written for it
-  (<https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.2.0>).
+  (<https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.2.0>).
   It was published at 08:55:50 UTC, two seconds before the release
   workflow started, so it was public without files until the workflow
   attached them at 09:34.
 - Its six files were built, installed, checked and attached by the
   release workflow
-  ([run 41998260915](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/41998260915)),
+  ([run 41998260915](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/41998260915)),
   which kept the release's notes. GitHub's SHA-256 digests: `.deb`
   (`spacemissionstudio_2.2.0_amd64.deb`, 450 735 196 bytes)
   `2e4cfab3...72ae`, setup program (`spacemissionstudio-2.2.0-setup.exe`,
@@ -208,13 +234,13 @@ were the user's (the environment cannot push tags).
   `a6413c1cb` (`a6413c1cb44fa3ec98c47ed11cd43b254b5f44c2`), the merge of
   #216 into `develop`, by the user. GitHub release "Space Mission Studio
   2.1.1", published by the user with notes written for it
-  (<https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.1.1>).
+  (<https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.1.1>).
   It was published at 19:58:37 UTC, two seconds before the release
   workflow started, so it was public without files until the workflow
   attached them at 20:33.
 - Its six files were built, installed, checked and attached by the
   release workflow
-  ([run 41902117432](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/41902117432)),
+  ([run 41902117432](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/41902117432)),
   which kept the release's notes. GitHub's SHA-256 digests: `.deb`
   (`spacemissionstudio_2.1.1_amd64.deb`, 451 169 664 bytes)
   `4e8533e5...8909`, setup program (`spacemissionstudio-2.1.1-setup.exe`,
@@ -242,13 +268,13 @@ tagging and publishing were the user's.
   `4346b4189` (`4346b41899378824855e190f2a6834d506ceb8c7`), the merge of
   #213 into `develop`, by the user. GitHub release "Space Mission Studio
   2.1.0", published by the user with notes written for it
-  (<https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.1.0>).
+  (<https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.1.0>).
   It was published at 14:57:45 UTC, two seconds before the release
   workflow started, so it was public without files until the workflow
   attached them at 15:34.
 - Its six files were built, installed, checked and attached by the
   release workflow
-  ([run 41852813354](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/41852813354)),
+  ([run 41852813354](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/41852813354)),
   which kept the release's notes. GitHub's SHA-256 digests: `.deb`
   (`spacemissionstudio_2.1.0_amd64.deb`, 451 211 836 bytes)
   `5bacd782...cb04`, setup program (`spacemissionstudio-2.1.0-setup.exe`,
@@ -290,13 +316,13 @@ tagging and publishing were the user's.
   `6608682a3` (`6608682a34c3694a1df7de86b5553d85e7ea9167`), the merge of
   #206 into `develop`, by the user. GitHub release "Space Mission Studio
   2.0.0", published by the user with notes written for it
-  (<https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.0.0>).
+  (<https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.0.0>).
   It was published at 12:30:59 UTC, before the release workflow had
   started, so it was public without files until the workflow attached
   them at 13:02.
 - Its six files were built, installed, checked and attached by the
   release workflow
-  ([run 41636370025](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/41636370025)),
+  ([run 41636370025](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/41636370025)),
   which kept the release's notes. GitHub's SHA-256 digests: `.deb`
   (`spacemissionstudio_2.0.0_amd64.deb`, 450 924 188 bytes)
   `c54f6dad...1fb7`, setup program (`spacemissionstudio-2.0.0-setup.exe`,
@@ -323,7 +349,7 @@ publishing were the user's.
   `081f74079` (`081f7407938d97abf8bcff3aae402b8235ea7c86`), the merge of
   #119 into `develop`. GitHub release "Space Mission Studio 1.3.1",
   published by the user:
-  <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.3.1>.
+  <https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v1.3.1>.
   It was published at 06:05:53 UTC, before the release workflow had
   started, so it was public without files or notes until the workflow
   attached them at 06:18. The tagged `CHANGELOG.md` heading reads
@@ -331,7 +357,7 @@ publishing were the user's.
   2026-10-27, the day it was published.
 - Its six files were built, installed, checked and attached by the
   release workflow
-  ([run 40459074482](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/40459074482)),
+  ([run 40459074482](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/40459074482)),
   which also wrote the notes because the release had none. GitHub's
   SHA-256 digests: `.deb` (`spacemissionstudio_1.3.1_amd64.deb`,
   447 262 520 bytes) `09d9a34c...4f44`, setup program
@@ -360,14 +386,14 @@ spacecraft page built a section at a time (#114).
   D-13) on commit `7bdfa21ac` (`7bdfa21ac8262e358e18ae040972ed95944c4246`),
   the merge of #114 into `develop`. GitHub release "Space Mission Studio
   1.3.0", published by the user:
-  <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.3.0>.
+  <https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v1.3.0>.
   It was published at 11:55 UTC, before the release workflow had attached
   anything, so it was public without files or notes until the workflow
   finished at 12:07. The tagged `CHANGELOG.md` still reads "1.3.0 (not
   yet released)"; `develop` has the date.
 - Its six files were built, installed, checked and attached by the
   release workflow
-  ([run 40318662400](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/40318662400)),
+  ([run 40318662400](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/40318662400)),
   which also wrote the notes because the release had none. GitHub's
   SHA-256 digests: `.deb` (`spacemissionstudio_1.3.0_amd64.deb`,
   447 092 940 bytes) `77cae8f5...5d8f`, setup program
@@ -382,13 +408,13 @@ mission from scratch, guided, and the end of macOS support:
   D-13) on commit `c92f90040` (`c92f9004075bb28bbad361d55408b827670c0e1a`),
   the merge of the release pull request (#94) into `develop`. GitHub
   release "Space Mission Studio 1.2.0", published by the user:
-  <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.2.0>.
+  <https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v1.2.0>.
   It was published at 17:20 UTC, before the release workflow had
   attached anything, so it was public without files or notes until the
   workflow finished at 17:33.
 - Its six files were built, installed, checked and attached by the
   release workflow
-  ([run 39642864007](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/39642864007)).
+  ([run 39642864007](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/39642864007)).
   GitHub's SHA-256 digests: `.deb` (`spacemissionstudio_1.2.0_amd64.deb`,
   446 730 028 bytes) `92760538...0809`, setup program
   (`spacemissionstudio-1.2.0-setup.exe`, 394 968 402 bytes)
@@ -408,7 +434,7 @@ internet access and, for the setup program, Python 3.11 on `PATH`
 ## 1 Introduction (G.2.1<1>)
 
 This SRelD describes release 2.6.0 of SpaceMissionStudio in
-`0h3xn4/basilisk-SpaceMissionStudio`: what it contains, what changed since 2.5.0
+`0h3xn4/basilisk_space-mission-studio`: what it contains, what changed since 2.5.0
 (commit `1951a028c`), what is known to be wrong, and how to use it.
 
 ## 2 Applicable and reference documents (G.2.1<2>)
@@ -433,7 +459,7 @@ This SRelD describes release 2.6.0 of SpaceMissionStudio in
 | Item | Value |
 |---|---|
 | Configuration item | SpaceMissionStudio (`SpaceMissionStudio/` in the repository) |
-| Baseline | `develop` after the 2.6.0 release pull request (the changes of #234 to #239 and the release's records), to be tagged `spacemissionstudio-v2.6.0` by the user. Previous release: 2.5.0, commit `1951a028c` (`1951a028ce436c6ba0452056da4c4dfed2c05b6c`), tagged `spacemissionstudio-v2.5.0`. |
+| Baseline | Commit `dcbb95e09` (`dcbb95e097c42013433438cc92196ee78139f97d`), tagged `spacemissionstudio-v2.6.0`: `develop` after the 2.6.0 release pull request (#240; the changes of #234 to #239 and the release's records). Previous release: 2.5.0, commit `1951a028c` (`1951a028ce436c6ba0452056da4c4dfed2c05b6c`), tagged `spacemissionstudio-v2.5.0`. |
 | Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt`. Bundled with the GUI as files, not packages: Inter 4.1 and JetBrains Mono 2.304 (SIL OFL 1.1) and 45 Lucide icons from lucide-static 1.52.0 (ISC), with versions, sources and checksums in `docs/THIRD_PARTY_ASSETS.md`. The installers also carry CPython 3.14.8 (python-build-standalone 20261013, SHA-256 pinned) with every installed package and the reference data; each build lists them in its `SPACEMISSIONSTUDIO_RUNTIME.json`, and `docs/THIRD_PARTY_ASSETS.md` ("In the installers") gives their licences |
 | Platform | The installers: Linux x86_64 with glibc 2.34 or newer (`.deb`), Windows 10/11 x64; no Python needed. From source: Python 3.14 (3.11 to 3.13 are no longer supported; Basilisk 2.12.0 and PySide6 6.11 do not install on 3.15 yet) |
 | Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_2.6.0_amd64.deb`, the Windows setup program `spacemissionstudio-2.6.0-setup.exe` (not signed, D-13), each installer's bill of materials (`spacemissionstudio_2.6.0_amd64.cdx.json`, `spacemissionstudio-2.6.0-setup.cdx.json`, CycloneDX 1.6), `SHA256SUMS-linux` and `SHA256SUMS-windows` |

@@ -147,7 +147,7 @@ what has been verified where.
   Linux or the Windows job fail, nothing is attached; fix the cause and run the
   workflow again for the tag.
 - Read the draft on
-  <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases>: the
+  <https://github.com/0h3xn4/basilisk_space-mission-studio/releases>: the
   six files, and the notes, which say which platform has which file and
   name the workflow run that installed them. Then publish it.
 - After publishing, download the assets from the release and run
@@ -358,7 +358,15 @@ materials (`*.cdx.json`), listed in `SHA256SUMS-*`. No template, golden
 file or scenario field changed; 2.5.0 opens the files 2.6.0 saves
 (checked with 2.5.0's code on the 32 templates as 2.6.0 saves them). The
 space weather is still 1.3.0's (CelesTrak reset the connection again,
-K-13).
+K-13). The release pull request (#240) was merged once CI was green, and
+the user tagged `spacemissionstudio-v2.6.0` on `dcbb95e09`, pushed the
+tag and published the release on 2026-11-10 at 06:51 UTC, with notes
+written for it, which the workflow kept. The release had been saved as a
+draft first, as advised, but was published about two minutes after the
+tag, so it was public without files for 38 minutes, until the workflow
+attached its eight files at 07:29, the eleventh release so. To avoid
+it: keep the draft until the workflow has attached the files (about 40
+minutes: the full suite runs on both platforms first), then publish.
 
 ---
 

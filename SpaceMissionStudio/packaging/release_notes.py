@@ -53,7 +53,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-REPOSITORY_URL = "https://github.com/0h3xn4/basilisk-SpaceMissionStudio"
+REPOSITORY_URL = "https://github.com/0h3xn4/basilisk_space-mission-studio"
 
 #: Subsections of a CHANGELOG entry that get a section of their own.
 OWN_SECTIONS = ("Who should update", "Known limits")

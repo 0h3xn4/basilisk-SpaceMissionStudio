@@ -187,7 +187,7 @@ def test_the_debian_copyright_file_names_each_bundled_part_and_its_licence():
     root = Path(__file__).resolve().parents[1]
     text = (root / "packaging/deb/usr/share/doc/spacemissionstudio/copyright").read_text(encoding="utf-8")
     header, *paragraphs = text.split("\n\n")
-    assert "Source: https://github.com/0h3xn4/basilisk-SpaceMissionStudio\n" in header
+    assert "Source: https://github.com/0h3xn4/basilisk_space-mission-studio\n" in header
     stanzas = []
     for paragraph in paragraphs:
         if paragraph.startswith("Files:"):
@@ -224,7 +224,7 @@ def test_the_debian_copyright_file_names_each_bundled_part_and_its_licence():
     assert (root / "LICENSE").read_text(encoding="utf-8").startswith("EUROPEAN UNION PUBLIC LICENCE v. 1.2")
     assert (root / "LICENSE.de").read_text(encoding="utf-8").startswith("OPEN-SOURCE-LIZENZ FÜR DIE EUROPÄISCHE UNION v. 1.2")
     control = (root / "packaging/deb/DEBIAN/control.in").read_text(encoding="utf-8")
-    assert "Homepage: https://github.com/0h3xn4/basilisk-SpaceMissionStudio\n" in control
+    assert "Homepage: https://github.com/0h3xn4/basilisk_space-mission-studio\n" in control
 
 def test_file_record_of_an_unreadable_file_is_marked_not_raised(tmp_path):
     """Audit L26: a file that could be stat()ed but not read (permissions, or
