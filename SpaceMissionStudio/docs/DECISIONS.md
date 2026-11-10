@@ -2907,3 +2907,32 @@ Not legal advice; the owner decided not to involve a lawyer.
   privacy text is needed.
 - **No lawyer.** Items the plan marked "for a lawyer" stay open in the risk
   register, marked as the owner's accepted risk.
+
+## Legal groundwork M4: the risk register (2026-11-10)
+
+`docs/legal/RISK_REGISTER.md` holds R1 to R13 with facts, what was done and
+what is open. Not legal advice.
+
+- **Sign-off is checked for pull requests from forks only**
+  (`spacemissionstudio-signoff.yml`, `scripts/check_signoff.py`). Why: a
+  sign-off is a personal statement under the Developer's Certificate of
+  Origin; the maintainer's own commits are written with an AI tool, and
+  nobody may sign off on the maintainer's behalf.
+- **Release files get a signed build provenance** (`actions/attest@v4`,
+  Sigstore). Why: free for a public repository, and anyone can verify it;
+  Windows code signing costs money, so it is only proposed (Q7).
+- **Licence matching is case-sensitive on every system.** Why: on Windows
+  `fnmatch` ignores case, and Tcl's pattern `lib/thread*` claimed
+  `Lib/threading.py`.
+- **The Microsoft C++ runtime in the Windows Python is a component of its
+  own, with its redistribution status open** (D10). Why: the only text read
+  is CPython's statement in its Windows `LICENSE.txt`; relying on it is the
+  owner's decision.
+- **`libtommath.dll` is pruned with Tcl/Tk.** Why: Tcl is its only user;
+  this is within the owner's decision Q3 (D9).
+- **Wording for no warranty, flight use and non-affiliation is drafted, not
+  used** (`docs/legal/WORDING_DRAFTS.md`). Why: the brief forbids legal text
+  without the owner's approval.
+- **The author name and import paths in scenario files stay as they are**
+  (proposal P2 in the register). Why: changing them changes scenario files
+  and CLI output.

@@ -60,6 +60,20 @@ fixes bugs.
   the libraries inside the bundled Python (OpenSSL, SQLite, libffi, Tcl/Tk and
   others), which the Python build ships without. The reference-data terms are in
   `docs/legal/DATA_TERMS.md`. No calculation, output file or command changed.
+- **Signed build provenance for release files.** From this release, every
+  file the release workflow builds carries a Sigstore-signed provenance;
+  check a download with `gh attestation verify <file> --repo
+  0h3xn4/basilisk_space-mission-studio`. A security policy
+  (`SECURITY.md`, private reporting through GitHub) is at the repository
+  root.
+
+### Fixed
+
+- **The Windows installer's licence check knew only the Linux layout.** It
+  now finds an owner and a licence text for every file of the Windows
+  build of Python, and the Windows installer carries the texts of the
+  libraries inside it. `libtommath.dll`, used only by the removed Tcl/Tk,
+  is left out too.
 
 ## 2.6.0 (2026-11-09)
 

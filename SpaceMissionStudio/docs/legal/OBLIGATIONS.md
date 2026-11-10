@@ -58,9 +58,12 @@ Facts the plan got wrong or missed, found while building M1:
 
 ## Windows
 
-The Windows list is not read yet: python-build-standalone's Windows build links other libraries, and its tree has
-other file names. The first Windows installer build runs the gate in `warn` mode and prints the files no component owns.
-Each becomes an entry in `components.json`, after which the Windows gate can fail like the Linux one.
+Read in M4 (2026-11-10, `RISK_REGISTER.md` R11). The first Windows runs printed
+633 problems; the components now cover the Windows build of CPython, its
+libraries and the Microsoft C++ runtime (D10), and a test runs the gate on the
+Windows layout. The Windows gate stays in `warn` mode, and keeps its full report
+as an artifact, until a full build shows only warnings; then it fails like the
+Linux one.
 
 ## EUPL compatibility (M2)
 
@@ -102,3 +105,4 @@ unchanged `LICENSE` inside the flight-software source zip, Basilisk's own
 | D1 to D7 | the data items in `DATA_TERMS.md` |
 | D8 | **DECIDED 2026-11-10: attach the archives** (owner). The release workflow attaches `qt-everywhere-src-6.11.2.tar.xz` and `pyside-setup-everywhere-src-6.11.2.tar.xz`, checked against `packaging/legal/qt-sources.json`; `QT_NOTICE.txt` points to them. Open: Qt's CVE patch files for 6.11 (whether the PySide6 wheels include them is not known) |
 | D9 | **DECIDED 2026-11-10: yes** (owner); `bundle_python.prune_unused`. Before: Remove unused modules from the installers (`_tkinter` with Tcl/Tk, `_dbm`, GPL-only Qt modules)? Smaller notices and less licence risk; it changes what the installers contain. |
+| D10 | **Open.** The Microsoft C++ runtime (`vcruntime140*.dll`) in the Windows installer: rely on the conditions in CPython's Windows `LICENSE.txt` (`RISK_REGISTER.md` R11)? Until then its status is `open` (a warning). |
