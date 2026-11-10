@@ -26,6 +26,7 @@ import json
 import math
 import re
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -121,9 +122,23 @@ def test_the_run_is_drawn_in_the_app_s_own_page(shown, qtbot):
     assert view.slider.maximum() == len(view.scene.times_s) - 1 == 299
     assert view.speed_combo.currentData() == 300  # 5800 s / 30 s: 5 min/s
     assert "larger than they are" in view.scale_note.text()
-    assert view.web_view.url().isLocalFile() and view.web_view.url().toLocalFile() == str(PAGE)
+    assert view.web_view.url().isLocalFile() and Path(view.web_view.url().toLocalFile()) == PAGE
     assert [view.view_combo.itemText(i) for i in range(3)] == [
         "Whole orbit", f"Follow {view.scene.crafts[0].name}", "Earth-fixed"]
+
+
+def test_without_webgl_the_view_says_so_and_keeps_working(shown, qtbot):
+    """A computer where WebGL cannot start (no graphics driver and no
+    software fallback): the page says so in the view instead of failing
+    on every frame, and playback and the views still work."""
+    view, _cursor = shown
+    _js(qtbot, view, "MV.createRenderer = function () { throw new Error('no WebGL'); };"
+                     "MV.makeRenderer(); MV.setView({mode: 'follow', craft: 0}); MV.setFrame(10); MV.dirty = true; true")
+    qtbot.wait(200)
+    state = _state(qtbot, view)
+    assert state["webgl"] is False and state["gl2"] is False and state["frame"] == 10
+    assert "could not start WebGL" in _js(qtbot, view, "document.getElementById('view').textContent")
+    assert _js(qtbot, view, "JSON.stringify(MV_ERRORS)") == "[]"
 
 
 def test_the_earth_and_star_textures_are_loaded(shown, qtbot):

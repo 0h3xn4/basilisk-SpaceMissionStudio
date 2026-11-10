@@ -73,10 +73,15 @@ MV.aspect = function () {
 
 MV.resize = function () {
   const host = document.getElementById('view');
-  MV.renderer.setSize(host.clientWidth || window.innerWidth, host.clientHeight || window.innerHeight);
+  if (MV.renderer) MV.renderer.setSize(host.clientWidth || window.innerWidth, host.clientHeight || window.innerHeight);
   MV.camera.aspect = MV.aspect();
   MV.camera.updateProjectionMatrix();
   MV.dirty = true;
+};
+
+// three.js's WebGL renderer; it throws where no WebGL context can start.
+MV.createRenderer = function (options) {
+  return new THREE.WebGLRenderer(options);
 };
 
 // The WebGL renderer: antialiased in full quality, not in reduced quality
@@ -87,8 +92,22 @@ MV.makeRenderer = function () {
   if (MV.renderer) {
     host.removeChild(MV.renderer.domElement);
     MV.renderer.dispose();
+    MV.renderer = null;
   }
-  const renderer = new THREE.WebGLRenderer({antialias: full, logarithmicDepthBuffer: true});
+  let renderer;
+  try {
+    renderer = MV.createRenderer({antialias: full, logarithmicDepthBuffer: true});
+  } catch (e) {
+    // No WebGL (no graphics driver and no software fallback): say so in
+    // the view instead of failing on every frame.
+    MV.webgl = false;
+    host.textContent = 'This computer could not start WebGL, which the 3D View draws with. ' +
+      'Update the graphics driver, or start the app where a graphics card or software rendering is available.';
+    host.className = 'no-webgl';
+    MV.makeControls();
+    return;
+  }
+  MV.webgl = true;
   renderer.setPixelRatio(full ? (window.devicePixelRatio || 1) : 1);
   renderer.setSize(host.clientWidth || window.innerWidth, host.clientHeight || window.innerHeight);
   host.appendChild(renderer.domElement);
@@ -102,9 +121,15 @@ MV.makeRenderer = function () {
   MV.dirty = true;
 };
 
+// The drawing surface: the renderer's canvas, or the view's own element
+// while there is no renderer (no WebGL).
+MV.canvas = function () {
+  return MV.renderer ? MV.renderer.domElement : document.getElementById('view');
+};
+
 MV.makeControls = function () {
   if (MV.controls) MV.controls.dispose();
-  MV.controls = new THREE.OrbitControls(MV.camera, MV.renderer.domElement);
+  MV.controls = new THREE.OrbitControls(MV.camera, MV.canvas());
   MV.controls.enableDamping = false;
   MV.controls.zoomSpeed = 1.5;
   MV.controls.addEventListener('change', function () { MV.dirty = true; });
@@ -154,7 +179,7 @@ MV.loadTextures = function () {
     if (MV.textures[file]) { done(MV.textures[file]); return; }
     loader.load(file, function (texture) {
       texture.colorSpace = THREE.SRGBColorSpace;
-      texture.anisotropy = Math.min(4, MV.renderer.capabilities.getMaxAnisotropy());
+      if (MV.renderer) texture.anisotropy = Math.min(4, MV.renderer.capabilities.getMaxAnisotropy());
       done(texture);
     }, undefined, function () { MV.loaded[kind] = 'failed: ' + file; });
   });
@@ -709,7 +734,7 @@ MV.update = function () {
   MV.sun.visible = sun !== null && Boolean(st);
   if (sun) {
     MV.sun.position.copy(cam.position).addScaledVector(sun, 1e7);
-    const px = st ? st.sun_px : 0, h = MV.renderer.domElement.clientHeight || window.innerHeight;
+    const px = st ? st.sun_px : 0, h = MV.canvas().clientHeight || window.innerHeight;
     const scale = px * Math.tan(cam.fov * Math.PI / 360) * 2 / Math.max(1, h);
     MV.sun.scale.set(scale, scale, 1);
   }
@@ -747,7 +772,7 @@ MV.updateHud = function () {
 };
 
 MV.updateLabels = function () {
-  const cam = MV.camera, w = MV.renderer.domElement.clientWidth, h = MV.renderer.domElement.clientHeight;
+  const cam = MV.camera, w = MV.canvas().clientWidth, h = MV.canvas().clientHeight;
   const centre = MV.earthGroup.position, radius = MV.data.body.radius;
   MV.labels.forEach(function (label) {
     let show = MV.toggles.labels && !(label.kind === 'station' && !MV.toggles.stations);
@@ -775,6 +800,7 @@ MV.updateLabels = function () {
 };
 
 MV.render = function () {
+  if (!MV.renderer) { MV.dirty = false; return; }
   MV.update();
   MV.renderer.render(MV.scene, MV.camera);
   MV.updateLabels();
@@ -817,6 +843,7 @@ MV.configure = function (options) {
 // Draw `count` frames, each waited for (reading a pixel back waits for
 // the frame to be drawn), and time them [ms].
 MV.benchmark = function (count) {
+  if (!MV.renderer) return null;
   const gl = MV.renderer.getContext(), times = [], pixel = new Uint8Array(4);
   for (let k = 0; k < count; k++) {
     const start = performance.now();
@@ -872,9 +899,11 @@ MV.state = function () {
     links: MV.links.map(function (l) { return l.line.visible; }),
     labels: MV.labels.filter(function (l) { return l.shown; }).map(function (l) { return l.text; }),
     hud: document.getElementById('hud-time').textContent + document.getElementById('hud-craft').textContent,
-    styleMode: MV.style ? MV.style.mode : null, clear: '#' + MV.renderer.getClearColor(new THREE.Color())
-      .getHexString(THREE.SRGBColorSpace), hudBackground: getComputedStyle(document.getElementById('hud')).backgroundColor,
-    fov: MV.camera.fov, pixelRatio: MV.renderer.getPixelRatio(), gl2: MV.renderer.capabilities.isWebGL2,
+    styleMode: MV.style ? MV.style.mode : null, webgl: MV.webgl,
+    clear: MV.renderer ? '#' + MV.renderer.getClearColor(new THREE.Color()).getHexString(THREE.SRGBColorSpace) : null,
+    hudBackground: getComputedStyle(document.getElementById('hud')).backgroundColor,
+    fov: MV.camera.fov, pixelRatio: MV.renderer ? MV.renderer.getPixelRatio() : null,
+    gl2: MV.renderer ? MV.renderer.capabilities.isWebGL2 : false,
     cameraDistance: MV.camera.position.length(),
   };
 };
