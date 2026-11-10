@@ -1,0 +1,33 @@
+# SpaceMissionStudio: the sign-off of contributions from forks
+# (SpaceMissionStudio/docs/legal/RISK_REGISTER.md R9). A pull request from a
+# fork must sign off every commit that changes SpaceMissionStudio/ with the
+# line `git commit -s` writes, the contributor's statement under the
+# Developer's Certificate of Origin 1.1 (the root pull-request template links
+# it; SpaceMissionStudio/CONTRIBUTING.md explains it). Branches of this
+# repository itself are not checked. Reads the repository only.
+name: "SpaceMissionStudio sign-off"
+
+on:
+  pull_request:
+    paths:
+      - "SpaceMissionStudio/**"
+      - ".github/workflows/spacemissionstudio-signoff.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  signoff:
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Every commit that changes SpaceMissionStudio/ is signed off by its author
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: python3 SpaceMissionStudio/scripts/check_signoff.py "$BASE" "$HEAD"

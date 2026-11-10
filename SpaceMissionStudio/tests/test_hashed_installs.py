@@ -201,6 +201,9 @@ _PRUNED = [
     "Lib/site-packages/PySide6/Qt6Quick3D.dll",
     "Lib/site-packages/PySide6/qml/QtQuick/VirtualKeyboard/qmldir",
     "DLLs/_tkinter.pyd",
+    "DLLs/tcl90.dll",
+    "DLLs/tcl9tk90.dll",
+    "DLLs/libtommath.dll",
     "tcl/tcl9.0/init.tcl",
 ]
 _KEPT = [
@@ -214,6 +217,9 @@ _KEPT = [
     "lib/python3.14/turtle_like_name_kept_by_nobody.py",
     "lib/python3.14/site-packages/matplotlib/backends/backend_tkagg.py",
     "Lib/site-packages/PySide6/Qt6WebEngineCore.dll",
+    "Lib/threading.py",
+    "DLLs/zlib1.dll",
+    "DLLs/_ssl.pyd",
 ]
 
 
@@ -272,3 +278,46 @@ def test_the_texts_of_pruned_libraries_are_not_copied(bundle):
     vendored = {path.name for path in bundle.PBS_LICENCE_TEXTS.glob("LICENSE.*.txt")}
     assert bundle.PRUNED_LIBRARY_TEXTS <= vendored
     assert {"LICENSE.openssl-3.txt", "LICENSE.sqlite.txt", "LICENSE.zstd.txt"} <= vendored - bundle.PRUNED_LIBRARY_TEXTS
+
+
+
+#: The files of python-build-standalone 20261013's Windows build (install_only_stripped, listed
+#: 2026-11-10) after pruning, one or a few of each kind, with what the licence gate must make of them.
+_WINDOWS_TREE = [
+    "python.exe", "pythonw.exe", "python3.dll", "python314.dll", "LICENSE.txt", "vcruntime140.dll",
+    "vcruntime140_1.dll", "libs/python314.lib", "include/Python.h", "Scripts/.empty", "Lib/os.py",
+    "Lib/threading.py", "Lib/dbm/dumb.py", "Lib/site-packages/README.txt", "DLLs/_ssl.pyd",
+    "DLLs/_hashlib.pyd", "DLLs/_ctypes.pyd", "DLLs/_sqlite3.pyd", "DLLs/pyexpat.pyd", "DLLs/_decimal.pyd",
+    "DLLs/_lzma.pyd", "DLLs/_bz2.pyd", "DLLs/_zstd.pyd", "DLLs/libcrypto-3-x64.dll", "DLLs/libssl-3-x64.dll",
+    "DLLs/libffi-8.dll", "DLLs/sqlite3.dll", "DLLs/zlib1.dll",
+]
+
+
+def test_the_licence_gate_knows_every_file_of_the_windows_python(bundle, tmp_path):
+    """On the Windows layout every file has an owner and every library its text, and there is no finding:
+    the Microsoft runtime is redistributed on the conditions in CPython's Windows LICENSE.txt (owner's
+    decision D10, 2026-11-10). Tcl/Tk, which the
+    pruning removed, is not reported: matching is case-sensitive, so ``lib/thread*`` no longer claims
+    ``Lib/threading.py``."""
+    for name in _WINDOWS_TREE:
+        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / name).write_bytes(b"x")
+    licences = _load_licences()
+    (tmp_path / "licenses").mkdir()
+    for text in bundle.PBS_LICENCE_TEXTS.glob("LICENSE.*.txt"):
+        if text.name not in bundle.PRUNED_LIBRARY_TEXTS | bundle.LINUX_ONLY_LIBRARY_TEXTS:
+            (tmp_path / "licenses" / text.name).write_bytes(text.read_bytes())
+    sbom = licences.build_sbom(tmp_path, "windows-test")
+    names = {component["name"] for component in sbom["components"]}
+    assert {"CPython", "OpenSSL 3", "SQLite", "libffi", "expat", "mpdecimal", "zlib", "zstd", "bzip2"} <= names
+    assert not any(name.startswith(("Tcl", "Tix", "X11", "Berkeley", "libedit", "ncurses")) for name in names)
+    problems = licences.check(sbom, tmp_path, None)
+    assert problems == []
+
+
+def _load_licences():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("smstudio_licences_win", _PACKAGING / "legal" / "licences.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module

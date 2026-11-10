@@ -194,7 +194,7 @@ def python_distributions(root: Path) -> list[dict]:
             if len(found) == 1:
                 expression, basis = found.pop(), "metadata classifier"
         files = [f for pattern in (override or {}).get("extra_licence_files", [])
-                 for f in sorted(all_files(root)) if fnmatch.fnmatch(f, pattern)] if override else []
+                 for f in sorted(all_files(root)) if fnmatch.fnmatchcase(f, pattern)] if override else []
         for candidate in sorted(info.rglob("*")):
             relative = candidate.relative_to(root).as_posix()
             if candidate.is_file() and LICENCE_FILE_PATTERN.search(relative):
@@ -236,8 +236,9 @@ def owned_files(info: Path, root: Path) -> list[str]:
 
 
 def matches(path: str, patterns: list[str]) -> bool:
-    """True when a POSIX path matches one of the patterns (``*`` also crosses ``/``)."""
-    return any(fnmatch.fnmatch(path, pattern) for pattern in patterns)
+    """True when a POSIX path matches one of the patterns (``*`` also crosses ``/``). Case counts on every
+    system: on Windows, ``fnmatch`` ignores it, and ``lib/thread*`` (Tcl) claimed ``Lib/threading.py``."""
+    return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
 
 
 def declared_components(files: list[str]) -> list[dict]:

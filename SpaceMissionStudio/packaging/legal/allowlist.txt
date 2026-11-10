@@ -48,6 +48,12 @@ LicenseRef-Tix
 LicenseRef-Oracle-BDB-5
 LicenseRef-SQLite-public-domain
 
+# Read on 2026-11-10 in CPython's Windows LICENSE.txt (python-build-standalone
+# 20261013): conditions for redistributing Microsoft's C++ runtime with the
+# Windows build. Redistribution stays "open" (a warning) until the owner
+# decides D10 (docs/legal/RISK_REGISTER.md R11).
+LicenseRef-Microsoft-Distributable-Code
+
 # Data sets: the licence field names the provider's own terms. Whether
 # redistribution is allowed is tracked per component (redistribution_status)
 # and in docs/legal/DATA_TERMS.md.
