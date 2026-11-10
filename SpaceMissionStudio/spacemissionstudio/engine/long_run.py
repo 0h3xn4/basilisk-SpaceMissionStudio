@@ -240,11 +240,14 @@ def _seed_segment(scenario: Scenario, segment: Scenario, index: int) -> None:
 
 
 def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], None] | None = None,
-                  should_cancel: Callable[[], bool] | None = None, model_base_dir: str | None = None) -> ResultSet:
+                  should_cancel: Callable[[], bool] | None = None, model_base_dir: str | None = None,
+                  live_feed=None) -> ResultSet:
     """Runs ``scenario`` as a chain of segments (see this module's
     docstring). ``on_progress(partial, fraction)`` and ``should_cancel``
     behave as for :meth:`SimulationService.run_live`, over the whole run;
-    ``model_base_dir`` as for :class:`SimulationService`."""
+    ``model_base_dir`` and ``live_feed`` (``engine.live_view``: each
+    segment's probe adds the segment's start to its times) as for
+    :class:`SimulationService`."""
     from .service import SimulationCancelled, SimulationService
 
     check_segmentable(scenario)
@@ -268,6 +271,9 @@ def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], 
         _seed_segment(scenario, segment, index)
         service = SimulationService(segment, model_base_dir=model_base_dir)
         service.mission_elapsed_offset_s = offset_s  # the solar panels' time in orbit (power.degradation)
+        if live_feed is not None:
+            live_feed.offset_s = offset_s
+            service.live_feed = live_feed
         if on_progress is None and should_cancel is None:
             part = service.run()
         else:

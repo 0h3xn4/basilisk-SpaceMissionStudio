@@ -43,7 +43,11 @@ is geometry for display.
   above the station's ``min_elevation_deg`` (:func:`elevation_deg`).
 
 :func:`build_scene` is Basilisk-free and returns plain arrays, so the view
-and the tests use the same numbers.
+and the tests use the same numbers. It is :func:`empty_scene` (the body,
+the spacecraft's models, the stations) plus :func:`extend_scene` (the
+frames and what follows from them); a run shown live
+(``engine.live_view``) is built the same way, its frames added as they
+come.
 """
 
 from __future__ import annotations
@@ -106,6 +110,8 @@ class Scene:
     moon_position_km: np.ndarray | None = None  # (n, 3) Earth-centred runs only
     station_min_elevation_deg: list[float] = field(default_factory=list)  # [deg] per station
     station_visible: np.ndarray | None = None  # (stations, crafts, n) line of sight
+    station_up: list[np.ndarray] = field(default_factory=list)  # [-] each station's local vertical, body-fixed
+    flattening: float = 0.0  # [-] of the central body's ellipsoid
 
 
 def julian_date(epoch: datetime, seconds: np.ndarray) -> np.ndarray:
@@ -363,10 +369,108 @@ def equipment(sc) -> list[dict]:
     return found
 
 
-def build_scene(scenario, result, *, base_dir=None, max_frames: int = MAX_FRAMES) -> Scene:
-    """The scene of ``result`` (a ResultSet of ``scenario``)."""
+def _body_frames(central: str, epoch: datetime, times_s: np.ndarray):
+    """The central body's rotation angle [rad] (Earth only, else None),
+    the Sun direction and the Moon's position [km] (Earth-centred runs
+    only, else None) at ``times_s``."""
+    if central != "earth":
+        return None, None, None
+    jd = julian_date(epoch, times_s)
+    return earth_rotation_angle(jd), sun_direction_eci(jd), moon_position_eci(jd)
+
+
+def empty_scene(scenario, crafts: list[tuple[object, bool]], *, base_dir=None) -> Scene:
+    """The scene of ``scenario`` without a frame: its central body,
+    stations, notes and ``crafts`` (each a spacecraft config and whether
+    the run records its attitude), with their models and equipment.
+    :func:`extend_scene` adds the frames."""
     from .geodesy import ellipsoid_for, geodetic_to_pcpf
 
+    central = scenario.gravity.central_body
+    radius_km = float(CENTRAL_BODY_EQUATORIAL_RADIUS_KM.get(central, 0.0))
+    ellipsoid = ellipsoid_for(central, radius_km * 1000.0)
+    earth = central == "earth"
+    notes: list[str] = []
+    built: list[Craft] = []
+    for sc, has_attitude in crafts:
+        vertices_m, triangles, colors, craft_notes = spacecraft_mesh(sc, base_dir)
+        if not has_attitude:
+            craft_notes.append(f"{sc.name}: no attitude in this run; drawn aligned with the inertial axes")
+        size_km = float(np.max(np.ptp(vertices_m, axis=0))) / 1000.0
+        built.append(Craft(
+            name=sc.name, position_km=np.zeros((0, 3)), path_km=np.zeros((0, 3)),
+            dcm_BN=np.zeros((0, 3, 3)) if has_attitude else None, vertices_km=vertices_m / 1000.0,
+            triangles=triangles, face_colors=colors, size_km=max(size_km, 1e-6), notes=craft_notes,
+            face_rgb=_rgb_floats(colors), velocity_km_s=np.zeros((0, 3)),
+            altitude_km=np.zeros(0) if radius_km > 0.0 else None,
+            ground_track_deg=np.zeros((0, 2)) if earth else None, equipment=equipment(sc)))
+        notes += craft_notes
+
+    stations, ups, minimum = [], [], []
+    if earth and radius_km > 0.0:
+        for station in getattr(scenario, "ground_stations", None) or []:
+            point = geodetic_to_pcpf(math.radians(station.latitude_deg), math.radians(station.longitude_deg),
+                                     station.altitude_m, ellipsoid) / 1000.0
+            stations.append((station.name, point))
+            ups.append(geodetic_up(station.latitude_deg, station.longitude_deg))
+            minimum.append(float(station.min_elevation_deg))
+    if central == "sun":
+        notes.append("The Sun is the central body, at the origin")
+    elif not earth:
+        notes.append(f"No Sun direction is drawn around {central}")
+    return Scene(epoch_utc=scenario.epoch_utc, times_s=np.zeros(0), body=central, body_radius_km=radius_km,
+                 body_rotation_rad=np.zeros(0) if earth else None, crafts=built, stations=stations,
+                 sun_direction_N=np.zeros((0, 3)) if earth else None, extent_km=1.1 * radius_km, notes=notes,
+                 moon_position_km=np.zeros((0, 3)) if earth else None, station_min_elevation_deg=minimum,
+                 station_visible=np.zeros((len(stations), len(built), 0), dtype=bool), station_up=ups,
+                 flattening=ellipsoid.flattening)
+
+
+def extend_scene(scene: Scene, times_s: np.ndarray, position_km: np.ndarray, velocity_km_s: np.ndarray,
+                 dcm_BN: list, *, grow_path: bool = True) -> Scene:
+    """Add frames at ``times_s`` (n,) to ``scene``, in place: each
+    spacecraft's position [km] and velocity [km/s] (n, k, 3) and DCM
+    ``[BN]`` (a (n, 3, 3) array per spacecraft, None for one without an
+    attitude); from them, as for a whole run, the body's rotation, the Sun,
+    the Moon, the altitudes and the stations' line of sight; with
+    ``grow_path``, the frames' positions also extend each path and ground
+    track (a live run: its path is its frames). Returns ``scene``."""
+    times_s = np.asarray(times_s, dtype=float)
+    position_km = np.asarray(position_km, dtype=float).reshape(len(times_s), len(scene.crafts), 3)
+    velocity_km_s = np.asarray(velocity_km_s, dtype=float).reshape(len(times_s), len(scene.crafts), 3)
+    rotation, sun, moon = _body_frames(scene.body, parse_epoch_utc(scene.epoch_utc), times_s)
+    scene.times_s = np.concatenate([scene.times_s, times_s])
+    if rotation is not None:
+        scene.body_rotation_rad = np.concatenate([scene.body_rotation_rad, rotation])
+        scene.sun_direction_N = np.concatenate([scene.sun_direction_N, sun])
+        scene.moon_position_km = np.concatenate([scene.moon_position_km, moon])
+    extent = scene.extent_km / 1.1  # [km]
+    for k, craft in enumerate(scene.crafts):
+        position = position_km[:, k]
+        craft.position_km = np.concatenate([craft.position_km, position])
+        craft.velocity_km_s = np.concatenate([craft.velocity_km_s, velocity_km_s[:, k]])
+        if craft.dcm_BN is not None:
+            craft.dcm_BN = np.concatenate([craft.dcm_BN, np.asarray(dcm_BN[k], dtype=float).reshape(-1, 3, 3)])
+        if craft.altitude_km is not None:
+            craft.altitude_km = np.concatenate([craft.altitude_km, altitude_km(position, scene.body_radius_km,
+                                                                                 scene.flattening)])
+        if grow_path:
+            craft.path_km = np.concatenate([craft.path_km, position])
+            if craft.ground_track_deg is not None and rotation is not None:
+                craft.ground_track_deg = np.concatenate([craft.ground_track_deg, ground_track_deg(position, rotation)])
+            if len(position):
+                extent = max(extent, float(np.max(np.linalg.norm(position, axis=1))))
+    scene.extent_km = 1.1 * extent
+    visible = [[elevation_deg(point, up, rotation, position_km[:, k]) >= minimum for k in range(len(scene.crafts))]
+               for (_name, point), up, minimum in zip(scene.stations, scene.station_up,
+                                                      scene.station_min_elevation_deg)]
+    scene.station_visible = np.concatenate([scene.station_visible, np.array(visible, dtype=bool).reshape(
+        len(scene.stations), len(scene.crafts), len(times_s))], axis=2)
+    return scene
+
+
+def build_scene(scenario, result, *, base_dir=None, max_frames: int = MAX_FRAMES) -> Scene:
+    """The scene of ``result`` (a ResultSet of ``scenario``)."""
     notes: list[str] = []
     crafts_series = []
     for sc in scenario.spacecraft:
@@ -385,23 +489,12 @@ def build_scene(scenario, result, *, base_dir=None, max_frames: int = MAX_FRAMES
     count = int(min(max_frames, max(len(p.time_s) for _, p in crafts_series)))
     times = np.linspace(start, end, max(count, 1))
 
-    central = scenario.gravity.central_body
-    radius_km = float(CENTRAL_BODY_EQUATORIAL_RADIUS_KM.get(central, 0.0))
-    ellipsoid = ellipsoid_for(central, radius_km * 1000.0)
-    epoch = parse_epoch_utc(scenario.epoch_utc)
-    jd = julian_date(epoch, times)
-    rotation = earth_rotation_angle(jd) if central == "earth" else None
-
-    crafts: list[Craft] = []
-    extent = radius_km
+    attitudes = [result.series.get(f"{sc.name}.attitude_sigma_BN") for sc, _ in crafts_series]
+    scene = empty_scene(scenario, [(sc, attitude is not None) for (sc, _), attitude in zip(crafts_series, attitudes)],
+                        base_dir=base_dir)
+    scene.notes = notes + scene.notes
+    positions, velocities = [], []
     for sc, position in crafts_series:
-        stride = max(1, len(position.time_s) // MAX_PATH_POINTS)
-        path_km = position.data[::stride, :3] / 1000.0
-        vertices_m, triangles, colors, craft_notes = spacecraft_mesh(sc, base_dir)
-        attitude = result.series.get(f"{sc.name}.attitude_sigma_BN")
-        if attitude is None:
-            craft_notes.append(f"{sc.name}: no attitude in this run; drawn aligned with the inertial axes")
-        size_km = float(np.max(np.ptp(vertices_m, axis=0))) / 1000.0
         position_km = _sample(position, times)[:, :3] / 1000.0
         velocity = result.series.get(f"{sc.name}.velocity_N")
         if velocity is not None and len(velocity.time_s):
@@ -410,40 +503,19 @@ def build_scene(scenario, result, *, base_dir=None, max_frames: int = MAX_FRAMES
             velocity_km_s = np.gradient(position_km, times, axis=0)
         else:
             velocity_km_s = np.zeros_like(position_km)
-        track = None
-        if rotation is not None:
-            path_jd = julian_date(epoch, position.time_s[::stride])
-            track = ground_track_deg(path_km, earth_rotation_angle(path_jd))
-        crafts.append(Craft(
-            name=sc.name, position_km=position_km, path_km=path_km,
-            dcm_BN=None if attitude is None else _attitude(attitude, times), vertices_km=vertices_m / 1000.0,
-            triangles=triangles, face_colors=colors, size_km=max(size_km, 1e-6), notes=craft_notes,
-            face_rgb=_rgb_floats(colors), velocity_km_s=velocity_km_s,
-            altitude_km=altitude_km(position_km, radius_km, ellipsoid.flattening) if radius_km > 0.0 else None,
-            ground_track_deg=track, equipment=equipment(sc)))
-        extent = max(extent, float(np.max(np.linalg.norm(path_km, axis=1))))
-        notes += craft_notes
+        positions.append(position_km)
+        velocities.append(velocity_km_s)
+    extend_scene(scene, times, np.stack(positions, axis=1), np.stack(velocities, axis=1),
+                 [None if attitude is None else _attitude(attitude, times) for attitude in attitudes], grow_path=False)
 
-    stations, minimum, visible = [], [], []
-    if central == "earth" and radius_km > 0.0:
-        for station in getattr(scenario, "ground_stations", None) or []:
-            point = geodetic_to_pcpf(math.radians(station.latitude_deg), math.radians(station.longitude_deg),
-                                     station.altitude_m, ellipsoid) / 1000.0
-            up = geodetic_up(station.latitude_deg, station.longitude_deg)
-            stations.append((station.name, point))
-            minimum.append(float(station.min_elevation_deg))
-            visible.append([elevation_deg(point, up, rotation, craft.position_km) >= station.min_elevation_deg
-                            for craft in crafts])
-    if central == "earth":
-        sun = sun_direction_eci(jd)
-        moon = moon_position_eci(jd)
-    elif central == "sun":
-        sun = moon = None
-        notes.append("The Sun is the central body, at the origin")
-    else:
-        sun = moon = None
-        notes.append(f"No Sun direction is drawn around {central}")
-    return Scene(epoch_utc=scenario.epoch_utc, times_s=times, body=central, body_radius_km=radius_km,
-                 body_rotation_rad=rotation, crafts=crafts, stations=stations, sun_direction_N=sun,
-                 extent_km=1.1 * extent, notes=notes, moon_position_km=moon, station_min_elevation_deg=minimum,
-                 station_visible=np.array(visible, dtype=bool).reshape(len(stations), len(crafts), len(times)))
+    epoch = parse_epoch_utc(scenario.epoch_utc)
+    extent = scene.body_radius_km  # [km]
+    for craft, (_sc, position) in zip(scene.crafts, crafts_series):
+        stride = max(1, len(position.time_s) // MAX_PATH_POINTS)
+        craft.path_km = position.data[::stride, :3] / 1000.0
+        if scene.body_rotation_rad is not None:
+            path_jd = julian_date(epoch, position.time_s[::stride])
+            craft.ground_track_deg = ground_track_deg(craft.path_km, earth_rotation_angle(path_jd))
+        extent = max(extent, float(np.max(np.linalg.norm(craft.path_km, axis=1))))
+    scene.extent_km = 1.1 * extent
+    return scene

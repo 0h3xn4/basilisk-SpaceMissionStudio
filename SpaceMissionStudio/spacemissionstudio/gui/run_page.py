@@ -19,7 +19,8 @@
 """Run › Run (UI overhaul M5b): what the next run uses, for the mode
 chosen, on one page instead of menus and dialogs.
 
-- Single: Live plot.
+- Single: Live plot; Show in 3D View while running, and its pace
+  (remembered per user).
 - Monte Carlo: the archive folder, remembered per scenario.
 - SIL: the spacecraft whose flight software runs, and the run's options
   (the SIL dialog's form, embedded).
@@ -34,15 +35,22 @@ from __future__ import annotations
 from pathlib import Path
 from collections.abc import Callable
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QSettings, Signal
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit,
                                QPushButton, QScrollArea, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget)
 
+from ..engine.live_view import PACING
 from .page_tree import embed_dialog
 from .theme import CONTENT_MAX_WIDTH_PX, set_role
 from .widgets import ComboBox
 
 MODES = (("single", "Single"), ("monte_carlo", "Monte Carlo"), ("sil", "SIL"))
+_LIVE_VIEW_KEY = "run/live_3d"  # QSettings: Show in 3D View while running
+_LIVE_PACING_KEY = "run/live_3d_pacing"  # QSettings: its pace, simulated seconds per real second (0: as fast as possible)
+
+
+def _settings() -> QSettings:
+    return QSettings(str(Path.home() / ".spacemissionstudio" / "settings.ini"), QSettings.Format.IniFormat)
 
 
 class RunModeControl(QFrame):
@@ -83,6 +91,7 @@ class RunPage(QWidget):
     Monte Carlo archive folder typed or chosen."""
 
     archive_changed = Signal(str)
+    pacing_changed = Signal(float)  # the live 3D View's pace, changed (also during a run)
     enable_monte_carlo = Signal()  # Enable Monte Carlo, from the note shown while it is off (audit G5)
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -121,8 +130,55 @@ class RunPage(QWidget):
         self.live_plot_check = QCheckBox("Live plot: draw the plots as the run goes")
         self.live_plot_check.setToolTip("The plots follow the run; it takes a little longer.")
         layout.addWidget(self.live_plot_check)
+        settings = _settings()
+        self.live_view_check = QCheckBox("Show in 3D View while running")
+        self.live_view_check.setToolTip("Results › 3D View opens and shows the run as it is computed: the "
+                                        "spacecraft, its path and the Earth, with a LIVE badge. Also for Mission "
+                                        "Sequences and long runs; not in SIL mode. Remembered.")
+        self.live_view_check.setChecked(str(settings.value(_LIVE_VIEW_KEY, "false")).lower() == "true")
+        layout.addWidget(self.live_view_check)
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        self.pacing_label = QLabel("Pace")
+        row.addWidget(self.pacing_label)
+        self.pacing_combo = ComboBox()
+        self.pacing_combo.setToolTip("How fast the run goes: as fast as the computer can, or held to a multiple "
+                                     "of real time so it can be watched. Changes take effect at once, also "
+                                     "during a run. Remembered.")
+        for text, factor in PACING:
+            self.pacing_combo.addItem(text, factor)
+        try:
+            saved = float(settings.value(_LIVE_PACING_KEY, 0.0))
+        except (TypeError, ValueError):
+            saved = 0.0
+        self.pacing_combo.setCurrentIndex(max(0, self.pacing_combo.findData(saved)))
+        self.pacing_label.setBuddy(self.pacing_combo)
+        row.addWidget(self.pacing_combo)
+        row.addStretch(1)
+        layout.addLayout(row)
+        self.live_view_check.toggled.connect(self._on_live_view)
+        self.pacing_combo.currentIndexChanged.connect(self._on_pacing)
+        self._on_live_view(self.live_view_check.isChecked(), save=False)
         self.stack.addWidget(page)
         self.pages["single"] = page
+
+    def _on_live_view(self, on: bool, save: bool = True) -> None:
+        self.pacing_label.setEnabled(on)
+        self.pacing_combo.setEnabled(on)
+        if save:
+            _settings().setValue(_LIVE_VIEW_KEY, bool(on))
+
+    def _on_pacing(self, _index: int) -> None:
+        _settings().setValue(_LIVE_PACING_KEY, self.pacing())
+        self.pacing_changed.emit(self.pacing())
+
+    def live_view(self) -> bool:
+        """Show in 3D View while running."""
+        return self.live_view_check.isChecked()
+
+    def pacing(self) -> float:
+        """The pace: simulated seconds per real second (0: as fast as possible)."""
+        return float(self.pacing_combo.currentData() or 0.0)
 
     def _build_monte_carlo(self) -> None:
         page = QWidget()

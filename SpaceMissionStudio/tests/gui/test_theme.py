@@ -116,11 +116,19 @@ def test_numeric_columns_get_tabular_figures(qapp):
 
 
 def test_every_icon_the_app_uses_is_bundled_with_its_licence():
-    """The toolbar and step icons and the style sheet's glyphs are Lucide
-    icons in the package, with Lucide's ISC licence."""
+    """The toolbar and step icons, the style sheet's glyphs and every icon
+    the GUI code names (``icon("...")``) are Lucide icons in the package,
+    with Lucide's ISC licence."""
+    import re
+    from pathlib import Path
+
     from spacemissionstudio.gui.theme import icons
 
-    names = set(icons.ACTION_ICONS.values()) | set(icons.STEP_ICONS.values()) | {
+    gui = Path(icons.__file__).resolve().parents[1]
+    named = {name for path in gui.rglob("*.py")
+             for name in re.findall(r"""\bicon\(\s*["']([a-z0-9-]+)["']""", path.read_text(encoding="utf-8"))}
+    assert "sliders-horizontal" in named  # the 3D View's Show button
+    names = set(icons.ACTION_ICONS.values()) | set(icons.STEP_ICONS.values()) | named | {
         "chevron-down", "chevron-up", "chevron-right", "check"}
     assert sorted(name for name in names if not icons.available(name)) == []
     assert "ISC License" in (icons.ICONS_DIR / "LICENSE").read_text(encoding="utf-8")

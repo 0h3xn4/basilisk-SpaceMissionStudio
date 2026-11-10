@@ -96,6 +96,21 @@ fixes bugs.
   quality**, which the view also chooses by itself when frames take over
   50 ms (software rendering). Everything is bundled: three.js 0.187.0
   (MIT) and NASA's images (public domain), 4.4 MB; nothing is fetched.
+- **Results › 3D View shows a run while it runs.** Check **Show in 3D
+  View while running** on Run › Run (remembered): the run opens the 3D
+  View and is drawn as it is computed, with a LIVE badge, the camera
+  following the newest state, the paths growing, the Earth turning and
+  the Sun moving with the simulated time. Pause, the slider or the time
+  cursor go back in time while the run goes on; **Go live** (End)
+  returns. At the end the run's result replaces the live frames in the
+  same view. **Pace:** as fast as possible (the default), or 1×, 10×,
+  100× or 1000× real time, changeable during the run; Cancel stops a
+  waiting run at once. Ordinary runs, Mission Sequences and runs split
+  into segments; not SIL. The run's results are the same with it or
+  without it (every template's outputs compared, number for number).
+- **The 3D View starts in reduced quality without a graphics card**
+  (a software renderer such as SwiftShader, llvmpipe or Windows' WARP), instead of
+  switching after slow frames. A quality chosen in **Show** is kept.
 
 - **Independence and no warranty, stated.** The READMEs and the user
   manual now say that SpaceMissionStudio is an independent personal

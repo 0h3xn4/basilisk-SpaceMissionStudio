@@ -5,6 +5,59 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The 3D View live (2026-11-10)
+
+The owner's request: the 3D View must also work as a live renderer. This
+entry adds to "The 3D View as a renderer: three.js" below.
+
+- **A probe in the dynamics task, not samples between run chunks.** A
+  Python `sysModel.SysModel` added last to the dynamics task reads each
+  spacecraft's state every N steps. Measured: about 1 µs a dynamics step
+  and 50 µs a sample (template 06, 43,200 steps of 0.1 s: +4 %; template
+  01, a sample every step: +19 %, 0.15 s). Sampling between chunks
+  instead needs one `ExecuteSimulation` call per sample and, in
+  `run_live`, a result extraction that costs O(samples) each time. Why:
+  the probe is cheaper, samples at exact step times, and works the same
+  in Mission Sequences (which have no `run_live`) and segmented runs.
+- **The probe reads, and is added after the seeds.** It reads the state
+  message and the attitude message the results use, and is added after
+  `assign_rng_seeds`, so it has no seed and is not in the provenance.
+  Why: no number may change. Checked: every template's golden
+  fingerprint is the same, as JSON text, with the probe and without it,
+  and the golden and regression tests pass with the probe on.
+- **An engine change during the overhaul.** CLAUDE.md allows UI changes
+  only; the owner asked for a live view, which needs the run's states as
+  they are computed. The change is a module that exists only when the
+  live view is on, and a field on the service. Why: the owner's request;
+  no output changes.
+- **How often:** 200 samples an orbit (the shortest at the start), in
+  whole dynamics steps; with a pace, at least 20 a real second where the
+  step allows; at most 20,000 a run (100,000 paced). Why: smooth enough
+  to watch, small enough for the page.
+- **Pacing in the probe, on the worker thread:** it sleeps while the
+  simulated time is ahead of the wall clock times the factor, in 50 ms
+  slices, and stops waiting on Cancel. A run more than 1 s behind starts
+  its pace again. Why: the run itself waits; nothing else needs a clock.
+- **The GUI drains the feed 20 times a second,** at most 400 samples
+  (2,400 spacecraft states) a tick, measured at most 17 ms. Why: the GUI
+  thread's 50 ms budget.
+- **The frames' Earth rotation, Sun, Moon and line of sight are computed
+  in Python** by `scene3d.extend_scene`, which `build_scene` now uses
+  too. Why: one source of truth for a finished run and a live one.
+- **At the end, the result replaces the live frames** (`set_run`, built
+  off the GUI thread as before), in the same view, with the camera kept
+  and the newest time shown (or the time the user went back to). Why:
+  the result has every series; the live frames have only states.
+- **The 3D View opens when a live run starts and stays open at the end,**
+  rather than switching to the plots. Why: the user asked to watch it.
+- **Not in SIL mode.** Why: `sil.runner` builds its own services and
+  bridge; adding the probe there is left for later.
+- **Reduced quality from the start on a software renderer** (the WebGL
+  renderer's name contains SwiftShader, llvmpipe, softpipe or Software);
+  the switch after slow frames stays. A quality chosen in Show is kept
+  over the page's own. Why: the first frames were slow before the switch.
+- **"Go live" uses the bundled `circle-dot` icon.** Why: no new icon.
+
 ## Vizard removed (2026-11-10)
 
 The owner: "I don't want any trace of vizard left in spacemissionstudio".

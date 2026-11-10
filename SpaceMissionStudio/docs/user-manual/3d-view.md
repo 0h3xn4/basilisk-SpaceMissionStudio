@@ -1,7 +1,8 @@
 # See it in 3D
 
-**Results › 3D View** shows the last run in 3D. It is part of the app:
-nothing to install, nothing downloaded, nothing sent anywhere.
+**Results › 3D View** shows the last run in 3D, or a run while it runs.
+It is part of the app: nothing to install, nothing downloaded, nothing
+sent anywhere.
 
 - **What it shows:** the Earth (NASA's Blue Marble, turning, lit by the
   Sun, with its atmosphere's rim) under NASA's star map, the Moon, each
@@ -23,10 +24,26 @@ nothing to install, nothing downloaded, nothing sent anywhere.
   size), **Earth-fixed** (the camera turns with the Earth), or **From** a
   spacecraft along a body axis or an instrument, with its field of view.
 - **Show** switches each part on or off, remembered for next time, and
-  **Reduced quality** (chosen by itself when frames are slow, as without
-  a graphics card).
+  **Reduced quality** (chosen by itself without a graphics card, or when
+  frames are slow; your own choice is kept).
 - Drag to turn the view, scroll to zoom, right-drag to pan, double-click
   or Home to reset.
+
+## While it runs
+
+Check **Show in 3D View while running** on the Run area's **Run** page
+(remembered). The next single run opens the 3D View and is drawn as it
+is computed, with a **LIVE** badge: the spacecraft and their growing
+paths, the Earth turning, the Sun moving.
+
+- **Pace** (beside it): **As fast as possible**, or **1×** to **1000×
+  real time**, so a run can be watched; it can change during the run.
+- **Pause** (Space), the slider or the time cursor go back while the run
+  goes on; **Go live** (End) returns to the newest state.
+- At the end, or on **Cancel**, the run's result replaces what was drawn
+  live, in the same view.
+- Ordinary runs, Mission Sequences and runs over 100 days; not SIL.
+  Watching does not change the run's results.
 
 A spacecraft without an attitude in the run (a translation-only run) is
 drawn aligned with the inertial axes, and the note says so. The Earth's
@@ -37,8 +54,10 @@ exports hold the run's numbers.
 
 ## Limits
 
-- The 3D View shows the last run, after it ends; it keeps up to 1,500
-  frames spread over the run.
+- After a run the 3D View keeps up to 1,500 frames spread over it.
+- Live, it shows each spacecraft's state about 200 times an orbit (at
+  most every dynamics step); between two states the spacecraft does not
+  move.
 
 **More detail:** User Manual section 9,
 [3D visualization](../../USER_MANUAL.md#9-3d-visualization).

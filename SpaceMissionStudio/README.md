@@ -106,7 +106,8 @@ A few seconds later the **Results** area shows the orbit and the
   the command line; IDM-CIC models (read only); flight-software export
   as a standalone C project; software-in-the-loop testing of your own
   flight software.
-- **3D view** of a run inside the app (**Results › 3D View**).
+- **3D view** of a run inside the app (**Results › 3D View**), after the
+  run or live while it runs.
 - **Command line** for every analysis, and a Python API.
 - **Offline by design:** nothing is downloaded without asking.
 

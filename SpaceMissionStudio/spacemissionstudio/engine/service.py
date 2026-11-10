@@ -528,6 +528,7 @@ class _SpacecraftHandle:
     recorder: object
     # Phase 2: all None/empty unless sc_config.fsw_mode/sensors were set.
     nav_recorder: object | None = None
+    attitude_msg: object | None = None  # the navigation attitude message nav_recorder records (engine.live_view)
     # With navigation_error: the error-free simpleNav and its recorders, and the
     # navigated position/velocity (see SimulationService._build_truth_nav).
     truth_nav: object | None = None
@@ -611,6 +612,10 @@ class SimulationService:
         self._simulation_class = simulation_class
         self.scSim: SimulationBaseClass.SimBaseClass | None = None
         self.mu: float | None = None
+        # A live_view.LiveFeed: the 3D View shows the run as it goes. Its
+        # probe (live_view.attach) is added by initialize(), only then.
+        self.live_feed = None
+        self._live_probe = None
         # (spacecraft name, t [s]) once a spacecraft with drag re-entered;
         # the run stopped there rather than integrate it through the Earth
         self.reentry: tuple | None = None
@@ -1728,6 +1733,7 @@ class SimulationService:
                         fsw.build_idealized_actuation(self.scSim, dyn_task_name, sc_config.name, sc_object, mrp)
 
                 handle.nav_recorder = self._record(nav.attOutMsg)
+                handle.attitude_msg = nav.attOutMsg
                 handle.control_torque_recorder = self._record(mrp.cmdTorqueOutMsg)
                 self.scSim.AddModelToTask(dyn_task_name, handle.nav_recorder)
                 self.scSim.AddModelToTask(dyn_task_name, handle.control_torque_recorder)
@@ -1802,6 +1808,7 @@ class SimulationService:
                 handle.comms_veh_config_msg = veh_config_msg
                 handle.comms_power_sink = comms_power_sink
                 handle.nav_recorder = self._record(nav.attOutMsg)
+                handle.attitude_msg = nav.attOutMsg
                 self.scSim.AddModelToTask(dyn_task_name, handle.nav_recorder)
 
             self._handles[sc_config.name] = handle
@@ -2002,6 +2009,10 @@ class SimulationService:
         its recorder this way)."""
         sim_settings = self.scenario.sim_settings
         self._rng_seeds = assign_rng_seeds(self.scSim, sim_settings.seed)
+        if self.live_feed is not None:  # after the seeds: the probe has none, and is not in the provenance
+            from . import live_view
+
+            self._live_probe = live_view.attach(self, self.live_feed)
         self.scSim.InitializeSimulation()
         for sc_object, thermal_models in self._sensor_thermal_models:
             if not thermal_models:
@@ -2081,7 +2092,8 @@ class SimulationService:
 
     def _run_segmented(self, on_progress=None, should_cancel=None) -> ResultSet:
         try:
-            return long_run.run_segmented(self.scenario, on_progress, should_cancel, self.model_base_dir)
+            return long_run.run_segmented(self.scenario, on_progress, should_cancel, self.model_base_dir,
+                                          live_feed=self.live_feed)
         except long_run.LongRunError as exc:
             raise SimulationServiceError(str(exc)) from None
 

@@ -89,9 +89,15 @@ class RunWorker(QThread):
     fraction = Signal(float)
 
     def __init__(self, scenario: Scenario, model_base_dir: str | None = None, live: bool = False,
-                 parent=None, allow_scripts: bool = False, sil: tuple | None = None):
+                 parent=None, allow_scripts: bool = False, sil: tuple | None = None, live_feed=None):
         super().__init__(parent)
         self.scenario = scenario
+        # An engine.live_view.LiveFeed: the 3D View shows the run as it goes
+        # (ordinary runs, Mission Sequences, segmented runs; not SIL). Its
+        # pacing waits end at once on Cancel.
+        self.live_feed = live_feed
+        if live_feed is not None:
+            live_feed.should_cancel = self._should_cancel
         # (spacecraft name, sil.runner.SilOptions): run that spacecraft's
         # flight software as an external program in the loop (sil.runner).
         self.sil = sil
@@ -137,6 +143,7 @@ class RunWorker(QThread):
                 self._run_sil()
                 return
             service = SimulationService(self.scenario, model_base_dir=self.model_base_dir)
+            service.live_feed = self.live_feed
             if runs_sequence(self.scenario.mission_sequence):
                 from ..engine.mission_engine import MissionEngine, MissionEngineCancelled
 

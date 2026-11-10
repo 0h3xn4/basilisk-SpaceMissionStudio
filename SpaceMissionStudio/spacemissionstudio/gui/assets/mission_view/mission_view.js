@@ -4,7 +4,11 @@
  *
  * gui/mission_view_widget.py drives it through the global MV:
  *   MV.setStyle(style)      the theme's colours and overlay CSS (theme/mission_view_style.py)
- *   MV.load(scene)          a run (engine/scene3d.py via mission_view_widget.scene_payload)
+ *   MV.load(scene, opts)    a run (engine/scene3d.py via mission_view_widget.scene_payload);
+ *                           opts.keepCamera keeps the view and the camera as they are
+ *   MV.append(frames)       a live run's new frames (mission_view_widget.frames_payload);
+ *                           frames.follow shows the newest
+ *   MV.setLive(on)          the LIVE badge (the view follows a run being computed)
  *   MV.setFrame(n)          the frame shown
  *   MV.setView(spec)        the camera: {mode: 'orbit' | 'earth' | 'follow' | 'instrument', craft, axis, item}
  *   MV.setToggle(name, on)  paths, trails, axes, headings, cones, stations, labels, stars, groundTrack
@@ -29,8 +33,12 @@ const MV = {
   toggles: {paths: true, trails: true, axes: true, headings: true, cones: true, stations: true, labels: true,
             stars: true, groundTrack: false},
   loaded: {earth: '', stars: ''}, textures: {}, playback: {speed: '', playing: false}, live: false,
-  crafts: [], stations: [], links: [], labels: [], lastRotation: 0,
+  crafts: [], stations: [], links: [], labels: [], lastRotation: 0, rendererName: '', software: false,
 };
+// No graphics card: start in reduced quality. Chromium's SwiftShader,
+// Mesa's llvmpipe/softpipe, Windows' WARP ("Microsoft Basic Render Driver").
+const SOFTWARE_RENDERER = /swiftshader|llvmpipe|softpipe|software|basic render driver|\bwarp\b/i;
+const TRACK_REBUILD_MS = 500;  // [ms] a live ground track is rebuilt at most this often
 const ZAXIS = new THREE.Vector3(0, 0, 1);
 const TRAIL_FRACTION = 0.1;  // [-] of the run's frames shown as each spacecraft's trail
 const ORBIT_VIEW = new THREE.Vector3(1.0, 1.0, 0.6).normalize();  // [-] Whole orbit looks from here without a Sun
@@ -59,11 +67,31 @@ MV.init = function () {
   MV.craftRoot = new THREE.Group();
   MV.scene.add(MV.craftRoot);
   MV.makeRenderer();
+  MV.rendererName = MV.glRenderer();
+  MV.software = SOFTWARE_RENDERER.test(MV.rendererName);
+  if (MV.software && MV.autoQuality) {  // reduced from the start, not after slow frames
+    // The same renderer, as for any quality switch (a second WebGL
+    // context could fail on software GL): pixel ratio 1, 2k textures,
+    // no atmosphere.
+    MV.quality = 'reduced';
+    MV.autoReduced = true;
+    if (MV.renderer) MV.renderer.setPixelRatio(1);
+  }
   window.addEventListener('resize', MV.resize);
   MV.loadTextures();
   MV.pageReady = true;
-  document.title = 'mv:ready';
+  document.title = MV.software && MV.autoReduced ? 'mv:reduced-software' : 'mv:ready';
   requestAnimationFrame(MV.loop);
+};
+
+// The WebGL renderer's name (the unmasked one where the browser gives it).
+MV.glRenderer = function () {
+  try {
+    const gl = MV.renderer.getContext(), info = gl.getExtension('WEBGL_debug_renderer_info');
+    return String((info && gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) || gl.getParameter(gl.RENDERER) || '');
+  } catch (e) {
+    return '';
+  }
 };
 
 MV.aspect = function () {
@@ -292,7 +320,10 @@ MV.lineMaterial = function (opacity) {
   return new THREE.LineBasicMaterial({transparent: opacity < 1, opacity: opacity, depthWrite: opacity >= 1});
 };
 
-MV.load = function (d) {
+MV.load = function (d, options) {
+  const keep = options && options.keepCamera && MV.data ? {position: MV.camera.position.clone(),
+    up: MV.camera.up.clone(), target: MV.controls.target.clone(), fov: MV.camera.fov, view: MV.view,
+    lastRotation: MV.lastRotation} : null;
   MV.clearScene();
   MV.data = d;
   const body = d.body;
@@ -328,6 +359,18 @@ MV.load = function (d) {
   MV.ready = true;
   MV.restyle();
   MV.setView(valid ? v : {mode: 'orbit'});
+  if (keep && valid) {  // the same view, the camera where it was (a live run's result replacing its frames)
+    MV.camera.position.copy(keep.position);
+    MV.camera.up.copy(keep.up);
+    MV.camera.fov = keep.fov;
+    MV.camera.updateProjectionMatrix();
+    if (MV.view.mode !== 'instrument') {
+      MV.makeControls();
+      MV.controls.target.copy(keep.target);
+      MV.controls.update();
+    }
+    MV.lastRotation = keep.lastRotation;
+  }
   if (MV.autoQuality && MV.quality === 'full') setTimeout(MV.checkFrameTime, 50);
   return d.times.length;
 };
@@ -475,10 +518,11 @@ MV.buildCraft = function (c, n) {
   const sunArrow = MV.arrow(1.6 * c.size), nadirArrow = MV.arrow(1.6 * c.size), velocityArrow = MV.arrow(1.6 * c.size);
   headings.add(sunArrow, nadirArrow, velocityArrow);
   const path = new THREE.Line(new THREE.BufferGeometry(), MV.lineMaterial(0.45));
-  path.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3 * c.path.length), 3));
+  path.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3 * Math.max(2, c.path.length)), 3));
+  path.geometry.setDrawRange(0, c.path.length);
   path.frustumCulled = false;
   MV.scene.add(path);
-  const trailLength = Math.max(2, Math.round(TRAIL_FRACTION * MV.data.times.length) + 1);
+  const trailLength = MV.data.trail_frames || Math.max(2, Math.round(TRAIL_FRACTION * MV.data.times.length) + 1);
   const trail = new THREE.Line(new THREE.BufferGeometry(), MV.lineMaterial(1));
   trail.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3 * trailLength), 3));
   trail.frustumCulled = false;
@@ -491,7 +535,7 @@ MV.buildCraft = function (c, n) {
   }
   const craft = {data: c, group: group, body: body, headings: headings, mesh: mesh, axes: axes, cones: cones,
                  sunArrow: sunArrow, nadirArrow: nadirArrow, velocityArrow: velocityArrow, path: path, trail: trail,
-                 trailLength: trailLength, track: track, pathOrigin: null};
+                 trailLength: trailLength, track: track, pathOrigin: null, trackBuilt: 0, trackDirty: false};
   MV.addLabel(c.name, function () { return MV.craftColour(n); }, function () {
     const p = c.pos[MV.frame];
     return [p[0] - MV.origin[0], p[1] - MV.origin[1], p[2] - MV.origin[2]];
@@ -692,7 +736,14 @@ MV.update = function () {
     // The path and the trail, relative to the floating origin.
     c.path.visible = t.paths;
     if (t.paths && (!c.pathOrigin || c.pathOrigin[0] !== o[0] || c.pathOrigin[1] !== o[1] || c.pathOrigin[2] !== o[2])) {
-      const a = c.path.geometry.attributes.position, path = c.data.path;
+      const path = c.data.path;
+      if (c.path.geometry.attributes.position.count < path.length) {  // a live path outgrew its buffer: double it
+        c.path.geometry.dispose();
+        c.path.geometry = new THREE.BufferGeometry();
+        c.path.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6 * path.length), 3));
+      }
+      c.path.geometry.setDrawRange(0, path.length);
+      const a = c.path.geometry.attributes.position;
       for (let i = 0; i < path.length; i++) a.setXYZ(i, path[i][0] - o[0], path[i][1] - o[1], path[i][2] - o[2]);
       a.needsUpdate = true;
       c.pathOrigin = o.slice();
@@ -707,7 +758,15 @@ MV.update = function () {
       a.needsUpdate = true;
       c.trail.geometry.setDrawRange(0, f - first + 1);
     }
-    if (c.track) c.track.visible = t.groundTrack;
+    if (c.track) {
+      c.track.visible = t.groundTrack;
+      if (t.groundTrack && c.trackDirty && performance.now() - c.trackBuilt > TRACK_REBUILD_MS) {
+        c.track.geometry.dispose();
+        c.track.geometry = MV.trackGeometry(c.data.track);
+        c.trackDirty = false;
+        c.trackBuilt = performance.now();
+      }
+    }
   });
   MV.links.forEach(function (link) {
     const seen = d.stations[link.station].visible[link.craft][f];
@@ -842,6 +901,38 @@ MV.setPlayback = function (p) { MV.playback = p; MV.dirty = true; };
 
 MV.setLive = function (on) { MV.live = Boolean(on); MV.dirty = true; };
 
+// A live run's new frames, appended to the scene's arrays (the frame
+// logic reads their current length); `f.follow` shows the newest.
+MV.append = function (f) {
+  const d = MV.data;
+  if (!d || !f.times.length) return d ? d.times.length : 0;
+  const push = function (target, rows) { for (let i = 0; i < rows.length; i++) target.push(rows[i]); };
+  push(d.times, f.times);
+  if (d.body.rotation && f.rotation) push(d.body.rotation, f.rotation);
+  if (d.sun && f.sun) push(d.sun, f.sun);
+  if (d.moon && f.moon) push(d.moon, f.moon);
+  f.crafts.forEach(function (n, k) {
+    const c = d.crafts[k], craft = MV.crafts[k];
+    push(c.pos, n.pos);
+    push(c.vel, n.vel);
+    if (c.alt && n.alt) push(c.alt, n.alt);
+    if (c.dcm && n.dcm) push(c.dcm, n.dcm);
+    push(c.path, n.path);
+    craft.pathOrigin = null;
+    if (c.track && n.track) {
+      push(c.track, n.track);
+      craft.trackDirty = true;
+    }
+  });
+  d.stations.forEach(function (s, k) {
+    s.visible.forEach(function (row, n) { push(row, f.visible[k][n]); });
+  });
+  d.extent = Math.max(d.extent, f.extent);
+  if (f.follow) MV.frame = d.times.length - 1;
+  MV.dirty = true;
+  return d.times.length;
+};
+
 MV.configure = function (options) {
   if ('auto_quality' in options) MV.autoQuality = Boolean(options.auto_quality);
   if ('reduce_above_ms' in options) MV.reduceAboveMs = options.reduce_above_ms;
@@ -913,7 +1004,10 @@ MV.state = function () {
     hudBackground: getComputedStyle(document.getElementById('hud')).backgroundColor,
     fov: MV.camera.fov, pixelRatio: MV.renderer ? MV.renderer.getPixelRatio() : null,
     gl2: MV.renderer ? MV.renderer.capabilities.isWebGL2 : false,
-    cameraDistance: MV.camera.position.length(),
+    cameraDistance: MV.camera.position.length(), live: MV.live, software: MV.software,
+    rendererName: MV.rendererName, times: d ? [d.times[0], d.times[d.times.length - 1]] : null,
+    pathPoints: MV.crafts.map(function (c) { return c.path.geometry.drawRange.count; }),
+    trackPoints: MV.crafts.map(function (c) { return c.data.track ? c.data.track.length : null; }),
   };
 };
 
