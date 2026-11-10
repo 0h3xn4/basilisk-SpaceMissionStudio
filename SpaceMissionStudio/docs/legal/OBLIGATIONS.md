@@ -61,9 +61,11 @@ Facts the plan got wrong or missed, found while building M1:
 Read in M4 (2026-11-10, `RISK_REGISTER.md` R11). The first Windows runs printed
 633 problems; the components now cover the Windows build of CPython, its
 libraries and the Microsoft C++ runtime (D10), and a test runs the gate on the
-Windows layout. The Windows gate stays in `warn` mode, and keeps its full report
-as an artifact, until a full build shows only warnings; then it fails like the
-Linux one.
+Windows layout. The first full Windows build with these components
+(2026-11-10, run 42785905051 of the Windows installer workflow) reported five
+lines, all warnings for the open data rights (D1 to D7), the same as on Linux.
+The Windows gate now fails like the Linux one; the workflow keeps its full
+report as an artifact and prints it at the end of the log.
 
 ## EUPL compatibility (M2)
 

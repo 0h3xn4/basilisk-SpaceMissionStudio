@@ -404,8 +404,9 @@ def prune_unused(dest: Path) -> list[str]:
 def licence_gate(platform: str, dest: Path, mode: str) -> None:
     """Write the licence texts, the licence SBOM and THIRD_PARTY_NOTICES into the bundle, and run
     the gate (packaging/legal/licences.py check). ``mode`` is ``fail`` (a problem stops the build),
-    ``warn`` (a problem is printed) or ``off``. The Windows component list is new (2026-11-10) and
-    not yet proven on a full build (docs/legal/OBLIGATIONS.md), so it defaults to ``warn``."""
+    ``warn`` (a problem is printed) or ``off``. Both platforms default to ``fail``: the first full
+    Windows build with the Windows component list (2026-11-10) reported only the open data rights,
+    which are warnings (docs/legal/OBLIGATIONS.md)."""
     if mode == "off":
         return
     import importlib.util
@@ -472,7 +473,7 @@ def bundle(platform: str, dest: Path, wheel: Path, constraints: Path, cache: Pat
         relocate_earth_orientation(dest, prefix)
     (dest / MANIFEST_NAME).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     (dest / SBOM_NAME).write_text(json.dumps(sbom(platform, manifest, report), indent=2) + "\n", encoding="utf-8")
-    licence_gate(platform, dest, licence_mode or ("fail" if platform == "linux" else "warn"))
+    licence_gate(platform, dest, licence_mode or "fail")
     return manifest
 
 
@@ -490,7 +491,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--prefix", help="the folder the installer puts DEST in, when fixed (the .deb: "
                         "/opt/spacemissionstudio/python); the bytecode then names it")
     parser.add_argument("--licence-gate", choices=("fail", "warn", "off"),
-                        help="what a licence problem does (legal/licences.py): default fail on Linux, warn on Windows")
+                        help="what a licence problem does (legal/licences.py): default fail")
     args = parser.parse_args(argv)
     manifest = bundle(args.platform, args.dest.resolve(), args.wheel.resolve(), args.constraints.resolve(),
                       args.cache, args.archive, args.prefix, args.licence_gate)

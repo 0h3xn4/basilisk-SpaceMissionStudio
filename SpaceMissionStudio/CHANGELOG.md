@@ -79,7 +79,8 @@ fixes bugs.
   now finds an owner and a licence text for every file of the Windows
   build of Python, and the Windows installer carries the texts of the
   libraries inside it. `libtommath.dll`, used only by the removed Tcl/Tk,
-  is left out too.
+  is left out too. Like the Linux build, the Windows build now stops if a
+  file has no owner or a licence is unknown.
 
 ## 2.6.0 (2026-11-09)
 

@@ -27,7 +27,7 @@ decision). Sources are the ones named in the plan and in
 | R8 | Security and supply chain | `SECURITY.md`, signed provenance, hashes | switch on private reporting |
 | R9 | Contributions | sign-off checked for forks | none |
 | R10 | Repository presentation | non-affiliation sentence (W1) in the READMEs and the manual | none |
-| R11 | Third-party files in the installers | Linux gate fails on any gap; Microsoft runtime verified (D10); Windows gate in warn mode until a full build is clean | switch the Windows gate to fail mode |
+| R11 | Third-party files in the installers | both gates fail on any gap; Microsoft runtime verified (D10) | none |
 | R12 | Non-commercial status | a test fails on funding links | none |
 | R13 | Website | cancelled (Q7) | none |
 
@@ -264,9 +264,10 @@ manual's introduction.
   status is `verified`, with this decision as the basis
   (`packaging/legal/components.json`). That Microsoft's own terms were
   not read is an **owner's accepted risk**.
-- **Windows gate mode:** the Windows gate stays in warn mode until a
-  full Windows build shows only warnings. Then it fails like the Linux
-  gate.
+- **Windows gate mode, done (2026-11-10):** the first full Windows
+  build with the Windows components reported only the five warnings for
+  the open data rights, so the Windows gate now fails on any other
+  finding, like the Linux gate.
 
 ## R12 Non-commercial status
 

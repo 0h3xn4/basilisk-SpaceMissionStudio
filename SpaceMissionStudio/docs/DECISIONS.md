@@ -2814,8 +2814,10 @@ the risk register.
   `packaging/legal/texts/` (with the source archive's SHA-256), and the bundle
   copies them to `licenses/`. Why: the `install_only` archive carries no text
   for OpenSSL, SQLite, libffi, Tcl/Tk and the others it links.
-- **Windows runs the gate in `warn` mode** until the first release build lists
-  its unclaimed files. Why: only the Linux build could be read here.
+- **Windows ran the gate in `warn` mode** until a full Windows build listed
+  its unclaimed files. Why: only the Linux build could be read here. Since
+  2026-11-10 it fails like Linux: the first full Windows build with the
+  Windows components reported only the warnings for the open data rights.
 - **Wheel notices are generated and committed** (`THIRD_PARTY_NOTICES`),
   and CI fails when they are stale. Why: a hand-kept list drifts.
 - **`tool.setuptools.license-files` is used** (deprecated in favour of
