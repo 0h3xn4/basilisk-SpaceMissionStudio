@@ -2821,3 +2821,46 @@ the risk register.
 - **`tool.setuptools.license-files` is used** (deprecated in favour of
   `project.license-files`, which needs an SPDX `license` string). Why: the SPDX
   string arrives with the licence change in M2.
+
+## Legal groundwork, milestone M2: the licence change (2026-11-10)
+
+The owner asked to proceed on the recommended answers of
+`docs/legal/PHASE1_PLAN.md` §12. Not legal advice; a lawyer reviews it.
+
+- **EUPL-1.2 from the release after 2.6.0** (the brief's choice). 1.0.0 to
+  2.6.0 stay ISC. Why: the brief; written for EU law, official in German.
+- **Copyright line: "Copyright (c) 2026 0h3xn4"** (the GitHub account that
+  owns the repository). Assumed, not given: the plan made no recommendation.
+  Why: it names the licensor without publishing a real name; one constant
+  (`spacemissionstudio/legal.py` and the header text) changes it.
+- **The commit author `ohexna` is taken to be the owner** (plan Q3); the
+  only other author is Claude.
+- **Next version 2.7.0, in a release of its own** (plan Q1, recommended:
+  its own minor release). Nothing is published by this change; the release
+  waits for the decision on the ITU file (`docs/legal/DATA_TERMS.md` D1).
+- **`LICENSE` is the SPDX list's text byte for byte**
+  (SHA-256 `57fb42fb...68a4b4`); it equals the Commission's English text
+  (`EUPL v1_2 EN(1).txt`, SHA-256 `b1e85ac8...24dd47d`) after removing the
+  byte-order mark, CR line ends and trailing spaces. Why: plan Q4.
+- **`LICENSE.de` is the Commission's German text, whitespace-normalised**
+  (as published: SHA-256 `208705be...fe0dce`, BOM and CRLF; stored:
+  `849b8890...65b5d67f`). Why: no other official source; the repository's
+  whitespace hooks reject BOM-free CRLF text with trailing spaces, as for the
+  JetBrains Mono licence before.
+- **The new header keeps the old header's 16 lines.** Why: about 2,100
+  `file.py:line` references in the audit and history records stay valid.
+  The 65 files that had no header got one at the top.
+- **No file was copied or adapted from Basilisk** (line-similarity scan of
+  796 files against 2,442 upstream files; at most 13 shared lines, all
+  Basilisk API calls; no file moved in from upstream). The flight-software
+  source zip stays Basilisk's, unchanged, under ISC.
+- **The flight-software templates keep their ISC notice.** Why: they are the
+  text of the generated C project, and a generated output may not change
+  without the owner's approval (`docs/legal/OBLIGATIONS.md`, proposal P1).
+- **PEP 639 metadata, no licence classifier.** Why: setuptools 77 and later
+  refuse a licence classifier beside an SPDX `license`; the build now
+  needs setuptools 77.0.3 or later.
+- **Help > Third-Party Licences** shows `LICENSE`, `LICENSE.de` and the
+  notices found in the installation (`spacemissionstudio/legal.py`); a
+  window of its own, like the manual. Why: the brief (1.1, notices in the
+  product).

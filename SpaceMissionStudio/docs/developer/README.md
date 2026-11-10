@@ -148,8 +148,10 @@ checks; check `USER_MANUAL.md` itself.
 ## 5. Conventions
 
 - **Code:** `compliance/docs/coding_standard.md`, and the repository-wide
-  rules in `../AGENTS.md` (unit comments on physical values, an ISC
-  licence header on new files, a docstring on every test).
+  rules in `../AGENTS.md` (unit comments on physical values, a docstring
+  on every test), and the EUPL-1.2 licence header of
+  `spacemissionstudio/legal.py` on every new source file
+  (`tests/test_legal.py` checks it).
 - **Basilisk is not modified.** No edits to `../src`, no patches, no
   monkey-patching of its internals. Where Basilisk falls short, the tool
   works around it in its own code and says so.

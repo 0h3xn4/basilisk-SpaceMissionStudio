@@ -48,7 +48,12 @@ with:
   Never skip, disable or remove a test to get CI green.
 - **Units.** Every physical number in code carries a unit comment, such
   as `1.2  # [s]` (see the repository's [`AGENTS.md`](../AGENTS.md)).
-- **A licence header** (ISC) on new source files.
+- **The licence.** SpaceMissionStudio is licensed under the EUPL-1.2
+  ([`LICENSE`](LICENSE)); contributions are accepted under the EUPL-1.2.
+  Every new source file starts with the licence header of
+  `spacemissionstudio/legal.py` (copyright notice, "Licensed under the
+  EUPL", `SPDX-License-Identifier: EUPL-1.2`); `tests/test_legal.py`
+  checks it. Code taken from Basilisk keeps Basilisk's ISC notice.
 - **No changes to Basilisk.** Do not edit `../src`, patch it, or
   monkey-patch its internals; work around a Basilisk limitation in the
   tool's own code and document it.

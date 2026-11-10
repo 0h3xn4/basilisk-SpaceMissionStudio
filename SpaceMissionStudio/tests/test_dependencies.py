@@ -1,19 +1,19 @@
 #
-#  ISC License
+#  SpaceMissionStudio
 #
-#  Copyright (c) 2026, Autonomous Vehicle Systems Lab, University of Colorado at Boulder
+#  Copyright (c) 2026 0h3xn4 (https://github.com/0h3xn4)
 #
-#  Permission to use, copy, modify, and/or distribute this software for any
-#  purpose with or without fee is hereby granted, provided that the above
-#  copyright notice and this permission notice appear in all copies.
+#  Licensed under the EUPL
 #
-#  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-#  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-#  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-#  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-#  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-#  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-#  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#  SPDX-License-Identifier: EUPL-1.2
+#
+#  The European Union Public Licence v. 1.2 is in the files LICENSE
+#  (English) and LICENSE.de (German) of the SpaceMissionStudio folder and
+#  of every package. Releases up to and including 2.6.0 were published
+#  under the ISC licence. Basilisk, which this program uses, keeps its own
+#  ISC licence and copyright holders (THIRD_PARTY_NOTICES).
+#
+#
 #
 
 """Qualified Basilisk version, its start-up check and the run's
@@ -202,8 +202,8 @@ def test_the_debian_copyright_file_names_each_bundled_part_and_its_licence():
 
     site = "opt/spacemissionstudio/python/lib/python3.14/site-packages/"
     expected = {
-        "usr/bin/spacemissionstudio": "ISC",
-        site + "spacemissionstudio/cli.py": "ISC",
+        "usr/bin/spacemissionstudio": "EUPL-1.2",
+        site + "spacemissionstudio/cli.py": "EUPL-1.2",
         site + "spacemissionstudio/gui/assets/fonts/inter/Inter-Regular.ttf": "OFL-1.1",
         site + "spacemissionstudio/gui/assets/fonts/jetbrains-mono/JetBrainsMono-Regular.ttf": "OFL-1.1",
         site + "spacemissionstudio/gui/assets/icons/lucide/x.svg": "ISC and MIT",
@@ -219,6 +219,10 @@ def test_the_debian_copyright_file_names_each_bundled_part_and_its_licence():
     for folder in ("fonts/inter", "fonts/jetbrains-mono"):
         assert (root / "spacemissionstudio/gui/assets" / folder / "OFL.txt").is_file()
     assert (root / "spacemissionstudio/gui/assets/icons/lucide/LICENSE").is_file()
+    # The app's own licence (EUPL-1.2 since the release after 2.6.0), in English and German.
+    assert "\nLicense: EUPL-1.2\n The European Union Public Licence v. 1.2." in text
+    assert (root / "LICENSE").read_text(encoding="utf-8").startswith("EUROPEAN UNION PUBLIC LICENCE v. 1.2")
+    assert (root / "LICENSE.de").read_text(encoding="utf-8").startswith("OPEN-SOURCE-LIZENZ FÜR DIE EUROPÄISCHE UNION v. 1.2")
     control = (root / "packaging/deb/DEBIAN/control.in").read_text(encoding="utf-8")
     assert "Homepage: https://github.com/0h3xn4/basilisk-SpaceMissionStudio\n" in control
 

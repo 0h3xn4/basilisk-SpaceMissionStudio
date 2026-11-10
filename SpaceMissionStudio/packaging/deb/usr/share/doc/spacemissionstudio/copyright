@@ -14,8 +14,8 @@ Comment:
  THIRD_PARTY_NOTICES.txt in this folder.
 
 Files: *
-Copyright: 2026, Autonomous Vehicle Systems Lab, University of Colorado at Boulder
-License: ISC
+Copyright: 2026, 0h3xn4 (https://github.com/0h3xn4)
+License: EUPL-1.2
 
 Files: opt/spacemissionstudio/python/*
 Copyright: 2001-2026, Python Software Foundation
@@ -44,8 +44,8 @@ License: various
 
 Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/spacemissionstudio/*
        opt/spacemissionstudio/python/lib/python3.14/site-packages/spacemissionstudio-*
-Copyright: 2026, Autonomous Vehicle Systems Lab, University of Colorado at Boulder
-License: ISC
+Copyright: 2026, 0h3xn4 (https://github.com/0h3xn4)
+License: EUPL-1.2
 
 Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/Basilisk/*
        opt/spacemissionstudio/python/lib/python3.14/site-packages/bsk*
@@ -104,3 +104,9 @@ License: ISC
  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+License: EUPL-1.2
+ The European Union Public Licence v. 1.2. The full text is in the files
+ LICENSE (English) and LICENSE.de (German) in this folder. Releases of
+ SpaceMissionStudio up to and including 2.6.0 were published under the ISC
+ licence. Basilisk keeps its own ISC licence (above).

@@ -153,8 +153,11 @@ project's own records, not a certification by an outside body.
 
 The application, its tests and its documentation were written by Claude,
 Anthropic's AI model, through Claude Code; a person reviewed the work and
-decided what to build and merge. It is distributed under the ISC licence,
-the same as Basilisk ([`LICENSE`](../LICENSE)).
+decided what to build and merge. From the release after 2.6.0 it is
+distributed under the European Union Public Licence v. 1.2 (EUPL-1.2,
+[`LICENSE`](../LICENSE), German text [`LICENSE.de`](../LICENSE.de)); releases
+1.0.0 to 2.6.0 were published under the ISC licence. Basilisk keeps its own
+ISC licence and copyright holders.
 
 ## Why does every command print an INFO line?
 

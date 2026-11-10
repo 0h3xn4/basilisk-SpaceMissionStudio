@@ -17185,3 +17185,31 @@ provenance) was done with the defects (#151). Branch `run-record`.
 
 Each new test fails on the code before (7 failed).
 Full suite on Python 3.14 (a home holding only the reference data cache): 4016 passed in 11 min 51 s.
+
+## The licence change to EUPL-1.2 (2026-11-10)
+
+**What was found.** 541 of the app's source files, `LICENSE` and the
+`.deb` copyright file named the Autonomous Vehicle Systems Lab as the
+copyright holder of SpaceMissionStudio: the header is Basilisk's own ISC
+header with the year 2026. The lab did not write the tool. 65 more files had no header at all.
+
+**Why.** The owner chose the European Union Public Licence v. 1.2 for the
+app (`docs/LEGAL_AND_WEBSITE.md`, milestone M2 of
+`docs/legal/PHASE1_PLAN.md`).
+
+**What changed.** `LICENSE` (English, the SPDX list's text) and
+`LICENSE.de` (German, the European Commission's); a 16-line EUPL header in
+every source file, with the same number of lines as the old one so that
+the line references in `AUDIT.md`, this file and the transparency audit
+still point at the same code; `License-Expression: EUPL-1.2` in the wheel;
+the `.deb` copyright file; the About box and a new **Third-Party
+Licences** window; README, CONTRIBUTING, FAQ, the developer guide and the
+manual. A scan compared every file with Basilisk's sources: none was copied
+or adapted, apart from the flight-software source zip, which stays
+Basilisk's under ISC. The C templates of the flight-software export keep
+their ISC notice, because they are what the export writes.
+
+**How it was verified.** `tests/test_legal.py` checks every source file's
+header and the About text, `tests/gui/test_licences_dialog.py` the window,
+`tests/test_dependencies.py` the `.deb` copyright file; the licence gate
+passes on the rebuilt wheel (7 components, 0 failures).

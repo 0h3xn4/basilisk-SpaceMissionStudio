@@ -3,7 +3,7 @@
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
 ![Version 2.6.0](https://img.shields.io/badge/version-2.6.0-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
-![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
+![Licence EUPL-1.2](https://img.shields.io/badge/licence-EUPL--1.2-green)
 
 A desktop app for planning and simulating satellite missions, built on
 the Basilisk astrodynamics framework.
@@ -130,7 +130,14 @@ internet needed.
 
 ## Licence and status
 
-- **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
+- **Licence:** SpaceMissionStudio is licensed under the European Union
+  Public Licence v. 1.2 (EUPL-1.2) from the release after 2.6.0
+  ([`LICENSE`](LICENSE); German text [`LICENSE.de`](LICENSE.de)).
+  Releases 1.0.0 to 2.6.0 were published under the ISC licence and stay
+  under it. The EUPL covers SpaceMissionStudio's own work in
+  `SpaceMissionStudio/` only: Basilisk, which it uses, remains under its
+  ISC licence and its own copyright holders. Everything the packages
+  bundle is listed with its licence in [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).
 - **Version:** 2.6.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.6.0),
   [changelog](CHANGELOG.md)): **Results › 3D View** plays a run back in
   3D inside the app, in place of the Vizard download; network use is
