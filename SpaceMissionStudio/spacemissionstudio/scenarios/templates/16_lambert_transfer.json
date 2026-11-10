@@ -84,22 +84,6 @@
       "navigation_error": null,
       "fuel_tank": null,
       "propellant_budget": null,
-      "vizard_model_path": null,
-      "vizard_model_offset_m": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_rotation_deg": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_scale": [
-        1.0,
-        1.0,
-        1.0
-      ],
       "model": null
     }
   ],

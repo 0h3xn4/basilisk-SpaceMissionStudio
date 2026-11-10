@@ -39,7 +39,7 @@ New to the app? Do [Getting started](../getting-started.md) first.
 | Model power, the radio link and data? | [Power, link and data](power-link-and-data.md) |
 | Run many variations at once? | [Monte Carlo](monte-carlo.md) |
 | Know when it comes down, and how much propellant it needs? | [Lifetime and propellant budget](lifetime-and-budget.md) |
-| See it in 3D? | [Vizard](vizard.md) |
+| See it in 3D? | [3D View](3d-view.md) |
 | Export the flight software, or test my own in the loop? | [Flight software and SIL](flight-software-and-sil.md) |
 | Exchange orbits with other tools (CCSDS, TLE)? | [Orbit files](orbit-files.md) |
 | Manage the reference data, or work offline? | [Reference data](reference-data.md) |

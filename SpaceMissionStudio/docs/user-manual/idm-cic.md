@@ -119,9 +119,8 @@ import computes the centre of gravity of the model as imported
 micrometre, and moves **every** position of the spacecraft with the
 origin, so that they stay where they are on the spacecraft: the model's
 parts, point masses, stowed poses and launcher plane, and the sensors,
-actuators, thrusters, wheels, RF antenna, facets, fuel tank, solar array
-hinges and the Vizard model's offset, including those you entered by
-hand. A position given in a part's own frame moves with the part. The
+actuators, thrusters, wheels, RF antenna, facets, fuel tank and solar
+array hinges, including those you entered by hand. A position given in a part's own frame moves with the part. The
 centre of mass is then zero, and the summary lists what moved and by
 how much.
 

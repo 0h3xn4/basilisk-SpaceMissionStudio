@@ -98,7 +98,7 @@ app (the JSON page's keys are in its right-click menu), and
 | Space weather | CelesTrak CSV or TXT | Reference data > Import file..., Scenario tree > Environment |
 | Solar-activity prediction | NASA MSFC table (`.txt`) | Scenario tree > Environment |
 | Earth orientation | NAIF Earth PCK (`.bpc`, `.cmt`) | Reference data > Import file..., `earth-orientation --import` |
-| 3D model | Wavefront OBJ (`.obj`, with its `.mtl`) | 3D Model... > Import .obj..., Spacecraft page > Vizard model |
+| 3D model | Wavefront OBJ (`.obj`, with its `.mtl`) | 3D Model... > Import .obj... |
 | Mass properties | JSON or CSV | 3D Model... > Mass properties > Import file... |
 | IDM-CIC model | `.idm` (IDM-CIC is © CNES; read only) | 3D Model... > Import IDM-CIC model..., `idm-import`, `idm-info` |
 | Flight-software program | An executable speaking the SIL contract | Run in SIL mode, `sil --binary` |
@@ -125,7 +125,6 @@ app (the JSON page's keys are in its right-click menu), and
 | Change history | `mission.history.jsonl` beside `mission.json` | Every save; Change History... |
 | Plots | PNG, SVG | Results > Plots > Save PNG... / Save SVG... (the selected plot), Export all... (every shown plot, with CSV) |
 | Orbit messages | CCSDS OPM, OMM, OEM (KVN text) | Export Orbits as CCSDS... (`Ctrl+K`), Results > Plots > Export all... > CCSDS ephemeris (OEM)..., `ccsds-export`, `run --oem` |
-| Vizard playback | `.bin` | Run > Run (the Vizard save file), `run --vizard-save-file` |
 | Monte Carlo batch | `batch_results.npz` and `.json`, plus Basilisk's archive | Run in Monte Carlo mode, `monte-carlo --archive-dir` |
 | Monte Carlo table | CSV | Results > Monte Carlo > Export table CSV... |
 | Budget | CSV on the clipboard | Run > Budget > Copy as CSV |

@@ -12,7 +12,6 @@ downloads off for good, and what is outside the tool's control.
 - [Offline mode](#offline-mode)
 - [How it is enforced](#how-it-is-enforced)
 - [The network log](#the-network-log)
-- [Vizard](#vizard)
 - [What this does not cover](#what-this-does-not-cover)
 - [How it is tested](#how-it-is-tested)
 - [Check it yourself](#check-it-yourself)
@@ -89,38 +88,11 @@ download, `web view` for a blocked page request) and the host or address.
 **Settings > Network > Open the network log** opens it. A session that
 downloaded nothing leaves no line.
 
-## Vizard
-
-Vizard, AVS Lab's separate 3D program, is made with Unity. The build AVS
-Lab publishes has Unity Analytics switched on: its project settings
-enable it and start it at launch, and the program contains Unity's
-analytics libraries and AVS Lab's Unity project ID, with Unity's event
-addresses (`cdp.cloud.unity3d.com`). It very likely sends usage data to
-Unity when it runs (inspected 2026-11-09; not run here).
-
-So, since 2026-11-09, SpaceMissionStudio:
-
-- **never downloads Vizard** (the download and its network purpose are
-  removed);
-- **never looks for it**: only a Vizard the user chose in **Settings >
-  Vizard** is started, and a copy an earlier version downloaded into
-  `~/.cache/SpaceMissionStudio/vizard/` is ignored even if remembered;
-- **shows runs in 3D itself:** **Results › 3D View**, drawn in the app's
-  own web view, which loads only the app's files (the interceptor
-  above) and is part of the network audit's GUI session.
-
-Where Vizard is still wanted, use one built from its open source with
-Unity's cloud services and analytics off, and check it with a firewall
-(below).
-
 ## What this does not cover
 
-- **A Vizard you choose** is a separate program: neither the guard nor
-  the log sees it (above).
 - **Code that is not Python.** The guard sees Python. Basilisk's C++
-  modules make no network calls in a run except Vizard's live stream
-  (`vizInterface`), which you start, on the address you give it. Chromium
-  is covered by the interceptor and the flags above, not by the guard.
+  modules the app uses make no network calls in a run. Chromium is
+  covered by the interceptor and the flags above, not by the guard.
 - **A user's own scripts.** A script that imports the package (the
   [Python API](../api.md)) is not guarded unless it calls
   `spacemissionstudio.network.install_guard()`; offline mode still applies
@@ -198,11 +170,6 @@ nothing from this project).** In a virtual machine or a spare computer:
 **Offline mode.** Set it for every user as above, then check that
 **Download...** is off and that `spacemissionstudio network` says
 `Offline` and who set it.
-
-**Vizard**, if you choose one, is a separate program: the audit script
-does not start it. Watch it the same way with the firewall while it
-shows a run. A build without analytics should show only its stream to
-127.0.0.1.
 
 ---
 
