@@ -1961,3 +1961,26 @@ The new behaviour is tested in `tests/gui/test_landing_page.py` (8 tests).
 | `tests/gui/test_panels.py::test_a_keyboard_only_walk_of_the_shell` | the window as it starts | `window.on_new()` first | With nothing open the Problems panel is empty, so Ctrl+J has no row to put the focus on; the walk is of a window at work |
 | `tests/gui/test_compare_tab.py::test_runs_of_an_earlier_session_are_listed_and_read_back_when_ticked` | the saved runs are listed at start | the saved runs are listed once their scenario ("demo", a template saved under that name) is opened | Earlier runs come back with their scenario only (`docs/DECISIONS.md`); the rest of the test is unchanged |
 | `tests/gui/test_run_record.py::test_history_lists_earlier_runs_read_in_a_worker` | the saved run is listed at start | the saved run is listed once its scenario ("yesterday", template 01 under that name) is opened | As above; the worker-thread read and the entry's fields are asserted as before |
+
+## The 3D View as a renderer (2026-11-10)
+
+Results › 3D View is now drawn by three.js instead of plotly.js
+(`docs/DECISIONS.md`). Tests that read the plotly page's traces now read
+the page's state (`MV.state()`), and the payload test reads the new data
+format; every behaviour asserted before is still asserted (empty state,
+the run drawn, playback and the cursor both ways, Follow at true size with
+its axes from the attitude, colours from the theme). Two assertions
+changed with the behaviour, as the owner's request for a renderer asks:
+Follow no longer hides the Earth and the paths, and the payload no longer
+carries the colours (they come from `MV.setStyle`). No test was skipped or
+removed. New: 9 tests in `tests/gui/test_mission_view.py` (textures,
+overlay time, Earth-fixed view, two instrument views, the Show menu,
+station line of sight, reduced quality, theme change) and 6 in
+`tests/test_scene3d.py`; 3 more paths in the `.deb` copyright test.
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_mission_view.py::test_the_run_is_drawn_in_the_app_s_own_page` | the plotly page holds 3 + 3 + 4 traces; the page is a local file | the page's state: ready, 300 frames, Whole orbit, the spacecraft with path, trail, axes, arrows, enlarged; the Moon; WebGL 2; the page is the package's `mission_view.html`; the View list starts Whole orbit, Follow, Earth-fixed; slider, speed and note as before | No plotly traces any more; the same things are checked in the new page |
+| `tests/gui/test_mission_view.py::test_following_a_spacecraft_shows_it_at_true_size_with_its_axes` | Follow: the Earth's and the path's traces hidden, the axis trace shown, x_B about -x_N at half an orbit | Follow: the spacecraft at the origin (within 1e-9 km, on four frames), scale 1, axes shown, x_B about -x_N (same tolerance), the origin at its position, the overlay's altitude and speed | A renderer shows the Earth behind the followed spacecraft (the floating origin keeps it precise); the axis direction is asserted as before |
+| `tests/gui/test_mission_view.py::test_the_payload_takes_its_colours_from_the_theme` | renamed `test_the_page_data_and_style_come_from_the_scene_and_the_theme`; `scene_payload(scene, mode)["style"]` holds `bg.surface` and the Earth colour scale; the albedo grid 37 x 73 | `scene_payload(scene)` holds positions in km (same assertion), corner normals and linear colours, the stations' line of sight, the epoch; `mission_view_style(mode)` holds the categorical palette, the axis colours, the accent and caution for cones and the theme's surfaces and text, in both themes | The style is sent apart from the scene (a theme change restyles without reloading); the Earth is a texture, not an albedo mesh |
+| `tests/gui/test_mission_view.py::test_without_a_run_the_view_says_what_to_do` | the play button and slider disabled | also the new Show button | One more control |
