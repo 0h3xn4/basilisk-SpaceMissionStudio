@@ -109,7 +109,7 @@ fixes bugs.
   into segments; not SIL. The run's results are the same with it or
   without it (every template's outputs compared, number for number).
 - **The 3D View starts in reduced quality without a graphics card**
-  (a software renderer such as SwiftShader or llvmpipe), instead of
+  (a software renderer such as SwiftShader, llvmpipe or Windows' WARP), instead of
   switching after slow frames. A quality chosen in **Show** is kept.
 
 - **Independence and no warranty, stated.** The READMEs and the user
