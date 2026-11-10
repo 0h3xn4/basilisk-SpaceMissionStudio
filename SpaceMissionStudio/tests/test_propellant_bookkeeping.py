@@ -128,5 +128,3 @@ def test_delta_preserves_a_prior_dry_mass_dispersion():
     # The dispersion offset (+8 kg relative to nominal) must survive the tick.
     assert new_mass == (dispersed_dry_mass + propellant) - burned_kg
     assert new_mass != (nominal_dry_mass + new_propellant)
-
-
