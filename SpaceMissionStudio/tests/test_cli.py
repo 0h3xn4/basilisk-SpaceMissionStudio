@@ -1156,6 +1156,23 @@ def test_validate_and_run_say_what_loading_an_older_file_changed(tmp_path, capsy
     assert "effective_defaults" in record and record["effective_config_note"]
 
 
+def test_validate_sums_up_retired_fields_in_one_line(tmp_path, capsys):
+    """A file saved by an earlier version holds fields this version no
+    longer has (four per spacecraft, one per 3D model). ``validate``
+    sums them up in one line, not one line per field."""
+    from spacemissionstudio.schema.migrations import RETIRED_SPACECRAFT_FIELDS
+
+    path = tmp_path / "old.json"
+    data = _write_scenario(path).to_dict()
+    for sc in data["spacecraft"]:
+        sc.update({name: None for name in RETIRED_SPACECRAFT_FIELDS})
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert cli.main(["validate", str(path)]) == 0
+    lines = [line for line in capsys.readouterr().out.splitlines() if line.startswith("MIGRATED")]
+    count = len(data["spacecraft"]) * len(RETIRED_SPACECRAFT_FIELDS)
+    assert lines == [f"MIGRATED: schema retired fields: {count} field(s) this version no longer uses removed"]
+
+
 def test_run_keeps_the_scenario_as_run_and_the_file_it_came_from(tmp_path, capsys):
     """Transparency audit 2a, 2b, 2f: the output folder holds the scenario
     as run (scenario_as_run.json), whose canonical hash is the provenance's

@@ -74,6 +74,7 @@ from . import __version__, ccsds_files, dependencies, network, output_provenance
 from .logging_setup import configure_logging, get_log_file_path
 from .schema import ScenarioValidationError, load_scenario
 from .schema.command import runs_sequence, script_blocks
+from .schema.migrations import RETIRED_STEP
 from .schema.scenario import PHASING_CONTROL_LAWS, ROE_CONTROL_LAWS
 
 # The exit status of a fault in SpaceMissionStudio itself, as opposed to the
@@ -98,10 +99,18 @@ def cmd_validate(args: argparse.Namespace) -> int:
               f"'spacemissionstudio assumptions {args.scenario}' lists them")
     # An older file is brought up to date as it loads; say what that changed
     # (transparency audit, Phase 2c: the migrations were silent).
+    # Fields this version no longer has are summed up in one line: they
+    # change nothing the file describes.
+    retired = 0
     for change in file_record["scenario_file_migrations"]:
+        if change["step"] == RETIRED_STEP:
+            retired += 1
+            continue
         before = repr(change["before"]) if "before" in change else "(not set)"
         after = repr(change["after"]) if "after" in change else "(removed)"
         print(f"MIGRATED: schema {change['step']}: {change['path']} {before} -> {after}")
+    if retired:
+        print(f"MIGRATED: schema {RETIRED_STEP}: {retired} field(s) this version no longer uses removed")
     blocks = script_blocks(scenario.mission_sequence)
     if blocks:
         print(f"NOTE: {len(blocks)} script_block(s) ({', '.join(path for path, _ in blocks)}) run unrestricted "
