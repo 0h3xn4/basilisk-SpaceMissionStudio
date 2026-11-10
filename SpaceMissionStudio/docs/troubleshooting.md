@@ -76,7 +76,8 @@ The 3D model editor and Results › 3D View draw with WebGL. The app
 already lets Chromium use software rendering where there is no usable
 GPU (a virtual machine, a remote desktop). If you set
 `QTWEBENGINE_CHROMIUM_FLAGS` yourself, the app keeps exactly yours: add
-`--ignore-gpu-blocklist --enable-unsafe-swiftshader` to them. The model
+`--ignore-gpu-blocklist --enable-unsafe-swiftshader
+--disable-domain-blocking-for-3d-apis` to them. The model
 still works without the view: the mass properties and facets are shown
 in the tabs below it.
 

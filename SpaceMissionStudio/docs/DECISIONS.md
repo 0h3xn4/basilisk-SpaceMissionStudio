@@ -119,7 +119,10 @@ live. This entry supersedes "plotly.js, not a new 3D library" of the
   falls back to SwiftShader; "unsafe" concerns untrusted web content,
   and the views load only the app's own files (`webengine_setup`). If
   WebGL still cannot start, the page says so in the view instead of
-  failing on every frame.
+  failing on every frame. `--disable-domain-blocking-for-3d-apis` too:
+  after a lost context Chromium blocked WebGL for the shared `file://`
+  origin until the app restarted. A quality switch keeps the renderer
+  (a second context failed on software GL).
 
 ## Landing page at start-up (2026-11-10)
 
