@@ -308,7 +308,14 @@ jobs:
       - name: ITU-R P.676-13 data file Part 1 for the gaseous attenuation (link.atmospheric_loss)
         run: spacemissionstudio gaseous-attenuation --fetch
       - name: Tests
-        run: python -m pytest tests -q -n auto -p no:cacheprovider -o faulthandler_timeout=600 --junitxml=test-report-${{ matrix.os }}.xml
+        run: python -m pytest tests -q -n auto -p no:cacheprovider -o faulthandler_timeout=600 --ignore=tests/gui/test_mission_view.py --junitxml=test-report-${{ matrix.os }}.xml
+      # The 3D View's tests in a process of their own: on this runner
+      # Chromium's Direct3D compositor can lose its context in a test
+      # worker that has shown many web views, and then no page in that
+      # process gets WebGL again. A fresh process keeps WebGL for them.
+      - name: 3D View tests (software WebGL, own process)
+        if: success() || failure()
+        run: python -m pytest tests/gui/test_mission_view.py -q -p no:cacheprovider -o faulthandler_timeout=600 --junitxml=test-report-3d-${{ matrix.os }}.xml
       # No strace on Windows: the same sessions, read from the guard's log
       # (Python code only; docs/reference/network.md has the Windows protocol).
       - name: Network audit of a full CLI and GUI session (guard log)
@@ -319,4 +326,5 @@ jobs:
           name: spacemissionstudio-tests-${{ matrix.os }}
           path: |
             SpaceMissionStudio/test-report-${{ matrix.os }}.xml
+            SpaceMissionStudio/test-report-3d-${{ matrix.os }}.xml
             SpaceMissionStudio/network-audit/report.md
