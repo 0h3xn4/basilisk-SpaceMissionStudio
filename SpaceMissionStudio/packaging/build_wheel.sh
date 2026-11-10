@@ -2,7 +2,7 @@
 #
 #  SpaceMissionStudio
 #
-#  Copyright (c) 2026 0h3xn4 (https://github.com/0h3xn4)
+#  Licensor: 0h3xn4 (https://github.com/0h3xn4)
 #
 #  Licensed under the EUPL
 #

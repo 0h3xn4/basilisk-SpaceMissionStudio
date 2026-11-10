@@ -1,0 +1,22 @@
+{
+  "_comment": "The complete corresponding source of the LGPL-3.0 libraries the installers carry (Qt and PySide6 6.11.2, the versions in packaging/constraints.txt). The release workflow downloads each archive, checks its size and SHA-256, and attaches it to the release (owner's decision D8, docs/legal/OBLIGATIONS.md). Sizes and hashes from the mirrorlist pages on download.qt.io, read 2026-11-10.",
+  "pyside6_version": "6.11.2",
+  "archives": [
+    {
+      "name": "qt-everywhere-src-6.11.2.tar.xz",
+      "url": "https://download.qt.io/official_releases/qt/6.11/6.11.2/single/qt-everywhere-src-6.11.2.tar.xz",
+      "size_bytes": 1019661552,
+      "sha256": "6dcfbca271d76a6502741a2c0dc6fc98ef7dd0b7b4cfd0abcebb285a86a26f33",
+      "md5": "669c1f3a41c37fdda389094882044d7a",
+      "evidence": "https://download.qt.io/official_releases/qt/6.11/6.11.2/single/qt-everywhere-src-6.11.2.tar.xz.mirrorlist and md5sums.txt in the same folder"
+    },
+    {
+      "name": "pyside-setup-everywhere-src-6.11.2.tar.xz",
+      "url": "https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.11.2-src/pyside-setup-everywhere-src-6.11.2.tar.xz",
+      "size_bytes": 18053248,
+      "sha256": "cba47efbaad1bedd529725cbc14e21f156c7a19366f07b3edfbb076ffd7afdf8",
+      "md5": "1c0368b562280bfb6b1885dda609d4f9",
+      "evidence": "https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.11.2-src/pyside-setup-everywhere-src-6.11.2.tar.xz.mirrorlist"
+    }
+  ]
+}

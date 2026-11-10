@@ -315,7 +315,7 @@ jobs:
     needs: [linux, windows, tests]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60  # the Qt source archive is about 1 GB
     # One attach per tag at a time. Only this job is queued per tag: when
     # the whole run was, a job waiting for a runner held back a second run
     # for the same tag (2026-10-21, run 39575072165 waited on the macOS job,
@@ -340,6 +340,31 @@ jobs:
           pattern: packages-*
           path: release
           merge-multiple: true
+      - name: The Qt and PySide6 source archives (LGPL-3.0; packaging/legal/qt-sources.json)
+        # The complete corresponding source of the Qt libraries the
+        # installers carry, attached to every release (owner's decision D8,
+        # docs/legal/OBLIGATIONS.md): downloaded from download.qt.io and
+        # checked against the size and SHA-256 recorded there.
+        run: |
+          mkdir -p ../sources
+          python3 - <<'PY'
+          import hashlib, json, pathlib, subprocess
+          spec = json.loads(pathlib.Path("packaging/legal/qt-sources.json").read_text(encoding="utf-8"))
+          sums = []
+          for archive in spec["archives"]:
+              target = pathlib.Path("../sources") / archive["name"]
+              subprocess.run(["curl", "-fsSL", "--retry", "4", "-o", str(target), archive["url"]], check=True)
+              digest = hashlib.sha256()
+              with target.open("rb") as stream:
+                  for block in iter(lambda: stream.read(1 << 20), b""):
+                      digest.update(block)
+              size = target.stat().st_size
+              assert size == archive["size_bytes"], (archive["name"], size)
+              assert digest.hexdigest() == archive["sha256"], (archive["name"], digest.hexdigest())
+              sums.append(f"{archive['sha256']}  {archive['name']}")
+              print(archive["name"], size, "bytes, SHA-256 checked")
+          pathlib.Path("../sources/SHA256SUMS-sources").write_text("\n".join(sums) + "\n", encoding="utf-8")
+          PY
       - name: Check every file against its checksum
         run: |
           cd ../release
@@ -363,7 +388,8 @@ jobs:
         run: |
           version="$VERSION"
           files=(../release/*.whl ../release/*.tar.gz ../release/*.deb ../release/*-setup.exe ../release/*.cdx.json \
-            ../release/SHA256SUMS-linux ../release/SHA256SUMS-windows)
+            ../release/SHA256SUMS-linux ../release/SHA256SUMS-windows \
+            ../sources/*.tar.xz ../sources/SHA256SUMS-sources)
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "${files[@]}" --clobber
             if [ -z "$(gh release view "$TAG" --json body --jq .body)" ]; then

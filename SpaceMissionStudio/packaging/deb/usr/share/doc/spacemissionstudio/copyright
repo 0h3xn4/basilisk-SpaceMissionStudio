@@ -14,7 +14,8 @@ Comment:
  THIRD_PARTY_NOTICES.txt in this folder.
 
 Files: *
-Copyright: 2026, 0h3xn4 (https://github.com/0h3xn4)
+Copyright: none claimed (the software was written mainly by an AI model);
+ published by the licensor 0h3xn4 (https://github.com/0h3xn4)
 License: EUPL-1.2
 
 Files: opt/spacemissionstudio/python/*
@@ -44,7 +45,8 @@ License: various
 
 Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/spacemissionstudio/*
        opt/spacemissionstudio/python/lib/python3.14/site-packages/spacemissionstudio-*
-Copyright: 2026, 0h3xn4 (https://github.com/0h3xn4)
+Copyright: none claimed (the software was written mainly by an AI model);
+ published by the licensor 0h3xn4 (https://github.com/0h3xn4)
 License: EUPL-1.2
 
 Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/Basilisk/*
