@@ -383,8 +383,9 @@ publication record and the repository's new name (#244), a minor release
 because it adds features. The first release under the EUPL-1.2, and the
 first whose files include the Qt and PySide6 source archives with
 `SHA256SUMS-sources` (eleven files) and a signed build provenance of
-each built file. No template, golden file or scenario field a 2.6.0 file
-can hold changed; 2.6.0 opens the files 2.7.0 saves (checked with 2.6.0's
+each built file. No golden file changed and no scenario field was added
+(the templates lost only the external viewer's fields); 2.6.0 opens the
+files 2.7.0 saves (checked with 2.6.0's
 code on the 32 templates as 2.7.0 saves them). The space weather was
 refreshed: CelesTrak answered for the first time since 1.3.0
 (observations to 2026-11-09). NASA MSFC's November 2026 prediction was

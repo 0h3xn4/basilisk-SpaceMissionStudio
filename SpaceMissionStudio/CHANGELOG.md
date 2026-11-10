@@ -189,8 +189,8 @@ without warranty.
 - **Anyone who redistributes SpaceMissionStudio:** 2.7.0 is under the
   EUPL-1.2; every package carries the licence texts and the notices of
   what it contains.
-- **Compatibility:** results, templates and the scenario format's version
-  (4) are as in 2.6.0, and 2.6.0 opens the files 2.7.0 saves.
+- **Compatibility:** results and the scenario format's version (4) are
+  as in 2.6.0, and 2.6.0 opens the files 2.7.0 saves.
 - **The installers:** on Linux, `apt install
   ./spacemissionstudio_2.7.0_amd64.deb` replaces 2.6.0; on Windows, run
   the 2.7.0 setup over 2.6.0. Check each against `SHA256SUMS-linux` or

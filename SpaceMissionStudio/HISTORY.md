@@ -14538,7 +14538,14 @@ eleven files. The space weather was refreshed first (the entry below).
 
 Compatibility checked with 2.6.0's own code (the tagged commit
 `dcbb95e09`, extracted with `git archive`): the 32 templates, saved by
-this code, open and validate in 2.6.0 with no message.
+this code, open and validate in 2.6.0 with no message. The golden-output
+regression tests passed, so every template's outputs are as in 2.6.0.
+
+Checks: ruff clean; the compliance generators leave `compliance/docs`
+unchanged; `check_drds.py`, 16 documents, 0 problems; pre-commit on the
+branch's files passed.
+
+Full suite on Python 3.14 (a home holding only the reference data cache), on the release's code: 4826 passed, 1 skipped, in 16 min 21 s. The skipped test (`tests/test_fsw_vendored_sources.py`, the vendored sources against Basilisk's commit `611665f74`) needs that commit's objects, which this clone does not have, as CI's shallow checkouts do not.
 
 ## Space weather refreshed for 2.7.0 (2026-11-10)
 

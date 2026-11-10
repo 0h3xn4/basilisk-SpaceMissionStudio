@@ -32,10 +32,10 @@ Nothing of the external viewer is left: its settings, run options,
 exports, commands, CLI options and the five scenario fields, which older
 files still carry and which are dropped on load and recorded in the
 run's provenance (schema version 4, unchanged). From 2.7.0 the app is
-licensed under the EUPL-1.2 (1.0.0 to 2.6.0 stay ISC). No template,
-golden file or scenario field a 2.6.0 file can hold changed: every
-template's outputs are as in 2.6.0, and 2.6.0 opens the files 2.7.0
-saves (checked with 2.6.0's code on the 32 templates as 2.7.0 saves
+licensed under the EUPL-1.2 (1.0.0 to 2.6.0 stay ISC). No golden file
+changed and no scenario field was added (the templates lost only the
+external viewer's fields): every template's outputs are as in 2.6.0, and
+2.6.0 opens the files 2.7.0 saves (checked with 2.6.0's code on the 32 templates as 2.7.0 saves
 them: all open and validate with no message). The bundled CelesTrak
 space weather was refreshed (observations to 2026-11-09; K-13); NASA
 MSFC's November 2026 prediction was not adopted (K-33). The release
@@ -571,9 +571,10 @@ RD1 has the full story. In summary:
   the same view; reduced quality from the start on a software renderer
   (SwiftShader, llvmpipe, Windows' WARP).
 
-**Unchanged:** what runs compute, every template and golden file, the
-schema version (4) and every field a 2.6.0 file can hold, the exit
-statuses, and the files the tool writes for an existing scenario.
+**Unchanged:** what runs compute, every golden file, the schema version
+(4) and every other field (the templates lose only the external viewer's
+fields), the exit statuses, and the files the tool writes for an
+existing scenario.
 **Changed in the interface:** the scenario file loses the external
 viewer's five fields (dropped on load from older files), `run` loses its
 options, and ICD-08 is retired; the app's licence (EUPL-1.2); the
@@ -581,7 +582,11 @@ installers carry `THIRD_PARTY_NOTICES.txt` and no longer ITU-R
 P.676-13's data file (`gaseous-attenuation --fetch` downloads it, as
 before) (ICD).
 
-**Tests:** see HISTORY.md, "Release 2.7.0 prepared". The added tests
+**Tests:** 4826 passed and 1 skipped on Linux, Python 3.14, on the
+release's code (4835 passed at 2.6.0). The skipped test compares the
+flight-software export's sources with Basilisk's commit `611665f74`,
+whose objects this clone does not have, as CI's shallow checkouts do
+not; the manifest's own hash test passed. The added tests
 cover the licence gate and the headers, the landing page, the retired
 fields' migration and the refused `run` options, the 3D scene against
 published values (the Moon against Meeus's example 47.a, a station's
