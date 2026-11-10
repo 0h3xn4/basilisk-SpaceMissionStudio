@@ -223,4 +223,6 @@ Three requirements need resources the validation environment lacks:
   audit.
 - SRS-F-16 (3D View): needs a display to be seen; tested through the
   scene's numbers (`tests/test_scene3d.py`) and the view offscreen
-  (`tests/gui/test_mission_view.py`).
+  (`tests/gui/test_mission_view.py`); the live view through its probe
+  (`tests/test_live_view.py`) and a real run shown live offscreen
+  (`tests/gui/test_live_run_3d.py`).

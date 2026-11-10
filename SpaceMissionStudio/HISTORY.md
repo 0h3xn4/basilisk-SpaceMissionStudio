@@ -17431,3 +17431,77 @@ licence gate and `THIRD_PARTY_NOTICES` (regenerated from the wheel).
 
 Three earlier GUI tests changed with the behaviour
 (`docs/ui/TEST_CHANGES.md`). No simulation result changed.
+
+## The 3D View live (2026-11-10)
+
+The second part of the owner's request: the 3D View "must work as a live
+renderer as well". Branch `feature/3d-live`, on top of the renderer.
+
+**The run's side** (`engine/live_view.py`). With **Show in 3D View while
+running** on, `RunWorker` gives the run a `LiveFeed`, and
+`SimulationService.initialize` adds a probe to the dynamics task: a
+Python `sysModel.SysModel`, last in the task, added after the random
+seeds are assigned. Every N steps it reads each spacecraft's
+`scStateOutMsg` (`r_BN_N`, `v_BN_N`) and the attitude the results use
+(the error-free navigation attitude, the navigation attitude, or the
+state's `sigma_BN` in a full-attitude run without control) and pushes
+`(t, r, v, sigma)` into the feed, a list behind a lock. N gives about 200
+samples an orbit (at least 20 a real second with a pace; at most 20,000 a
+run, 100,000 paced). Mission Sequences build through the same service,
+so they are sampled too; a segmented run (`long_run`) gives each
+segment's service the same feed with the segment's start added to the
+times.
+
+**Probe or chunks.** Measured first, with a prototype: a probe called
+every step of template 06 (43,200 steps of 0.1 s) took 23.4 s reading
+the state every step and 22.5 s every tenth step, against 22.0 s without
+it (+6 % and +2 %); sampling
+between `run_live` chunks would need a chunk, and a result extraction
+that grows with the samples, per sample. The probe stayed. With its
+final sampling: +2 % to +5 % for most templates; +19 % (0.15 s) for
+template 01, whose 30 s step makes every step a sample.
+
+**Pacing.** As fast as possible, or 1×, 10×, 100× or 1000× real time:
+the probe sleeps on the worker thread while the simulated time is ahead
+of the wall clock times the factor, in 50 ms slices, checking Cancel. A
+run more than a second behind starts its pace again rather than racing.
+The pace can change during the run (from the Run page). The tests run it
+on a fake clock.
+
+**Nothing changes in the results.** All 32 templates' golden
+fingerprints are equal as JSON text with the probe and without it; the
+golden and regression tests pass with a plug-in that gives every run a
+probe; every series of every template, run as the GUI runs it, is equal
+bit for bit with and without (`tests/test_live_view.py` keeps four of
+these comparisons: a full-attitude run, an attitude-controlled run, a
+Mission Sequence and a segmented run).
+
+**The view's side** (`gui/mission_view_widget.py`). A 50 ms timer drains
+the feed: the first samples build the scene in a thread
+(`LiveSceneBuilder`: the models, the stations); later ones extend it
+(`scene3d.extend_scene`, which `build_scene` now also uses, so the Earth
+rotation, Sun, Moon, altitude and line of sight of a live frame are
+those of a finished run's) and go to the page in batches of at most 400
+frames (`MV.append`), measured at most 17 ms of the GUI thread (six
+spacecraft). The page grows its path buffers and rebuilds a live ground
+track at most twice a second. The view follows the newest frame with a
+LIVE badge; Pause, the slider or the time cursor leave it behind, Go live
+(End) returns, Play catches up. At the end `set_run` replaces the live
+frames with the result, in the same view, the camera kept
+(`MV.load(..., {keepCamera: true})`), at the run's end; the window stays
+on the 3D View.
+
+**Follow-ups from the renderer's review.** An instrument view already
+hid its own field of view (kept, with its test). The page now reads the
+WebGL renderer's name and starts in reduced quality on a software
+renderer (SwiftShader, llvmpipe), before any slow frame; a quality
+chosen in Show is remembered and kept over the page's own.
+
+**Tests:** `tests/test_live_view.py` (11: the sampling interval, the
+buffer across threads, pacing on a fake clock with Cancel and a change of
+pace, and the probe in four kinds of run); `tests/gui/test_mission_view.py`
+(5 new: a live run drawn as it comes, pausing and going live, the result
+replacing the live frames with the camera kept, the software renderer,
+a chosen quality kept); `tests/gui/test_live_run_3d.py` (3: the Run page
+controls remembered, a real run at 1000× shown live then replaced, Cancel
+of a run at 1×). No earlier test changed.

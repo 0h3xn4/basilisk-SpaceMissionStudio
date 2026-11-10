@@ -291,8 +291,7 @@ Each item was checked against Basilisk's own source.
   * A renderer of the run's own series, after the run: at most 1,500
     frames spread over the run (playback picks the nearest), each
     spacecraft's attitude the nearest recorded one (an MRP that switches
-    to its shadow set cannot be interpolated). It does not show a run
-    while it runs.
+    to its shadow set cannot be interpolated).
   * The Earth turns by the IERS Earth rotation angle, with UT1 taken as
     UTC and precession left out: about 0.4 degrees from the true
     Earth-fixed frame in 2030. The ground track, the stations and their
@@ -320,6 +319,41 @@ Each item was checked against Basilisk's own source.
     offscreen); later runs reach the view in about 5 ms of the GUI
     thread.
   * No panels or instrument readouts in the view, no recording to video.
+  * **Live** (Show in 3D View while running; `engine/live_view.py`): the
+    probe samples each spacecraft about 200 times an orbit, in whole
+    dynamics steps (never more often than the step), at most 20,000
+    times a run (100,000 with a pace). Between samples the view shows
+    the last one: with a large dynamics step and a slow pace the
+    spacecraft moves in jumps. The page lags the run by up to one tick
+    (50 ms).
+  * Live shows the position, velocity and attitude only, the same as
+    the finished run's view; equipment, stations and the ground track
+    come from the scenario. Not in SIL mode (its run is built by the SIL
+    runner) or in a Monte Carlo batch (separate processes).
+  * Pacing waits only: a run slower than its pace runs at its own speed,
+    and one more than 1 s behind is not made to catch up. The wait is
+    in slices of 50 ms, so Cancel takes effect at once; the run then
+    finishes its chunk (1/60 of the run) unpaced before it stops.
+  * Measured cost of the probe (2026-11-10, this development machine,
+    best of 3; run time without and with it; three other runs on the
+    other cores): template 01 (1 day, 30 s step, 2,881 samples) 0.81 s
+    and 0.96 s (+19 %); 04 (six spacecraft, 2,881 samples) 6.80 s and
+    7.41 s (+9 %); 06 (0.1 s step, 43,200 steps, 151 samples) 21.25 s
+    and 22.13 s (+4 %); 08 (Mission Sequence) 2.76 s and 2.85 s (+3 %);
+    10 2.42 s and 2.54 s (+5 %); 22 2.22 s and 2.30 s (+4 %); 28 9.28 s
+    and 9.45 s (+2 %). About 50 µs a sample for one spacecraft, and
+    about 1 µs a dynamics step. Without the live view the probe is not
+    added and costs nothing.
+  * The GUI thread spends at most about 20 ms a tick on a live run: up
+    to 400 samples a tick (2,400 spacecraft states), measured 4 ms for
+    400 samples of one spacecraft and 15 ms for 400 samples of six. A run
+    sampled faster than that is drawn behind it and catches up.
+  * Frame time during a live run, at 1264 x 689 pixels in software
+    rendering (llvmpipe, no graphics card, reduced quality, the run in
+    the same process, median of 20 frames, 2026-11-10): Whole orbit 25 ms
+    (template 19 at 100× real time; template 04, six spacecraft, as fast
+    as possible), Follow 20 ms (template 28 at 100×) and 15 ms (template
+    06 as fast as possible): 40 to 65 frames a second.
 
 ## Planned, not yet built
 

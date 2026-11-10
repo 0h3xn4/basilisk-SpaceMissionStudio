@@ -43,7 +43,11 @@ is geometry for display.
   above the station's ``min_elevation_deg`` (:func:`elevation_deg`).
 
 :func:`build_scene` is Basilisk-free and returns plain arrays, so the view
-and the tests use the same numbers.
+and the tests use the same numbers. It is :func:`empty_scene` (the body,
+the spacecraft's models, the stations) plus :func:`extend_scene` (the
+frames and what follows from them); a run shown live
+(``engine.live_view``) is built the same way, its frames added as they
+come.
 """
 
 from __future__ import annotations

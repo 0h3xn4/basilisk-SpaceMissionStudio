@@ -200,8 +200,9 @@ A few things to notice right away:
   * **Run**: Run, the run mode (**Single · Monte Carlo · SIL**),
     **Cancel Run**, **Open Monte Carlo Results...** and
     **Check Reference Data** at the top; under them the **Run** page
-    (what the next run uses, for the mode chosen: **Live plot**
-    for a single run, the archive folder for a Monte
+    (what the next run uses, for the mode chosen: **Live plot** and
+    **Show in 3D View while running** with its pace for a single run,
+    the archive folder for a Monte
     Carlo batch, the spacecraft and program for a SIL run; each applies
     as you change it), **End of Life** and **Budget** (re-entry
     and delta-V estimates, Section 11), **History** (every run: its
@@ -1476,7 +1477,8 @@ few letters of its name ("save as", "events", "sat-1", "05 formation",
 ## 9. 3D visualization
 
 **Results › 3D View** shows the last run in 3D, inside the app, with
-nothing to install and nothing sent anywhere. It draws:
+nothing to install and nothing sent anywhere, after the run or while it
+runs (below). It draws:
 
 * the Earth (NASA's Blue Marble), turning, lit by the Sun, with the thin
   blue rim of its atmosphere, under NASA's star map; the Sun's glow and
@@ -1513,6 +1515,36 @@ for next time) and **Reduced quality**: smaller textures, no atmosphere
 rim, no smoothing of edges. The view chooses reduced quality by itself
 when a frame takes longer than 50 ms, as on a computer without a
 graphics card.
+
+On a computer without a graphics card (a software renderer such as
+SwiftShader or llvmpipe) the view starts in reduced quality. A choice
+made in **Show** is kept over the view's own.
+
+### While it runs
+
+On the Run area's **Run** page, check **Show in 3D View while running**
+(remembered). Each single run then opens Results › 3D View and shows the
+run as it is computed: the spacecraft, their paths growing, the Earth
+turning and the Sun moving with the simulated time, and a **LIVE** badge
+in the panel. This works for ordinary runs, Mission Sequences and runs
+longer than 100 days (run in segments); not in SIL mode.
+
+* **Pace:** **As fast as possible** (the default), or **1×**, **10×**,
+  **100×** or **1000× real time**: the run waits so that it goes no
+  faster than that, to be watched. A run slower than its pace goes at
+  its own speed. The pace can be changed during the run.
+* The view follows the newest state. **Pause** (Space), the slider or the
+  time cursor leave it where it is while the run goes on; **Go live**
+  (End) returns to the newest state, and **Play** goes on from where it
+  is until it catches up.
+* The run sends its spacecraft's state about 200 times an orbit (more
+  often with a pace), at most 20,000 times a run (100,000 with a pace).
+* When the run ends, or is cancelled, its result replaces what was
+  drawn live, in the same view, at the run's end (or the time you were
+  looking at). **Cancel** (Esc) stops a run that is waiting for its pace
+  at once.
+* Watching does not change the run: its results are the same, number
+  for number, with the view or without it.
 
 Without an attitude in the run a spacecraft is drawn aligned with the
 inertial axes, and the note says so. The Earth's turning, the Sun and

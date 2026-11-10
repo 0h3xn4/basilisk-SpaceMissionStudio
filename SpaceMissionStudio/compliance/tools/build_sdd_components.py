@@ -79,7 +79,7 @@ SRS_TO_COMPONENTS = {
                  "gui/phasing_formation_dialog", "gui/spacecraft_template_dialog", "gui/app",
                  "gui/webengine_setup", "gui/json_view", "gui/code_editor", "gui/json_positions",
                  "gui/json_assist", "schema/fields", "gui/json_refactor"],
-    "SRS-F-16": ["engine/scene3d", "gui/mission_view_widget"],
+    "SRS-F-16": ["engine/scene3d", "engine/live_view", "gui/mission_view_widget"],
     "SRS-F-17": ["dependencies", "engine/service", "output_provenance"],
     "SRS-F-18": ["fsw_export/catalog", "fsw_export/sources", "fsw_export/cdecl", "fsw_export/model",
                  "fsw_export/capture", "fsw_export/generate", "fsw_export/documents", "fsw_export/digest",
