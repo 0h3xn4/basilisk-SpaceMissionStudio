@@ -19,8 +19,8 @@ You need Python 3.14 (CI uses 3.14), git, and on Linux glibc 2.34
 or newer. From a terminal:
 
 ```bash
-git clone https://github.com/0h3xn4/basilisk-SpaceMissionStudio.git
-cd basilisk-SpaceMissionStudio/SpaceMissionStudio
+git clone https://github.com/0h3xn4/basilisk_space-mission-studio.git
+cd basilisk_space-mission-studio/SpaceMissionStudio
 python3 -m venv .venv
 source .venv/bin/activate              # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install "bsk[all]==2.12.0"         # Basilisk, the version the tool is verified against

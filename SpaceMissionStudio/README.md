@@ -1,6 +1,6 @@
 # SpaceMissionStudio
 
-[![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
+[![CI](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/workflows/spacemissionstudio.yml)
 ![Version 2.6.0](https://img.shields.io/badge/version-2.6.0-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence EUPL-1.2](https://img.shields.io/badge/licence-EUPL--1.2-green)
@@ -36,8 +36,8 @@ battery, link margin, lifetime and propellant.
 On Linux (Windows: see [Getting started](docs/getting-started.md)):
 
 ```bash
-git clone https://github.com/0h3xn4/basilisk-SpaceMissionStudio.git
-cd basilisk-SpaceMissionStudio/SpaceMissionStudio
+git clone https://github.com/0h3xn4/basilisk_space-mission-studio.git
+cd basilisk_space-mission-studio/SpaceMissionStudio
 python3 -m venv .venv
 source .venv/bin/activate
 pip install "bsk[all]==2.12.0"
@@ -141,7 +141,7 @@ internet needed.
   No copyright is claimed in SpaceMissionStudio's own code, which an AI
   model wrote (see AI authorship above); 0h3xn4 publishes it under the
   EUPL-1.2 as its licensor.
-- **Version:** 2.6.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.6.0),
+- **Version:** 2.6.0 ([release](https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.6.0),
   [changelog](CHANGELOG.md)): **Results › 3D View** plays a run back in
   3D inside the app, in place of the Vizard download; network use is
   enforced, can be switched off and is logged, with an audit you can run;
