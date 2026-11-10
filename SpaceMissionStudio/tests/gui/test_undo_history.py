@@ -65,6 +65,7 @@ def window(qtbot, monkeypatch):
 
     w = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(w)
+    w.on_new()  # the window starts with nothing open (the landing page): New opens a scenario
     return w
 
 

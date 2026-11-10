@@ -107,6 +107,7 @@ def test_the_palette_shows_a_series_of_the_result(qtbot):
 
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
+    window.on_new()  # the window starts with nothing open (the landing page): New opens a scenario
     result = ResultSet("r")
     for name in ("sat-1.position_N", "sat-1.velocity_N"):
         result.add(TimeSeries(name, np.arange(3.0), ("x", "y", "z"), np.zeros((3, 3)), units="m"))

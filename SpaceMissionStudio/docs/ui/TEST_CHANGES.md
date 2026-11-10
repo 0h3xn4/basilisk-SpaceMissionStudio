@@ -1923,3 +1923,31 @@ output file changed.
 | `tests/gui/test_main_window.py::test_locate_vizard_dismissed_returns_none` | docstring names "Download Vizard" | names "Open the 3D View" | the button's name; the assertion is unchanged |
 | `tests/test_network.py::test_every_download_is_a_purpose_with_https_hosts` | the purposes include `vizard` | they do not | the purpose is removed |
 | `tests/gui/test_workspace.py::test_the_areas_and_what_they_hold` | Results tabs: Overview, Plots, Dashboard, Output, Compare | 3D View after Plots | the new tab; the other tabs and their order are unchanged |
+
+## Landing page at start-up (2026-11-10)
+
+The window now starts on Home with no scenario open (the owner's
+decision): the work areas show an empty state, the scenario's commands are
+disabled and no earlier run is listed until a scenario is opened, which
+then lists its own earlier runs. Tests that work on a scenario now open
+one first, through **New Scenario** (`on_new()`) or by opening a file;
+the tests of start-up itself use a window with nothing open. No assertion
+is weakened or removed, no test skipped; no golden or output file changed.
+The new behaviour is tested in `tests/gui/test_landing_page.py` (8 tests).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_main_window.py`: the `window` fixture (every test using it) | `MainWindow(...)` as it starts | `MainWindow(...)` then `on_new()`; a new fixture `unopened_window` is the window as it starts | The tests edit, save and run a scenario: one must be open now |
+| `tests/gui/test_main_window.py::test_initial_title_is_untitled` | the start-up title is "SpaceMissionStudio -- untitled" | the title after New Scenario is "SpaceMissionStudio -- untitled" (same assertion, through the fixture) | At start the title is "no scenario open" (`test_landing_page.py::test_the_window_starts_on_home_with_nothing_open`); "untitled" is a new scenario's |
+| `tests/gui/test_main_window.py::test_window_starts_on_load_scenario_tab` | `window` fixture | `unopened_window` fixture | It tests start-up: the window as it starts |
+| `tests/gui/test_main_window.py`: `test_choosing_a_template_with_unsaved_changes_prompts_first`, `test_choosing_a_customized_scenario_with_unsaved_changes_prompts_first`, `test_customized_scenario_that_fails_validation_shows_error_not_crash` | the window was on Home when the template was chosen, because it started there | `window.shell.show_area("home")` before the template is chosen | The fixture's New Scenario shows the Scenario area; a template is chosen on Home. The assertion (still on Home after Cancel or an error) is unchanged |
+| `tests/gui/test_shell.py`: the `window` fixture | `MainWindow(...)` as it starts | `MainWindow(...)` then `on_new()`; a new fixture `unopened_window` is the window as it starts | `test_the_save_button_shows_the_save_state_and_saves` and `test_the_window_title_bar_name_elides_rather_than_widening_the_window` need a scenario |
+| `tests/gui/test_shell.py`: `test_a_new_window_opens_on_home_and_a_template_opens_the_scenario`, `test_the_breadcrumbs_say_where_the_window_is` | `window` fixture | `unopened_window` fixture | They test start-up (Home, its breadcrumb) and then open a template themselves |
+| `tests/gui/test_undo_history.py`: the `window` fixture | `MainWindow(...)` as it starts | then `on_new()` | Undo and Redo are disabled while no scenario is open |
+| `tests/test_history.py`: `test_undo_and_redo_name_the_edit_they_change_back`, `test_the_history_view_shows_the_saves_newest_first` | the window as it starts | `window.on_new()` after it is made | Undo, Redo and Change History are disabled while no scenario is open; the rest of each test is unchanged |
+| `tests/gui/test_messages.py::test_confirmations_name_the_object_and_the_consequence` | the window as it starts | `window.on_new()` after it is made | Nothing open has no unsaved changes to ask about |
+| `tests/gui/test_keyboard_cursor.py::test_alt_backspace_clears_the_time_cursor_in_the_window` | the window as it starts | `window.on_new()` after it is made | Undo (whose key competes with Alt+Backspace) and Clear Time Cursor are disabled while no scenario is open |
+| `tests/gui/test_command_palette.py::test_the_palette_shows_a_series_of_the_result` | the window as it starts | `window.on_new()` after it is made | The palette offers no series while no scenario is open |
+| `tests/gui/test_panels.py::test_a_keyboard_only_walk_of_the_shell` | the window as it starts | `window.on_new()` first | With nothing open the Problems panel is empty, so Ctrl+J has no row to put the focus on; the walk is of a window at work |
+| `tests/gui/test_compare_tab.py::test_runs_of_an_earlier_session_are_listed_and_read_back_when_ticked` | the saved runs are listed at start | the saved runs are listed once their scenario ("demo", a template saved under that name) is opened | Earlier runs come back with their scenario only (`docs/DECISIONS.md`); the rest of the test is unchanged |
+| `tests/gui/test_run_record.py::test_history_lists_earlier_runs_read_in_a_worker` | the saved run is listed at start | the saved run is listed once its scenario ("yesterday", template 01 under that name) is opened | As above; the worker-thread read and the entry's fields are asserted as before |

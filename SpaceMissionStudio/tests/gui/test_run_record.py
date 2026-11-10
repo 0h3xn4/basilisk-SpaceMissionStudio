@@ -21,6 +21,7 @@ store pruned in a worker, listed at once; Compare refreshed when shown and
 Results drawn once; Run > History with each run's status, mode, duration
 and provenance; the Log's record of each run."""
 
+import json
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -190,6 +191,11 @@ def test_history_lists_earlier_runs_read_in_a_worker(qtbot, monkeypatch, tmp_pat
     monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
+    # Listed with their scenario (the landing page): open one of the same name.
+    path = tmp_path / "yesterday.json"
+    path.write_text(json.dumps(dict(json.loads((_TEMPLATES / "01_two_body_circular_orbit.json").read_text()),
+                                    name="yesterday")), encoding="utf-8")
+    assert window.open_path(path)
     qtbot.waitUntil(lambda: bool(window.history_view.entries()), timeout=10000)
     assert threads and threads[0] is not threading.main_thread()
     entry = window.history_view.entries()[0]

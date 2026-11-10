@@ -34,6 +34,9 @@ visible" and "Target layout"; docs/ux-audit.md U-04, U-06, U-07):
   reference data (clicking it opens the Reference data dialog), the Earth
   orientation data and the frames runs use. They read local files only,
   never the network.
+* :class:`NoScenarioState` -- what a work area shows while no scenario is
+  open (the window starts so): why it is empty, and New scenario, Open...
+  and Go to Home.
 
 Colours come from theme.py's ``QLabel#statusChip[state=...]`` and
 ``QWidget#topBar`` rules.
@@ -48,10 +51,11 @@ from PySide6.QtGui import QAction, QPainter
 from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QProgressBar, QPushButton, QSizePolicy, QToolButton,
                                QVBoxLayout, QWidget)
 
-from .theme import icon
+from .theme import SPACE, icon, set_role
 from .theme.icons import keep_icon
 
 CHIP_STATES = ("idle", "running", "done", "failed", "cancelled")
+NO_SCENARIO_TITLE = "No scenario open"  # the top bar's name while nothing is open
 
 
 class StatusChip(QLabel):
@@ -309,8 +313,16 @@ class TopBar(QWidget):
 
     def set_scenario(self, name: str, dirty: bool, source: str) -> None:
         """``source``: "template 22", a file name, or "" for a new scenario."""
+        self._nothing_open = False
         self.name_label.setText(name or "Untitled scenario")
         self._dirty, self._source = dirty, source
+        self._refresh_detail()
+
+    def set_nothing_open(self) -> None:
+        """No scenario is open (the window starts so): the bar says so."""
+        self._nothing_open = True
+        self.name_label.setText(NO_SCENARIO_TITLE)
+        self._dirty, self._source = False, ""
         self._refresh_detail()
 
     def set_last_run(self, text: str) -> None:
@@ -318,6 +330,14 @@ class TopBar(QWidget):
         self._refresh_detail()
 
     def _refresh_detail(self) -> None:
+        if getattr(self, "_nothing_open", False):
+            self.detail_label.setText("Start one on Home: a new scenario, a file or a template")
+            if self.save_button is not None:
+                self.save_button.setText("Save")
+                self.save_button.setEnabled(False)
+            return
+        if self.save_button is not None:
+            self.save_button.setEnabled(True)
         if self._dirty:
             state = "Unsaved changes"
         elif self._source.startswith("template "):
@@ -480,3 +500,45 @@ def _separator(parent: QWidget) -> QFrame:
     rule.setFrameShape(QFrame.Shape.VLine)
     rule.setFixedWidth(9)  # [px] the rule and a little room either side
     return rule
+
+
+class NoScenarioState(QWidget):
+    """A work area while no scenario is open: why it is empty, and the
+    actions that open one (New scenario, the primary one; Open...; Go to
+    Home, where the templates and recent files are)."""
+
+    new_requested = Signal()
+    open_requested = Signal()
+    home_requested = Signal()
+
+    def __init__(self, area_label: str, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("noScenarioState")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(SPACE["xl"], SPACE["xl"], SPACE["xl"], SPACE["xl"])
+        layout.setSpacing(SPACE["md"])
+        layout.addStretch(1)
+        self.title_label = set_role(QLabel("No scenario is open"), role="section-title")
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.title_label)
+        self.text_label = set_role(QLabel(f"{area_label} works on an open scenario. Start one on Home: a new "
+                                          "scenario, a saved file or a template."), tone="secondary")
+        self.text_label.setWordWrap(True)
+        self.text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.text_label)
+        buttons = QHBoxLayout()
+        buttons.setSpacing(SPACE["sm"])
+        buttons.addStretch(1)
+        self.new_button = set_role(QPushButton("New Scenario"), variant="primary")
+        self.new_button.setIcon(icon("file-plus", "text.on_accent"))
+        self.open_button = QPushButton("Open...")
+        self.open_button.setIcon(icon("folder-open", "text.secondary"))
+        self.home_button = QPushButton("Go to Home")
+        self.home_button.setIcon(icon("house", "text.secondary"))
+        for button, signal in ((self.new_button, self.new_requested), (self.open_button, self.open_requested),
+                               (self.home_button, self.home_requested)):
+            button.clicked.connect(signal)
+            buttons.addWidget(button)
+        buttons.addStretch(1)
+        layout.addLayout(buttons)
+        layout.addStretch(2)

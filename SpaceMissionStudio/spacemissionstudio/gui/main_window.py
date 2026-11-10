@@ -69,7 +69,7 @@ from ..schema.scenario import Scenario, ScenarioValidationError, load_scenario
 from . import autosave
 from . import export_log
 from .actions import ActionRegistry
-from .app_shell import RunProgressStrip, StatusBarItems, StatusChip, TopBar, source_of
+from .app_shell import NoScenarioState, RunProgressStrip, StatusBarItems, StatusChip, TopBar, source_of
 from .feedback import StaleResultsBanner, report, show_toast
 from .icons import toolbar_icon
 from .data_panel_widget import NOT_READ, DataPanelWidget
@@ -224,6 +224,20 @@ class MainWindow(QMainWindow):
 
         self._current_path: Path | None = None
         self._dirty = False
+        # The landing page (owner's decision of 2026-11-10): the window starts
+        # with no scenario open, on Home; the editor keeps its blank default
+        # inside, but every area, command and run list behaves as if nothing
+        # were open until New, Open, a recent file, a template or a restored
+        # autosave opens one (_set_scenario_open).
+        self._scenario_open = False
+        # Which kept runs are listed (Results, Run > History, Compare): those
+        # of the open scenario, by its name (docs/DECISIONS.md, "earlier runs
+        # only with their scenario"), and the runs made since it was opened.
+        self._runs_scenario_name: str | None = None  # None: no earlier runs (nothing open, or New)
+        self._open_serial = 0  # [-] counts the scenarios opened in this session
+        self._run_open_serial = 0  # [-] _open_serial when the last run started
+        self._runs_since_open: set[int] = set()  # numbers of the runs kept since the scenario was opened
+        self._extras_since_open: set[int] = set()  # id() of History's extra entries since then
         self._run_worker: RunWorker | None = None
         self._mc_worker: MonteCarloWorker | None = None
         self._mc_archive_dir: Path | None = None  # where the running or last batch saves (on_run_monte_carlo)
@@ -402,7 +416,8 @@ class MainWindow(QMainWindow):
         self.run_views.addTab(design_scroll, "Design Checks")
         self.run_views.addTab(self.history_view, "History")
         self.run_views.addTab(self.log_widget, "Log")
-        self.results_widget.set_runs(self.run_history.runs, None)  # the saved runs of earlier sessions (U-33)
+        # No run is listed until a scenario is open; then its own (U-33, landing page).
+        self.results_widget.set_runs(self._listed_runs(), None)
         self._refresh_compare_tab()
 
         # The inspector on the right (UI overhaul plan §5.1, M2b): the
@@ -470,6 +485,7 @@ class MainWindow(QMainWindow):
 
         self._build_actions()
         self._build_areas()
+        self._set_scenario_open(False)  # the landing page: Home, with nothing open
         self.resizeDocks([self.side_dock], [380], Qt.Orientation.Horizontal)  # [px]
         self.resizeDocks([self.problems_dock], [140], Qt.Orientation.Vertical)  # [px] about four rows
         self._hide_default_panels()
@@ -812,6 +828,15 @@ class MainWindow(QMainWindow):
                                        keywords=("events",) if area_id == "timeline" else ())
             action.setData(area_id)
             action.triggered.connect(self._on_go_to_area)
+        # While no scenario is open, the work areas say so, with the actions that open one.
+        self.no_scenario_states = {}
+        for area_id in self._SCENARIO_AREAS:
+            state = NoScenarioState(self.shell.areas[area_id].label)
+            state.new_requested.connect(self.on_new)
+            state.open_requested.connect(self.on_open)
+            state.home_requested.connect(self._go_home)
+            self.shell.page(area_id).set_empty_state(state)
+            self.no_scenario_states[area_id] = state
         self.settings_page = SettingsPage(self.commands)
         self.shell.register("settings", "settings", "Settings", self.settings_page, len(self._AREAS), bottom=True)
         self.shell.register("help", "circle-help", "Help", None, len(self._AREAS) + 1, bottom=True,
@@ -854,8 +879,72 @@ class MainWindow(QMainWindow):
         self._refresh_breadcrumbs()
         self._on_run_mode_changed()  # the Run area's mode button has its text too
 
+    # The areas that work on an open scenario: an empty state while none is.
+    _SCENARIO_AREAS = ("scenario", "run", "results", "timeline", "reports")
+    # The commands that need an open scenario: disabled while none is (Settings, Help, New and Open stay).
+    _SCENARIO_COMMANDS = ("file.save", "file.save_as", "file.change_history", "run.run", "run.mode.single",
+                          "run.mode.monte_carlo", "run.mode.sil", "run.live_plot", "run.vizard_config",
+                          "run.open_monte_carlo", "run.clear_cursor", "tools.model_3d", "tools.ccsds_export",
+                          "analyses.end_of_life", "analyses.budget", "analyses.design_checks",
+                          "tools.flight_software", "view.explain")
+
     def _on_go_to_area(self) -> None:
         self.shell.show_area(self.sender().data())
+
+    def _go_home(self) -> None:
+        self.shell.show_area("home")
+
+    @property
+    def scenario_open(self) -> bool:
+        """Whether a scenario is open: False from start-up until New, Open, a
+        recent file, a template or a restored autosave opens one."""
+        return self._scenario_open
+
+    def _scenario_commands(self) -> list:
+        return [self.commands.action(command_id) for command_id in self._SCENARIO_COMMANDS]
+
+    def _set_scenario_open(self, is_open: bool) -> None:
+        """The one switch of the "scenario open" state: the work areas show
+        their content or their empty state, the scenario's commands are
+        enabled or not, and the title, top bar and Problems follow."""
+        was_open, self._scenario_open = self._scenario_open, is_open
+        for area_id in self._SCENARIO_AREAS:
+            self.shell.page(area_id).show_empty(not is_open)
+        for action in self._scenario_commands():
+            action.setEnabled(is_open)
+        self._set_running(self._run_going())  # the run commands: not while a run goes either
+        self._update_undo_actions()
+        if is_open and not was_open:
+            self._error_count = None  # the problems of a scenario just opened only count (G8)
+        self._on_problems_changed(self.scenario_editor.problem_rows())
+        self._update_window_title()
+        self._refresh_breadcrumbs()
+
+    def _run_going(self) -> bool:
+        """A single run or a Monte Carlo batch is going."""
+        return any(worker is not None and worker.isRunning() for worker in (self._run_worker, self._mc_worker))
+
+    def _begin_scenario(self, runs_name: str | None) -> None:
+        """A scenario is being opened: the runs listed from now on are those
+        of ``runs_name`` (its name; None for a new scenario, which has none
+        yet) and the runs made from now on (docs/DECISIONS.md, "earlier runs
+        only with their scenario")."""
+        self._open_serial += 1
+        if not self._run_going():  # a run still going belongs to the scenario it started with
+            self._run_open_serial = self._open_serial
+        self._runs_scenario_name = (runs_name or "").strip() or None
+        self._runs_since_open = set()
+        self._extras_since_open = set()
+
+    def _of_open_scenario(self, scenario_name) -> bool:
+        """Whether a run of the scenario named ``scenario_name`` belongs to the open scenario."""
+        return self._runs_scenario_name is not None and str(scenario_name or "").strip() == self._runs_scenario_name
+
+    def _listed_runs(self) -> list:
+        """The kept runs Results, Run › History and Compare list: the open
+        scenario's earlier runs and the runs made since it was opened."""
+        return [record for record in self.run_history.runs
+                if record.number in self._runs_since_open or self._of_open_scenario(record.scenario.get("name"))]
 
     def _on_area_changed(self, _area_id: str) -> None:
         self._apply_stale_banner()
@@ -871,7 +960,9 @@ class MainWindow(QMainWindow):
         if area_id is None:
             return
         parts = [self.shell.areas[area_id].label]
-        if area_id == "scenario" and self.scenario_editor.json_mode:
+        if not self._scenario_open and area_id in self._SCENARIO_AREAS:
+            pass  # its empty state: nothing below the area
+        elif area_id == "scenario" and self.scenario_editor.json_mode:
             parts.append("JSON")
         elif area_id == "scenario":
             item = self.scenario_editor.page_tree.tree.currentItem()
@@ -1143,7 +1234,10 @@ class MainWindow(QMainWindow):
         self.show_view(self.scenario_editor)
 
     def _on_problems_changed(self, rows: list) -> None:
-        """The editor's problems, with the names a message can be about."""
+        """The editor's problems, with the names a message can be about
+        (none while no scenario is open)."""
+        if not self._scenario_open:
+            rows = []
         editor = self.scenario_editor
         self.problems_widget.set_problems(rows, [c.name for c in editor.spacecraft_list.to_list()],
                                           [g.name for g in editor.ground_station_list.to_list()])
@@ -1187,7 +1281,7 @@ class MainWindow(QMainWindow):
             self._compare_stale = True
             return
         self._compare_stale = False
-        self.compare_widget.set_runs(self.run_history.runs, self.results_widget._current_run,
+        self.compare_widget.set_runs(self._listed_runs(), self.results_widget._current_run,
                                      self.results_widget.compare_combo.currentData(), self.run_history.store_root)
 
     def _refresh_compare_if_shown(self, *_args) -> None:
@@ -1206,7 +1300,7 @@ class MainWindow(QMainWindow):
         except OSError as exc:
             show_toast(self, f"Could not delete {record.name}: {exc}", kind="error")
             return
-        self.results_widget.set_runs(self.run_history.runs, self.results_widget._current_run)
+        self.results_widget.set_runs(self._listed_runs(), self.results_widget._current_run)
         self._refresh_compare_tab()
         self._refresh_history()
         show_toast(self, f"Deleted {record.name}")
@@ -1338,12 +1432,16 @@ class MainWindow(QMainWindow):
                 continue  # its tree's paths below
             entries.append(PaletteEntry(f"Go to > {area.label}", lambda area_id=area.id: self.shell.show_area(area_id),
                                         keywords="events" if area.id == "timeline" else ""))
-        for path, item in self.scenario_editor.page_tree.paths():
+        # With no scenario open, its pages and the run views are not offered: their areas show the empty state.
+        scenario_pages = self.scenario_editor.page_tree.paths() if self._scenario_open else []
+        for path, item in scenario_pages:
             entries.append(PaletteEntry(f"Go to > Scenario > {path}", lambda item=item: self._show_tree_item(item)))
-        entries.append(PaletteEntry("Go to > Scenario > JSON", lambda: self.show_view(self.scenario_editor.json_page),
-                                    keywords="form text"))
-        for area_label, tabs in (("Results", self.results_views), ("Run", self.run_views),
-                                 ("Reports", self.reports_views)):
+        if self._scenario_open:
+            entries.append(PaletteEntry("Go to > Scenario > JSON",
+                                        lambda: self.show_view(self.scenario_editor.json_page), keywords="form text"))
+        view_tabs = (("Results", self.results_views), ("Run", self.run_views),
+                     ("Reports", self.reports_views)) if self._scenario_open else ()
+        for area_label, tabs in view_tabs:
             for index in range(tabs.count()):
                 page = tabs.widget(index)
                 entries.append(PaletteEntry(f"Go to > {area_label} > {tabs.tabText(index).replace('&', '')}",
@@ -1359,7 +1457,7 @@ class MainWindow(QMainWindow):
         for path in sorted(TEMPLATES_DIR.glob("*.json")):
             entries.append(PaletteEntry(f"Open template > {path.stem.replace('_', ' ')}",
                                         lambda path=path: self._on_load_scenario_path_chosen(path)))
-        result = self.results_widget._result
+        result = self.results_widget._result if self._scenario_open else None
         for name in sorted(result.series) if result is not None else []:
             entries.append(PaletteEntry(f"Show series > {name}", lambda name=name: self._show_series(name)))
         return entries
@@ -1411,13 +1509,21 @@ class MainWindow(QMainWindow):
         show_window(self._licences_dialog)
 
     def _update_window_title(self) -> None:
+        if not self._scenario_open:
+            self.setWindowTitle("SpaceMissionStudio -- no scenario open")
+            self._refresh_top_bar()
+            return
         name = self._current_path.name if self._current_path else "untitled"
         star = "*" if self._dirty else ""
         self.setWindowTitle(f"SpaceMissionStudio -- {name}{star}")
         self._refresh_top_bar()
 
     def _refresh_top_bar(self) -> None:
-        if hasattr(self, "top_bar"):  # the editor emits changes while the window is still being built
+        if not hasattr(self, "top_bar"):  # the editor emits changes while the window is still being built
+            return
+        if not self._scenario_open:
+            self.top_bar.set_nothing_open()
+        else:
             self.top_bar.set_scenario(self.scenario_editor.name_edit.text().strip(), self._dirty,
                                       source_of(self._current_path, TEMPLATES_DIR))
 
@@ -1426,6 +1532,8 @@ class MainWindow(QMainWindow):
         return self._current_path.parent if self._current_path is not None else None
 
     def _mark_dirty(self) -> None:
+        if not self._scenario_open:
+            return  # nothing open has nothing unsaved (the editor's blank default is not the user's)
         if not self._dirty:
             self._dirty = True
             self._update_window_title()
@@ -1563,7 +1671,10 @@ class MainWindow(QMainWindow):
         self._current_path = info.original_path
         if hasattr(self, "run_page"):
             self._recall_archive_dir()  # this scenario's Monte Carlo archive folder (M5b)
+        self._begin_scenario(info.scenario.name)  # restoring opens it, with its runs
         self._clear_run_views()
+        self._set_scenario_open(True)
+        self._refresh_history()
         self._mark_dirty()
         self.statusBar().showMessage("Restored autosaved changes.")
         show_toast(self, "Restored autosaved changes")
@@ -1624,7 +1735,7 @@ class MainWindow(QMainWindow):
                  "Undo the last scenario edit.", typing),
                 ("edit.redo", self.redo_action, self._history.redo_label(), "Redo", "Makes again",
                  "Redo the scenario edit just undone.", "")):
-            action.setEnabled(label is not None)
+            action.setEnabled(label is not None and self._scenario_open)
             action.setText(f"&{verb} {label[0]}" if label else f"&{verb}")
             self.commands.refresh_tooltip(command_id, (f"{does} {label[1]}." if label else plain) + extra)
 
@@ -1699,7 +1810,7 @@ class MainWindow(QMainWindow):
         self.mission_output_widget.clear()
         self.event_timeline_widget.set_result(None)
         self.results_widget.set_vizard_file(None)
-        self.results_widget.set_runs(self.run_history.runs, None)
+        self.results_widget.set_runs(self._listed_runs(), None)
         self._refresh_compare_tab()
         self.time_cursor.clear()
 
@@ -1709,7 +1820,10 @@ class MainWindow(QMainWindow):
             return
         record = self.run_history.add(self._last_run_scenario.to_dict(), result, self._last_run_epoch_utc or "",
                                       cancelled=cancelled)  # saved in a worker: _on_run_saved
-        self.results_widget.set_runs(self.run_history.runs, record)
+        if self._run_open_serial == self._open_serial:  # not when another scenario was opened since it started
+            self._runs_since_open.add(record.number)
+        listed = self._listed_runs()
+        self.results_widget.set_runs(listed, record if record in listed else self.results_widget._current_run)
         self.results_overview.set_run(result, record.name,
                                       result.provenance.to_dict() if result.provenance is not None else None,
                                       record.scenario)
@@ -1724,8 +1838,9 @@ class MainWindow(QMainWindow):
         self._refresh_history()
 
     def _on_runs_loaded(self) -> None:
-        """The earlier sessions' runs are listed (read in a worker, M5a)."""
-        self.results_widget.set_runs(self.run_history.runs, self.results_widget._current_run)
+        """The earlier sessions' runs are read (in a worker, M5a): the open
+        scenario's are listed."""
+        self.results_widget.set_runs(self._listed_runs(), self.results_widget._current_run)
         self._refresh_compare_tab()
         self._refresh_history()
 
@@ -1748,17 +1863,22 @@ class MainWindow(QMainWindow):
 
     def _refresh_history(self) -> None:
         entries = [run_entry(record, self._saved_text(record), self._run_modes.get(record.number, ""),
-                             self._run_seconds.get(record.number)) for record in self.run_history.runs]
-        self.history_view.set_entries(entries + self._history_extra)
+                             self._run_seconds.get(record.number)) for record in self._listed_runs()]
+        extras = [entry for entry in self._history_extra
+                  if id(entry) in self._extras_since_open or self._of_open_scenario(entry.scenario)]
+        self.history_view.set_entries(entries + extras)
 
     def _add_history_extra(self, status: str, mode: str, detail: str) -> None:
         """A failed run or a batch: listed for this session (the run store keeps neither)."""
         now = datetime.now(UTC)
         scenario = self._last_run_scenario.name if self._last_run_scenario is not None else ""
-        self._history_extra.append(HistoryEntry(
+        entry = HistoryEntry(
             status=status, scenario=scenario, mode=mode, started_utc=utc_text(self._run_started_at),
             duration_s=self.last_run_seconds, saved="Not kept" if status == "failed" else "",
-            detail=detail, order=now.timestamp()))
+            detail=detail, order=now.timestamp())
+        self._history_extra.append(entry)
+        if self._run_open_serial == self._open_serial:
+            self._extras_since_open.add(id(entry))
         self._refresh_history()
 
     def _show_history_run(self, record) -> None:
@@ -1852,8 +1972,11 @@ class MainWindow(QMainWindow):
         self._current_path = None
         if hasattr(self, "run_page"):
             self._recall_archive_dir()  # this scenario's Monte Carlo archive folder (M5b)
+        self._begin_scenario(None)  # a new scenario has no earlier runs
         self._clear_run_views()
         self._mark_clean()
+        self._set_scenario_open(True)
+        self._refresh_history()
         self.statusBar().showMessage("New blank scenario, in Orbit only: the Scenario page guides the next steps.")
         show_toast(self, "New blank scenario")
         self.scenario_editor.show_scenario_page()
@@ -1942,8 +2065,11 @@ class MainWindow(QMainWindow):
         if hasattr(self, "run_page"):
             self._recall_archive_dir()  # this scenario's Monte Carlo archive folder (M5b)
         self._restore_project_layout()
+        self._begin_scenario(scenario.name)  # its earlier runs are listed, and only its
         self._clear_run_views()
         self._mark_clean()
+        self._set_scenario_open(True)
+        self._refresh_history()
         label = str(current_path) if current_path is not None else scenario.name
         self.statusBar().showMessage(f"{verb} {label}")
         show_toast(self, f"{verb} {current_path.name if current_path is not None else scenario.name}")
@@ -2004,12 +2130,14 @@ class MainWindow(QMainWindow):
         single run's worker was still using ``self._run_worker``, silently
         losing track of it. One run at a time.
         """
+        needs_scenario = {self.run_action, self.live_plot_action, self.vizard_action,
+                          *self.run_mode_group.actions()}  # and none is open: they stay disabled
         for action in (self.run_action, self.live_plot_action, self.vizard_action,
                        self.vizard_launch_action, self.check_kernels_action, *self.run_mode_group.actions()):
-            action.setEnabled(not running)
+            action.setEnabled(not running and (self._scenario_open or action not in needs_scenario))
         for button in (getattr(self, "run_mode_button", None), getattr(self, "run_mode_control", None)):
             if button is not None:
-                button.setEnabled(not running)
+                button.setEnabled(not running and self._scenario_open)
 
     def _start_busy(self, message: str, determinate: bool = False, cancellable: bool = True,
                     cancel_note: str = "") -> None:
@@ -2017,6 +2145,7 @@ class MainWindow(QMainWindow):
         reports its phase; its bar is busy until the run reports a fraction
         (``determinate``: it starts at 0 %)."""
         self.finish_run_end()  # the last run's views, before this one's
+        self._run_open_serial = self._open_serial  # the run belongs to the scenario open now
         self._set_running(True)
         self._busy_elapsed.start()
         self._run_started_at = datetime.now(UTC)
