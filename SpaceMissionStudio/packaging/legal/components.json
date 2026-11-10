@@ -49,6 +49,44 @@
       ]
     },
     {
+      "name": "three.js",
+      "version": "0.187.0",
+      "licence": "MIT",
+      "copyright": "2010-2026 three.js authors",
+      "holder": "three.js authors",
+      "url": "https://www.npmjs.com/package/three/v/0.187.0",
+      "type": "library",
+      "licence_basis": "LICENSE of the npm package three@0.187.0, shipped as THREE_LICENSE.txt beside the bundle; the bundle's own licence comment (SPDX-License-Identifier: MIT); built by scripts/build_three_bundle.py (docs/THIRD_PARTY_ASSETS.md)",
+      "match": [
+        "*spacemissionstudio/gui/assets/mission_view/three.bundle.min.js",
+        "*spacemissionstudio/gui/assets/mission_view/THREE_LICENSE.txt"
+      ],
+      "licence_match": [
+        "*gui/assets/mission_view/THREE_LICENSE.txt"
+      ]
+    },
+    {
+      "name": "NASA SVS images: Blue Marble (SVS 2915) and Deep Star Maps 2020 (SVS 4851)",
+      "version": "2004 and 2020 releases, prepared 2026-11-10",
+      "licence": "LicenseRef-NASA-public-work",
+      "copyright": "NASA Goddard Space Flight Center Scientific Visualization Studio; Blue Marble data courtesy of Reto Stockli (NASA/GSFC); star data Hipparcos, Tycho-2, UCAC3, Gaia DR2 (ESA/Gaia/DPAC)",
+      "holder": "NASA",
+      "url": "https://svs.gsfc.nasa.gov/help/",
+      "type": "data",
+      "licence_basis": "SVS help page: 'All of our content is in the public domain (unless otherwise noted)', read 2026-11-10; docs/legal/DATA_TERMS.md item 10; NASA_IMAGES.txt beside the images",
+      "redistribution": "SVS: free to download, use, and redistribute for whatever purposes you see fit; credit NASA Goddard Space Flight Center Scientific Visualization Studio",
+      "redistribution_status": "verified",
+      "text_source": "docs/legal/DATA_TERMS.md",
+      "match": [
+        "*spacemissionstudio/gui/assets/mission_view/earth_day_*.jpg",
+        "*spacemissionstudio/gui/assets/mission_view/stars_*.jpg",
+        "*spacemissionstudio/gui/assets/mission_view/NASA_IMAGES.txt"
+      ],
+      "licence_match": [
+        "*gui/assets/mission_view/NASA_IMAGES.txt"
+      ]
+    },
+    {
       "name": "Basilisk sources for the flight-software export",
       "version": "2.12.0",
       "licence": "ISC",

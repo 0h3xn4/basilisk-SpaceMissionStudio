@@ -207,6 +207,9 @@ def test_the_debian_copyright_file_names_each_bundled_part_and_its_licence():
         site + "spacemissionstudio/gui/assets/fonts/inter/Inter-Regular.ttf": "OFL-1.1",
         site + "spacemissionstudio/gui/assets/fonts/jetbrains-mono/JetBrainsMono-Regular.ttf": "OFL-1.1",
         site + "spacemissionstudio/gui/assets/icons/lucide/x.svg": "ISC and MIT",
+        site + "spacemissionstudio/gui/assets/mission_view/three.bundle.min.js": "MIT",
+        site + "spacemissionstudio/gui/assets/mission_view/earth_day_4k.jpg": "public-domain",
+        site + "spacemissionstudio/gui/assets/mission_view/mission_view.js": "EUPL-1.2",
         site + "Basilisk/__init__.py": "ISC",
         site + "PySide6/QtCore.abi3.so": "LGPL-3.0-only",
         site + "shiboken6/__init__.py": "LGPL-3.0-only",
@@ -219,6 +222,8 @@ def test_the_debian_copyright_file_names_each_bundled_part_and_its_licence():
     for folder in ("fonts/inter", "fonts/jetbrains-mono"):
         assert (root / "spacemissionstudio/gui/assets" / folder / "OFL.txt").is_file()
     assert (root / "spacemissionstudio/gui/assets/icons/lucide/LICENSE").is_file()
+    for name in ("THREE_LICENSE.txt", "NASA_IMAGES.txt"):
+        assert (root / "spacemissionstudio/gui/assets/mission_view" / name).is_file()
     # The app's own licence (EUPL-1.2 since the release after 2.6.0), in English and German.
     assert "\nLicense: EUPL-1.2\n The European Union Public Licence v. 1.2." in text
     assert (root / "LICENSE").read_text(encoding="utf-8").startswith("EUROPEAN UNION PUBLIC LICENCE v. 1.2")
