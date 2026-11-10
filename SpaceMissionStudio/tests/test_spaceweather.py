@@ -59,17 +59,17 @@ def _real_excerpt_csv(path, first, last):
 def test_the_shipped_record_parses_as_published():
     """Spot checks against the raw lines of data/spaceweather/SW-All.txt."""
     data = sw.load_celestrak(sw.BUNDLED_DATA_PATH)
-    assert data.updated == "2026 Oct 25 23:32:13 UTC"
+    assert data.updated == "2026 Nov 10 21:33:19 UTC"
     assert (data.first_date, data.last_date) == (date(1957, 10, 1), date(2041, 10, 31))
     first = data.days[date(1957, 10, 1)]
     assert first.ap == (32, 27, 15, 7, 22, 9, 32, 22) and first.ap_avg == 21
     assert (first.f107_obs, first.f107_center81) == (269.3, 266.6)
-    last_observed = data.days[date(2026, 10, 24)]
-    assert last_observed.kind == "observed" and last_observed.ap_avg == 5
-    assert last_observed.f107_obs == 92.5  # [sfu]
-    assert data.days[date(2026, 10, 25)].kind == "daily_forecast"
+    last_observed = data.days[date(2026, 11, 9)]
+    assert last_observed.kind == "observed" and last_observed.ap_avg == 11
+    assert last_observed.f107_obs == 128.8  # [sfu]
+    assert data.days[date(2026, 11, 10)].kind == "daily_forecast"
     month = data.days[date(2030, 1, 17)]
-    assert month.kind == "monthly_forecast" and month.f107_obs == 76.7  # [sfu] NOAA's January 2030 value
+    assert month.kind == "monthly_forecast" and month.f107_obs == 76.6  # [sfu] NOAA's January 2030 value
     assert month.ap_avg == pytest.approx(data.long_term_ap)
     observed = [r.ap_avg for r in data.days.values() if r.kind == "observed"]
     assert data.long_term_ap == pytest.approx(np.mean(observed)) == pytest.approx(12.83, abs=0.01)
@@ -79,7 +79,7 @@ def test_the_last_observed_day_is_found_once():
     """CelestrakData.last_observed is the last observed day, kept on the
     data: the checks while a scenario is edited ask on every edit."""
     data = sw.load_celestrak(sw.BUNDLED_DATA_PATH)
-    assert data.last_observed == max(d for d, r in data.days.items() if r.kind == "observed") == date(2026, 10, 24)
+    assert data.last_observed == max(d for d, r in data.days.items() if r.kind == "observed") == date(2026, 11, 9)
     assert "last_observed" in vars(data)
 
 
@@ -175,7 +175,7 @@ def test_a_celestrak_csv_with_forecast_rows_reads_like_the_text_file(tmp_path):
     path = _real_excerpt_csv(tmp_path / "SW-excerpt.csv", date(2026, 6, 1), date(2027, 6, 30))
     from_csv = sw.load_celestrak(path)
     shipped = sw.load_celestrak(sw.BUNDLED_DATA_PATH)
-    for day, kind in ((date(2026, 6, 10), "observed"), (date(2026, 10, 26), "daily_forecast"),
+    for day, kind in ((date(2026, 6, 10), "observed"), (date(2026, 11, 12), "daily_forecast"),
                       (date(2027, 3, 20), "monthly_forecast")):
         assert from_csv.days[day].kind == shipped.days[day].kind == kind
         assert from_csv.days[day].f107_obs == shipped.days[day].f107_obs

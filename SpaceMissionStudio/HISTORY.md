@@ -14514,6 +14514,46 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Space weather refreshed for 2.7.0 (2026-11-10)
+
+`docs/developer/releasing.md` section 1, for the release. CelesTrak
+answered this time (it had reset or refused the connection for 2.0.0 to
+2.6.0, SRelD K-13).
+
+**CelesTrak `SW-All.txt`** downloaded from
+<https://celestrak.org/SpaceData/SW-All.txt> on 2026-11-10: updated
+2026-11-10 21:33:19 UTC, observations to 2026-11-09 (were 2026-10-24),
+CelesTrak's daily forecast to 2026-12-24 (2026-12-07), NOAA's monthly
+forecast 2027-01 to 2041-10 (unchanged span). As before, only CRLF line
+endings and one comment line's trailing spaces were changed (checked:
+the file without whitespace is identical to the download). Against the
+copy it replaces, CelesTrak revised the observed rows from 2026-09-17 on
+and NOAA the monthly rows from 2027-01 to 2031-09; the rest is
+identical.
+
+**What changes:** drag on dates from 2026-09-17 to 2026-12-24. Past
+CelesTrak's 45-day forecast a run takes NASA MSFC's prediction
+(`engine/spaceweather.py`), not the monthly rows, so no template (all
+start in 2030) changes: the golden-output tests of templates 01, 02, 03,
+05 and 21 passed with the new file alone (the tests still unchanged), and
+the full suite runs them all.
+
+**Tests:** `test_the_shipped_record_parses_as_published` and
+`test_the_last_observed_day_is_found_once` read the new raw lines (the
+updated line; the last observed day 2026-11-09, Ap 11, F10.7 128.8 sfu;
+the first forecast day 2026-11-10; NOAA's January 2030 value 76.6 sfu,
+was 76.7; the long-term Ap 12.83, unchanged), and the CSV test's
+forecast day is 2026-11-12 (2026-10-26 is now observed).
+
+**NASA MSFC: not refreshed.** <https://www.nasa.gov/solar-cycle-progression-and-forecast/>
+lists a November 2026 issue (`nov2026f10-prd.txt`, published files
+`wp-content/uploads/2026/11/`). It moves the 2030 values a little
+(January 2030 at the 50th percentile: F10.7 74.1 sfu and Ap 11.3, were
+74.2 and 11.5), so adopting it changes every template's drag and its
+golden outputs, and the shipped file's name, which the code and tests
+use. That is the owner's decision, not a release step taken in passing:
+2.7.0 keeps the October 2026 issue, said in its known limits.
+
 ## Vizard removed (2026-11-10)
 
 **What was found.** 2.6.0 stopped downloading Vizard, but the app still

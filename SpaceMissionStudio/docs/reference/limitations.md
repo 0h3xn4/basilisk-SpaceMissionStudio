@@ -368,7 +368,8 @@ From the [changelog](../../CHANGELOG.md):
   2026-10-24 and CelesTrak's daily forecast to 2026-12-07. Before a drag
   study, fetch the current file: the **Fetch or update reference data?**
   card on Home, **Settings > Reference data**, or `spacemissionstudio
-  spaceweather-download`.
+  spaceweather-download`. 2.7.0 carries a newer file (observations to
+  2026-11-09, forecast to 2026-12-24).
 * **Some actions hold the window for longer than the 50 ms the interface
   aims at:** changing the theme (about 0.4 s), the first visit to a
   spacecraft page and opening a template (SRelD K-19, K-23).
