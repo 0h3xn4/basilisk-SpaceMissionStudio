@@ -50,7 +50,7 @@ and the conditions of use.
 
 | Item | Main features used | Developer | Version | Licence | Language | Execution environment |
 |---|---|---|---|---|---|---|
-| **Basilisk** (PyPI `bsk`) | Simulation framework: process, task and message architecture; the dynamics, environment, sensor, actuator and FSW modules listed below; `vizSupport` | AVS Lab, University of Colorado Boulder | 2.12.0 (pinned; checked at start-up) | ISC | C, C++ with SWIG Python bindings; Python utilities | Linux, Windows, macOS; Python ≥ 3.9 (abi3 wheels) |
+| **Basilisk** (PyPI `bsk`) | Simulation framework: process, task and message architecture; the dynamics, environment, sensor, actuator and FSW modules listed below | AVS Lab, University of Colorado Boulder | 2.12.0 (pinned; checked at start-up) | ISC | C, C++ with SWIG Python bindings; Python utilities | Linux, Windows, macOS; Python ≥ 3.9 (abi3 wheels) |
 | numpy | Arrays and linear algebra | NumPy developers | ≥ 1.24.4 (2.4.6 tested) | BSD-3-Clause (with 0BSD, MIT, Zlib, CC0 parts) | Python, C | Python |
 | sgp4 | SGP4/SDP4 propagation of TLEs | Brandon Rhodes, after Vallado et al. | ≥ 2.20 (2.25 tested) | MIT | Python, C++ | Python |
 | pyerfa | ERFA (SOFA-derived) time scales and precession and nutation | Astropy project | ≥ 2.0.1 (2.0.1.5 tested) | BSD-3-Clause | Python, C | Python |
@@ -65,9 +65,9 @@ The tool uses these Basilisk modules (from its imports):
 | Package | Modules |
 |---|---|
 | `architecture` | `messaging`, `sysModel` |
-| `simulation` | `spacecraft`, `svIntegrators`, `GravityGradientEffector`, `dragDynamicEffector`, `facetDragDynamicEffector`, `facetSRPDynamicEffector`, `radiationPressure`, `extForceTorque`, `thrusterDynamicEffector`, `reactionWheelStateEffector`, `hingedRigidBodyStateEffector`, `MtbEffector`, `fuelTank`, `msisAtmosphere`, `exponentialAtmosphere`, `zeroWindModel`, `spaceWeatherData`, `magneticFieldWMM`, `eclipse`, `ephemerisConverter`, `groundLocation`, `simpleNav`, `starTracker`, `imuSensor`, `coarseSunSensor`, `magnetometer`, `sensorThermal`, `motorThermal`, `tempMeasurement`, `simpleSolarPanel`, `simpleBattery`, `simplePowerSink`, `simpleInstrument`, `partitionedStorageUnit`, `spaceToGroundTransmitter`, `vizInterface` |
+| `simulation` | `spacecraft`, `svIntegrators`, `GravityGradientEffector`, `dragDynamicEffector`, `facetDragDynamicEffector`, `facetSRPDynamicEffector`, `radiationPressure`, `extForceTorque`, `thrusterDynamicEffector`, `reactionWheelStateEffector`, `hingedRigidBodyStateEffector`, `MtbEffector`, `fuelTank`, `msisAtmosphere`, `exponentialAtmosphere`, `zeroWindModel`, `spaceWeatherData`, `magneticFieldWMM`, `eclipse`, `ephemerisConverter`, `groundLocation`, `simpleNav`, `starTracker`, `imuSensor`, `coarseSunSensor`, `magnetometer`, `sensorThermal`, `motorThermal`, `tempMeasurement`, `simpleSolarPanel`, `simpleBattery`, `simplePowerSink`, `simpleInstrument`, `partitionedStorageUnit`, `spaceToGroundTransmitter` |
 | `fswAlgorithms` | `inertial3D`, `hillPoint`, `velocityPoint`, `sunSafePoint`, `locationPointing`, `attTrackingError`, `mrpFeedback`, `rwMotorTorque`, `cssWlsEst`, `tamComm`, `mtbMomentumManagement`, `thrForceMapping`, `thrFiringSchmitt`, `thrMomentumManagement`, `thrMomentumDumping`, `lambertPlanner`, `lambertSolver`, `lambertValidator`, `meanOEFeedback`, `hillFrameRelativeControl` |
-| `utilities` | `SimulationBaseClass`, `macros`, `orbitalMotion`, `RigidBodyKinematics`, `simIncludeGravBody` (gravity bodies and the SPICE interface), `simIncludeRW`, `simIncludeThruster`, `simSetPlanetEnvironment`, `simHelpers`, `vizSupport`, the Monte Carlo `Controller` and dispersions, `DataFile`, `get_path` |
+| `utilities` | `SimulationBaseClass`, `macros`, `orbitalMotion`, `RigidBodyKinematics`, `simIncludeGravBody` (gravity bodies and the SPICE interface), `simIncludeRW`, `simIncludeThruster`, `simSetPlanetEnvironment`, `simHelpers`, the Monte Carlo `Controller` and dispersions, `DataFile`, `get_path` |
 
 The flight-software export (SRS-F-18) also redistributes Basilisk C
 sources: the include closure of the fifteen `fswAlgorithms` C modules
