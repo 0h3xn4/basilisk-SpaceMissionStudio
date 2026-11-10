@@ -142,8 +142,8 @@
       "url": "https://www.microsoft.com/",
       "type": "library",
       "licence_basis": "CPython's Windows LICENSE.txt, section 'Additional Conditions for this Windows binary build' (python-build-standalone 20261013, read 2026-11-10); Microsoft's own terms not read",
-      "redistribution_status": "open",
-      "redistribution": "CPython's Windows LICENSE.txt says that redistributing the Windows binary build of the interpreter complies with Microsoft's terms, provided the distributor does not alter Microsoft's notices, use Microsoft's trademarks in a program's name or to suggest endorsement, ship the files for a non-Microsoft platform, or include them in malicious, deceptive or unlawful programs. Owner's decision D10 (docs/legal/RISK_REGISTER.md)",
+      "redistribution_status": "verified",
+      "redistribution": "CPython's Windows LICENSE.txt says that redistributing the Windows binary build of the interpreter complies with Microsoft's terms, provided the distributor does not alter Microsoft's notices, use Microsoft's trademarks in a program's name or to suggest endorsement, ship the files for a non-Microsoft platform, or include them in malicious, deceptive or unlawful programs; the project does none of these. Owner's decision D10 (2026-11-10): rely on these conditions (docs/legal/RISK_REGISTER.md)",
       "text_source": "LICENSE.txt of the bundled Python (Windows)",
       "match": [
         "vcruntime140*.dll"

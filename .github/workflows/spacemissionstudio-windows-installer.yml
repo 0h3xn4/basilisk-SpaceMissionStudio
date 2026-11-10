@@ -147,6 +147,13 @@ jobs:
             SpaceMissionStudio/packaging/windows/Output/SHA256SUMS-windows
             SpaceMissionStudio/packaging/windows/Output/install.log
             SpaceMissionStudio/packaging/windows/Output/licence-gate.txt
+      # The gate's full report again at the end of the log, so that it can be read without the
+      # artifact (the bundle step shows at most 400 lines of it).
+      - name: The licence gate's report
+        if: always()
+        run: |
+          $report = "packaging\windows\Output\licence-gate.txt"
+          if (Test-Path $report) { "licence gate report: $((Get-Content $report | Measure-Object -Line).Lines) lines"; Get-Content $report } else { "no licence gate report" }
 
   attach:
     needs: installer

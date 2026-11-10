@@ -294,8 +294,9 @@ _WINDOWS_TREE = [
 
 
 def test_the_licence_gate_knows_every_file_of_the_windows_python(bundle, tmp_path):
-    """On the Windows layout every file has an owner and every library its text; the only finding is the
-    Microsoft runtime's open redistribution question (a warning, owner's decision D10). Tcl/Tk, which the
+    """On the Windows layout every file has an owner and every library its text, and there is no finding:
+    the Microsoft runtime is redistributed on the conditions in CPython's Windows LICENSE.txt (owner's
+    decision D10, 2026-11-10). Tcl/Tk, which the
     pruning removed, is not reported: matching is case-sensitive, so ``lib/thread*`` no longer claims
     ``Lib/threading.py``."""
     for name in _WINDOWS_TREE:
@@ -311,8 +312,7 @@ def test_the_licence_gate_knows_every_file_of_the_windows_python(bundle, tmp_pat
     assert {"CPython", "OpenSSL 3", "SQLite", "libffi", "expat", "mpdecimal", "zlib", "zstd", "bzip2"} <= names
     assert not any(name.startswith(("Tcl", "Tix", "X11", "Berkeley", "libedit", "ncurses")) for name in names)
     problems = licences.check(sbom, tmp_path, None)
-    assert [p for p in problems if not p.startswith("WARN")] == []
-    assert len(problems) == 1 and "Microsoft Visual C++ runtime" in problems[0]
+    assert problems == []
 
 
 def _load_licences():
