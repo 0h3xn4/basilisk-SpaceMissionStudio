@@ -228,8 +228,8 @@ MV.applyTextures = function () {
 MV.setStyle = function (style) {
   MV.style = style;
   document.getElementById('theme').textContent = style.css;
-  if (!MV.renderer) return;
-  MV.renderer.setClearColor(new THREE.Color(style.space), 1);
+  if (!MV.scene) return;  // the page is not built yet: MV.init applies it
+  if (MV.renderer) MV.renderer.setClearColor(new THREE.Color(style.space), 1);
   MV.drawSunGlow();
   MV.restyle();
 };
