@@ -59,6 +59,13 @@ results. The built-in template missions (Section 4) are a safe, guided
 way to learn by doing -- pick one, run it, and see what happens before
 you ever build a scenario from scratch.
 
+SpaceMissionStudio is an independent personal project. It is not
+affiliated with or endorsed by the organisations named in its
+documentation, such as NASA, ESA, the AVS Lab of the University of
+Colorado Boulder, CNES or The Qt Company. SpaceMissionStudio is free of
+charge and comes without warranty; see Articles 7 and 8 of the EUPL-1.2.
+Check its results independently before you use them for a real mission.
+
 ### How the pieces fit together
 
 Everything revolves around one **scenario**: a single `.json` file that

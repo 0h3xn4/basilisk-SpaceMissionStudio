@@ -91,10 +91,16 @@ def licence_files(prefix: Path | None = None, checkout: Path | None = None) -> l
     return found
 
 
+#: The owner's no-warranty sentence (wording W2, approved 2026-11-10; docs/legal/WORDING_DRAFTS.md).
+NO_WARRANTY = ("SpaceMissionStudio is free of charge and comes without warranty; see Articles 7 and 8 of the "
+               "EUPL-1.2. Check its results independently before you use them for a real mission.")
+
+
 def about_html() -> str:
     """The licence lines of the About box (rich text)."""
     return (f"Published by {LICENSOR}. Licensed under the EUPL ({LICENCE_NAME}). No copyright is claimed: "
             "the code was written mainly by an AI model (Claude, through Claude Code).<br>"
             f"Releases up to and including {LAST_ISC_RELEASE} were published under the ISC licence. "
             "Basilisk, which SpaceMissionStudio uses, keeps its own ISC licence and copyright holders.<br>"
+            f"{NO_WARRANTY}<br>"
             "The licences of everything the package contains: Help › Third-Party Licences.")

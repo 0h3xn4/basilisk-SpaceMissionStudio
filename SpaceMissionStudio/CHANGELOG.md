@@ -46,6 +46,12 @@ fixes bugs.
 
 ### Added
 
+- **Independence and no warranty, stated.** The READMEs and the user
+  manual now say that SpaceMissionStudio is an independent personal
+  project, not affiliated with or endorsed by the organisations its
+  documentation names, and that it is free of charge and comes without
+  warranty (Articles 7 and 8 of the EUPL-1.2). **Settings > About** says
+  the latter too.
 - **The Qt and PySide6 source code with every release.** The installers
   carry Qt 6.11.2 and PySide6 6.11.2 under the LGPL-3.0; each release now
   carries their complete source archives too (`qt-everywhere-src-6.11.2.tar.xz`,
@@ -60,6 +66,21 @@ fixes bugs.
   the libraries inside the bundled Python (OpenSSL, SQLite, libffi, Tcl/Tk and
   others), which the Python build ships without. The reference-data terms are in
   `docs/legal/DATA_TERMS.md`. No calculation, output file or command changed.
+- **Signed build provenance for release files.** From this release, every
+  file the release workflow builds carries a Sigstore-signed provenance;
+  check a download with `gh attestation verify <file> --repo
+  0h3xn4/basilisk_space-mission-studio`. A security policy
+  (`SECURITY.md`, private reporting through GitHub) is at the repository
+  root.
+
+### Fixed
+
+- **The Windows installer's licence check knew only the Linux layout.** It
+  now finds an owner and a licence text for every file of the Windows
+  build of Python, and the Windows installer carries the texts of the
+  libraries inside it. `libtommath.dll`, used only by the removed Tcl/Tk,
+  is left out too. Like the Linux build, the Windows build now stops if a
+  file has no owner or a licence is unknown.
 
 ## 2.6.0 (2026-11-09)
 
