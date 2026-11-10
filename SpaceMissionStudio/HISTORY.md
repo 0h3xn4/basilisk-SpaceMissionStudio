@@ -14536,7 +14536,9 @@ The user then renamed the repository from
 `0h3xn4/basilisk_space-mission-studio`. Every link to the repository,
 the clone steps (`cd basilisk_space-mission-studio/SpaceMissionStudio`),
 the `.deb`'s `Homepage` and `copyright` source, the release notes'
-repository address (`packaging/release_notes.py`) and the SMP's and
+repository address (`packaging/release_notes.py`), the Qt notice's
+link to the release's source archives
+(`packaging/legal/texts/qt/QT_NOTICE.txt`) and the SMP's and
 SRelD's names of the repository now use the new name; the test that
 checks the `.deb`'s fields follows them. GitHub redirects the old
 addresses, so the published release notes, which use them, still work.

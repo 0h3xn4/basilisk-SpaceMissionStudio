@@ -19,3 +19,8 @@ the value in the release's `SHA256SUMS`; read 2026-11-09). They are unchanged, e
 `licenses/` folder has no text for it.
 
 The text of OpenSSL 1.1 is not included: the 3.14 build links OpenSSL 3.
+
+Since the owner's decision D9 the bundle leaves out `_tkinter` and `_dbm`, so
+`bundle_python.py` does not copy the texts of Tcl/Tk, Tix, the X11 client
+libraries and Berkeley DB (`PRUNED_LIBRARY_TEXTS`); they stay here in case
+those modules return.

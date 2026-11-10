@@ -133,6 +133,9 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
   `SpaceMissionStudio/` only: Basilisk, which it uses, remains under its
   ISC licence and its own copyright holders. Everything the packages
   bundle is listed with its licence in [`THIRD_PARTY_NOTICES`](SpaceMissionStudio/THIRD_PARTY_NOTICES).
+  No copyright is claimed in SpaceMissionStudio's own code, which an AI
+  model wrote (see AI authorship above); 0h3xn4 publishes it under the
+  EUPL-1.2 as its licensor.
   The repository's root [`LICENSE`](LICENSE) is Basilisk's.
 - **Version:** 2.6.0 ([release](https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.6.0),
   [changelog](SpaceMissionStudio/CHANGELOG.md)): a run plays back in 3D

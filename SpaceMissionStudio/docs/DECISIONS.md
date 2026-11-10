@@ -2868,3 +2868,42 @@ The owner asked to proceed on the recommended answers of
   notices found in the installation (`spacemissionstudio/legal.py`); a
   window of its own, like the manual. Why: the brief (1.1, notices in the
   product).
+
+## Legal groundwork: the owner's answers of 2026-11-10
+
+The owner answered the open questions of `docs/legal/PHASE1_PLAN.md`.
+Not legal advice; the owner decided not to involve a lawyer.
+
+- **Q1: `SECURITY.md` at the repository root and a sign-off line in the
+  root pull-request template: yes.** Why: GitHub shows a security policy
+  only at the root, in `.github/` or in `docs/`. Done in milestone M4.
+- **Q2 (D1): the ITU-R P.676-13 data file is not bundled, and ITU is not
+  contacted.** Why: ITU allows reproduction only with written permission,
+  and the owner wants nothing to do with it. The app's own download command
+  stays (it fetches from ITU on the user's request; no template uses it).
+- **Q3 (D9): the installers leave out the GPL-only Qt modules, Tcl/Tk and
+  `_dbm`** (`bundle_python.prune_unused`). Why: the app uses none of them;
+  fewer licences to carry.
+- **Q4 (D8): every release carries the Qt and PySide6 source archives**
+  (`packaging/legal/qt-sources.json`). Why: the safest way to meet the
+  LGPL-3.0's source obligation.
+- **Q5 (P1): the generated C project keeps its notice unchanged.** Why: no
+  lawyer; a generated output does not change without the owner, and the
+  owner chose to leave it.
+- **Q6: no copyright is claimed; the files name the licensor.** The line
+  "Copyright (c) 2026 0h3xn4" (M2) is replaced by "Licensor: 0h3xn4
+  (https://github.com/0h3xn4)" in every header, the About box and the `.deb`
+  copyright file. Why: the code was written mainly by an AI model, and the
+  owner does not claim copyright in it. German law protects only "persönliche
+  geistige Schöpfungen" (§ 2 (2) UrhG) and computer programs that are "das
+  Ergebnis der eigenen geistigen Schöpfung ihres Urhebers" (§ 69a (3) UrhG;
+  both read on gesetze-im-internet.de, 2026-11-10); whether that test is met
+  was not assessed. "Licensor" is the EUPL's own term (Article 1) for the
+  person who distributes the Work under it; the EUPL's disclaimers
+  (Articles 7 and 8) travel with the code either way.
+- **Q7: no website and no hosting.** Why: everything must stay free of cost.
+  Milestones M5 (website) and M6 (hosting) are cancelled; the GitHub
+  repository is the project's only public page. No website Impressum or
+  privacy text is needed.
+- **No lawyer.** Items the plan marked "for a lawyer" stay open in the risk
+  register, marked as the owner's accepted risk.

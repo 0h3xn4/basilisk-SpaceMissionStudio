@@ -1,7 +1,7 @@
 #
 #  SpaceMissionStudio
 #
-#  Copyright (c) 2026 0h3xn4 (https://github.com/0h3xn4)
+#  Licensor: 0h3xn4 (https://github.com/0h3xn4)
 #
 #  Licensed under the EUPL
 #
@@ -34,7 +34,10 @@ from pathlib import Path
 
 #: The app's own licence, as the About box states it.
 LICENCE_NAME = "European Union Public Licence v. 1.2 (EUPL-1.2)"
-COPYRIGHT = "Copyright (c) 2026 0h3xn4"
+#: Who publishes the app under the EUPL ("Licensor", EUPL Article 1). No
+#: copyright notice: the code was written mainly by an AI model, and the owner
+#: claims no copyright in it (docs/DECISIONS.md, legal decisions of 2026-11-10).
+LICENSOR = "0h3xn4 (https://github.com/0h3xn4)"
 #: The last release published under the ISC licence.
 LAST_ISC_RELEASE = "2.6.0"
 
@@ -90,7 +93,8 @@ def licence_files(prefix: Path | None = None, checkout: Path | None = None) -> l
 
 def about_html() -> str:
     """The licence lines of the About box (rich text)."""
-    return (f"{COPYRIGHT}. Licensed under the EUPL ({LICENCE_NAME}).<br>"
+    return (f"Published by {LICENSOR}. Licensed under the EUPL ({LICENCE_NAME}). No copyright is claimed: "
+            "the code was written mainly by an AI model (Claude, through Claude Code).<br>"
             f"Releases up to and including {LAST_ISC_RELEASE} were published under the ISC licence. "
             "Basilisk, which SpaceMissionStudio uses, keeps its own ISC licence and copyright holders.<br>"
             "The licences of everything the package contains: Help › Third-Party Licences.")

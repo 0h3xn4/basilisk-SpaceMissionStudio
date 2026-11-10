@@ -1,6 +1,13 @@
 # Phase 1 plan: legal groundwork and website
 
-Status: DRAFT for your review. Written 2026-11-09. No code was written and
+Status 2026-11-10: approved and partly superseded. The owner's answers are in
+`docs/DECISIONS.md` ("the owner's answers of 2026-11-10"): no website and no
+hosting (M5 and M6 cancelled), no lawyer, no copyright claim (the files name
+the licensor), the ITU file not bundled, unused modules left out of the
+installers, Qt sources attached to every release. The text below is the
+plan as it was written; it is kept as the record.
+
+Original status: DRAFT for your review. Written 2026-11-09. No code was written and
 nothing was changed except this file. This is not legal advice. Every
 statement of fact has a source (a file in this repository, or a URL read on
 the date shown). `VERIFIED` means: read from the official page on 2026-11-09.
