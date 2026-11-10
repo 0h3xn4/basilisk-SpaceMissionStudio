@@ -114,7 +114,7 @@ Each layer uses only the layers below it:
   - bundled data under `spacemissionstudio/data/` (space weather, device
     catalog);
   - installed data under the user or installation directory (Earth
-    orientation kernels, cached space weather, Vizard);
+    orientation kernels, cached space weather);
   - Basilisk's SPICE kernels, from Basilisk's data fetcher.
 - Physical constants come from Basilisk or are named in
   `engine/environment_models.py` and `engine/ccsds_odm.py`, with their
@@ -152,8 +152,6 @@ allows; nothing is synchronised with a clock.
     effect at the next chunk boundary and never kills a thread.
 - **Processes:**
   - Monte Carlo with `thread_count` > 1 uses a `multiprocessing.Pool`.
-  - Vizard is a separate program, fed through a save file or a ZMQ
-    stream.
 - **Long runs:** runs past 100 days are split into segments
   (`engine/long_run.py`). Each segment is a fresh Basilisk simulation that
   starts from the previous segment's final state, because Basilisk's
@@ -209,11 +207,10 @@ The external interfaces are defined in the ICD (AD2). In context:
    |                   |-------------------------->| (ICD-03)       |
    |                   |   CCSDS OPM/OMM/OEM       |                |
    |                   |<------------------------->| (ICD-04)       |
-   +---+-----+-----+---+                           +----------------+
-       |     |     |
-       |     |     +-- space weather, Earth PCKs (ICD-05, ICD-06); downloaded only on consent
-       |     +-------- Basilisk 2.12.0 Python API (ICD-07)
-       +-------------- Vizard: save file or ZMQ stream (ICD-08)
+   +---+-----+---------+                           +----------------+
+       |     |
+       |     +-- space weather, Earth PCKs (ICD-05, ICD-06); downloaded only on consent
+       +-------- Basilisk 2.12.0 Python API (ICD-07)
 ```
 
 ### 4.5 Long lifetime software (F.2.1<4.5>)

@@ -28,12 +28,6 @@ run a scenario headlessly and export results to CSV
 | `--oem` | also write each spacecraft's ephemeris as a CCSDS OEM (KVN, EME2000, UTC) |
 | `--oem-stride` | write every Nth recorded state to the OEM (default 1: all) |
 | `--oem-interpolation {hermite,lagrange}` | interpolation the OEM suggests, degree 7 (GMAT reads only lagrange) |
-| `--vizard-save-file` | write a Vizard .bin playback file to this path (see engine/vizard.py) |
-| `--vizard-live-stream` | live-stream to a Vizard instance already running on this machine |
-| `--vizard-camera-target` | spacecraft or celestial body name for Vizard's camera to start locked on (default: the scenario's central body -- an Earth-centered view with the orbit tracing around it, like STK/GMAT/FreeFlyer, rather than a spacecraft-locked close-up) |
-| `--vizard-no-orbit-lines` | don't draw each spacecraft's orbit in Vizard (on by default) |
-| `--vizard-trail` | also draw the flown path in Vizard (builds up into a band over long runs) |
-| `--vizard-ground-tracks` | also draw ground tracks in Vizard |
 | `--allow-scripts` | run the scenario's script_block commands (unrestricted Python: only for files you trust and have read) |
 | `--bundle` | also make --out-dir a reproduction bundle: copies of the files the scenario refers to and the space-weather files read, listed in bundle.json |
 | `--explain` | after the run, its headline figures (Results > Overview) and its data-handling totals, and how each was computed: the series, parameters and constants it came from; each warning is followed by its rule |

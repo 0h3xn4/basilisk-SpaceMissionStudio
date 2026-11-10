@@ -114,8 +114,7 @@ maintainer.
 - **Scope:** the package, its tests, documents and installers.
 - **Tailoring of the post-delivery process:** as in 5, for category C.
 - **Excluded:**
-  - Basilisk itself: problems are reported upstream (H10);
-  - Vizard.
+  - Basilisk itself: problems are reported upstream (H10).
 
 ### 7.2 Level of support (T.2.1<7.2>)
 

@@ -62,7 +62,7 @@ The objectives, in order:
 No project master schedule exists. Development is continuous and driven by
 the user's requests. Releases are made when the user decides, tagged, not
 signed (decision 11). The current release is 2.6.0, the run in 3D
-inside the app in place of the Vizard download, network use enforced
+inside the app, network use enforced
 and audited, and hash-checked installers with a bill of materials
 (published 2026-11-10); before it 2.5.0, the JSON page as a code editor
 and IDM-CIC thrusters on the 3D model (published 2026-11-08), 2.4.0, device axes from the IDM-CIC model's
@@ -71,7 +71,7 @@ shapes and the body frame's origin at the centre of gravity (published
 satellite's components from IDM-CIC and a Walker constellation that
 holds its spacing (published 2026-11-05), 2.2.0, CCSDS orbit files in the
 app (published 2026-11-05), 2.1.1, fixes to the 3D model
-editor, the IDM-CIC import and Vizard's battery panel (2026-11-04),
+editor and the IDM-CIC import (2026-11-04),
 2.1.0, the analyses built
 on the 3D model and the IDM-CIC import (published 2026-11-04), 2.0.0, the transparency work and Python 3.14 (2026-11-03), 1.3.1, a faster
 window (2026-10-27), 1.3.0, the UI overhaul (2026-10-26),

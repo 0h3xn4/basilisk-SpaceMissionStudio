@@ -33,7 +33,7 @@ the source with :mod:`ast` (nothing is imported):
 It also writes the forward (requirement -> components) and backward
 (component -> requirements) traceability. The build fails if the map names a
 module that does not exist or an SRS requirement that ``SRS.md`` does not
-define, or if an SRS requirement is not mapped. Usage::
+define, or if an SRS requirement that is not retired is not mapped. Usage::
 
     python compliance/tools/build_sdd_components.py
 """
@@ -79,8 +79,7 @@ SRS_TO_COMPONENTS = {
                  "gui/phasing_formation_dialog", "gui/spacecraft_template_dialog", "gui/app",
                  "gui/webengine_setup", "gui/json_view", "gui/code_editor", "gui/json_positions",
                  "gui/json_assist", "schema/fields", "gui/json_refactor"],
-    "SRS-F-16": ["engine/vizard", "gui/vizard_launcher", "gui/vizard_dialog", "engine/scene3d",
-                 "gui/mission_view_widget"],
+    "SRS-F-16": ["engine/scene3d", "gui/mission_view_widget"],
     "SRS-F-17": ["dependencies", "engine/service", "output_provenance"],
     "SRS-F-18": ["fsw_export/catalog", "fsw_export/sources", "fsw_export/cdecl", "fsw_export/model",
                  "fsw_export/capture", "fsw_export/generate", "fsw_export/documents", "fsw_export/digest",
@@ -89,7 +88,7 @@ SRS_TO_COMPONENTS = {
                  "gui/sil_dialog", "gui/sil_comparison_widget", "gui/fsw_workbench_widget", "gui/run_worker",
                  "engine/service"],
     "SRS-F-20": ["model3d/geometry", "model3d/shapes", "model3d/mass_properties", "model3d/obj_io",
-                 "model3d/surfaces", "model3d/model", "model3d/mass_import", "engine/service", "engine/vizard",
+                 "model3d/surfaces", "model3d/model", "model3d/mass_import", "engine/service",
                  "engine/scenario_checks", "schema/scenario", "cli", "gui/model_editor_dialog",
                  "gui/model_view_widget", "gui/spacecraft_editor"],
     "SRS-F-21": ["engine/roe", "engine/roe_formation", "engine/service", "engine/events", "engine/scenario_explainer",
@@ -134,7 +133,6 @@ SRS_TO_COMPONENTS = {
     "SRS-I-05": ["engine/spaceweather"],
     "SRS-I-06": ["engine/kernels", "engine/earth_orientation"],
     "SRS-I-07": ["engine/service", "dependencies"],
-    "SRS-I-08": ["engine/vizard", "gui/vizard_launcher"],
     "SRS-O-01": ["gui/run_worker", "cli", "engine/service"],
     "SRS-O-02": ["gui/main_window", "gui/load_scenario_widget", "gui/template_wizard"],
     "SRS-R-01": ["engine/service"],
@@ -145,7 +143,7 @@ SRS_TO_COMPONENTS = {
                  "engine/frames"],
     "SRS-D-04": ["schema/scenario", "schema/validation"],
     "SRS-S-01": ["engine/spaceweather", "engine/earth_orientation", "engine/kernels", "engine/reference_data",
-                 "_offline", "gui/startup_fetch_dialog", "gui/data_panel_widget", "gui/vizard_launcher"],
+                 "_offline", "gui/startup_fetch_dialog", "gui/data_panel_widget"],
     "SRS-S-02": ["engine/spaceweather", "engine/earth_orientation", "engine/results"],
     "SRS-S-03": ["engine/mission_engine", "schema/command", "gui/main_window", "cli"],
     "SRS-S-04": ["schema/command", "engine/mission_engine"],
@@ -242,7 +240,8 @@ def build() -> int:
                       if p.name != "__init__.py" and "__pycache__" not in p.parts]
                      + [p.parent.relative_to(PACKAGE).as_posix() for p in PACKAGE.rglob("__init__.py")
                         if len(p.parent.relative_to(PACKAGE).parts) >= 2 and "__pycache__" not in p.parts])
-    srs = set(re.findall(r"^\| (SRS-[A-Z]+-\d+) \|", (ROOT / "docs" / "SRS.md").read_text(encoding="utf-8"),
+    # A retired requirement keeps its row ("| SRS-I-08 | Retired (...)") and maps to nothing.
+    srs = set(re.findall(r"^\| (SRS-[A-Z]+-\d+) \| (?!Retired)", (ROOT / "docs" / "SRS.md").read_text(encoding="utf-8"),
                          re.MULTILINE))
     problems = [f"SRS requirement not mapped: {r}" for r in sorted(srs - SRS_TO_COMPONENTS.keys())]
     problems += [f"map names an unknown requirement: {r}" for r in sorted(SRS_TO_COMPONENTS.keys() - srs)]

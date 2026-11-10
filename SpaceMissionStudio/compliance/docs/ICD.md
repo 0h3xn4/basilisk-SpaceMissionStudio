@@ -3,7 +3,7 @@
 DRD: ECSS-E-ST-40C Annex E
 Document: SMS-ICD, issue 1 (draft), 2026-10-08. Remediation R14.
 
-**Status:** draft, derived from the implemented interfaces (version 2.6.0; `CHANGELOG.md` lists what changed in each release, for 2.1.0 the model analyses' and the IDM-CIC import's commands and scenario fields, ICD-12; 2.1.1 changes no interface; 2.2.0 reads and writes the same CCSDS messages as before, now from the GUI too; 2.3.0 reads more of an IDM-CIC model, writes devices and the power budget from it with import records of targets `devices` and `power`, adds `idm-import` options and `generate-constellation --phasing-keeping`, ICD-02 and ICD-12; 2.4.0 reads a device's axis and field of view from its equipment's shapes, writing the same fields, can put the body frame's origin at the centre of gravity, recorded in the model record's `origin` and `origin_offset_m`, and adds `idm-import --origin`, ICD-02 and ICD-12; 2.5.0 adds thrusters to a 3D model's equipment from an IDM-CIC model's plume cones, writing the existing equipment fields and a devices record's `model.equipment[NAME]` values, and the property target `thruster.MaxThrust`, ICD-12; its JSON editor writes the scenario file as before; 2.6.0 adds the `network` command (`--offline on|off`), reads an administrator's `policy.json` and `SPACEMISSIONSTUDIO_OFFLINE`, refuses network use outside a download's hosts and logs it in `~/.spacemissionstudio/logs/network.log`, no longer downloads Vizard, and puts a CycloneDX 1.6 bill of materials (`SPACEMISSIONSTUDIO_SBOM.cdx.json`) in each installer; the scenario file is as before).
+**Status:** draft, derived from the implemented interfaces (version 2.6.0; `CHANGELOG.md` lists what changed in each release, for 2.1.0 the model analyses' and the IDM-CIC import's commands and scenario fields, ICD-12; 2.1.1 changes no interface; 2.2.0 reads and writes the same CCSDS messages as before, now from the GUI too; 2.3.0 reads more of an IDM-CIC model, writes devices and the power budget from it with import records of targets `devices` and `power`, adds `idm-import` options and `generate-constellation --phasing-keeping`, ICD-02 and ICD-12; 2.4.0 reads a device's axis and field of view from its equipment's shapes, writing the same fields, can put the body frame's origin at the centre of gravity, recorded in the model record's `origin` and `origin_offset_m`, and adds `idm-import --origin`, ICD-02 and ICD-12; 2.5.0 adds thrusters to a 3D model's equipment from an IDM-CIC model's plume cones, writing the existing equipment fields and a devices record's `model.equipment[NAME]` values, and the property target `thruster.MaxThrust`, ICD-12; its JSON editor writes the scenario file as before; 2.6.0 adds the `network` command (`--offline on|off`), reads an administrator's `policy.json` and `SPACEMISSIONSTUDIO_OFFLINE`, refuses network use outside a download's hosts and logs it in `~/.spacemissionstudio/logs/network.log`, no longer downloads Vizard, and puts a CycloneDX 1.6 bill of materials (`SPACEMISSIONSTUDIO_SBOM.cdx.json`) in each installer; the scenario file is as before; after 2.6.0, ICD-08 is retired and the scenario file loses its four external-viewer fields and the 3D model's `use_for_vizard`, which older files still have: they are dropped on load).
 It has not been reviewed (H01), and no IRD exists (waived, D-11).
 
 ## 1 Introduction (E.2.1<1>)
@@ -56,10 +56,10 @@ See SRS section 4 for the software overview.
 | ICD-05 | Space weather is read from CelesTrak SW-All files (CSV or legacy text, RD4) and from NASA MSFC prediction tables. Files are validated for coverage before use. | SRS-I-05 |
 | ICD-06 | SPICE kernels come from Basilisk's data fetcher. IERS-based NAIF Earth PCKs come from the user directory or the installation directory. | SRS-I-06 |
 | ICD-07 | Basilisk is used only through its public Python API (2.12.0). | SRS-I-07 |
-| ICD-08 | Vizard is used through Basilisk's `vizSupport`: a save file or a live stream to a separate Vizard process. | SRS-I-08 |
+| ICD-08 | Retired (2026-11-10), with SRS-I-08. | SRS-I-08 |
 | ICD-09 | A flight-software export is a folder holding a standalone C project for one spacecraft, its interface control document, its traceability table, a `manifest.json` with the configuration digest and the SHA-256 of every file, and the recorded run (`capture.json`, `tests/data/*.trace`). | SRS-F-18 |
 | ICD-10 | A software-in-the-loop run exchanges frames of the SIL transport contract, version 1 (`SIL_CONTRACT.md` in every export), between the tool and the flight-software program it started: HELLO with the program's ports and layout hashes, RESET, one STEP and OUTPUT per step, ERROR, BYE. | SRS-F-19 |
-| ICD-11 | A spacecraft's 3D model reads Wavefront `.obj` meshes (and their `.mtl` colours) and mass-property files in JSON or CSV, as defined in 5.3.11, and writes `.obj`/`.mtl` for Vizard and on request. | SRS-F-20 |
+| ICD-11 | A spacecraft's 3D model reads Wavefront `.obj` meshes (and their `.mtl` colours) and mass-property files in JSON or CSV, as defined in 5.3.11, and writes `.obj`/`.mtl` on request. | SRS-F-20 |
 | ICD-12 | A spacecraft's 3D model is built or updated from an IDM-CIC model file (`.idm`, IDM-CIC (c) CNES), read only, as defined in 5.3.12. | SRS-F-28 |
 
 The interfaces are of three kinds:
@@ -113,7 +113,7 @@ codes are those of ICD-02.
 | `time_s` | TDB seconds since the scenario epoch. Convert to UTC with `engine.time_system.elapsed_to_utc` (RD2). |
 | `provenance.json` | `spacemissionstudio_version`; `basilisk_version`; `qualified_basilisk_version`; `basilisk_qualified`; `run_started_utc`; `integrator`; `dynamics_task_rate_s`; `dependency_versions`; `data_files` (path, size, SHA-256 per file used, `sha256_cached` for a file over 32 MB whose hash was kept from an earlier run, and for an installed kernel the SHA-256 it was installed with and `matches_install`); `time_system`; `frames`; `transformations`; `series_frames`; `central_body` and `central_body_mu_m3_s2`; the SHA-256 of the scenario as run (`scenario_sha256`); the file it was loaded from and the SHA-256 of its bytes (`scenario_file`, `scenario_file_sha256`, empty for a scenario edited since it was saved); the run's warnings (`run_warnings`); the effective configuration (`engine.effective_config`): `effective_defaults` (for each open `params` dictionary, by its place in the scenario such as `spacecraft[sat-1].sensors[css-1].params`, each key the engine read that the file does not give, with the value used; `null` where the engine set nothing and the Basilisk module keeps its own value), `device_parameters` (for each reaction wheel and thruster, the values Basilisk's factory gave it, in SI units), `effective_config_note`, and `scenario_file_migrations` (each value loading an older file changed: `step`, `path`, `before`, `after`); the project configuration (`configuration`: `file`, with `path` and `sha256`, or null; `overrides`, each parameter the file changes with its `value`, `default`, `unit` and `source`). |
 | `scenario_as_run.json` | The scenario as run, after migration, as the app saves it; its canonical JSON hashes to `scenario_sha256`. Written by `run`. |
-| Reproduction bundle | A run folder (written by `run --bundle`, or the GUI's **Export all...** › **Reproduction bundle...**) with, in addition, `inputs/` (copies of the files the scenario refers to: `config_file`, model meshes, a Vizard model, `space_weather.local_file_path`, `space_weather.msfc_file_path`, and the space-weather files the run read) and `bundle.json`: `format` (1), `scenario` (`scenario_as_run.json`), `scenario_sha256`, `inputs` (`role`, the scenario field or `data_files.<key>`; `reference`, the path given; `file`, the copy's path in the bundle; `sha256`; `missing` when the file was not found), `spacemissionstudio_version`, `created_utc`. Read by `reproduce` (`spacemissionstudio.reproduction`). |
+| Reproduction bundle | A run folder (written by `run --bundle`, or the GUI's **Export all...** › **Reproduction bundle...**) with, in addition, `inputs/` (copies of the files the scenario refers to: `config_file`, model meshes, `space_weather.local_file_path`, `space_weather.msfc_file_path`, and the space-weather files the run read) and `bundle.json`: `format` (1), `scenario` (`scenario_as_run.json`), `scenario_sha256`, `inputs` (`role`, the scenario field or `data_files.<key>`; `reference`, the path given; `file`, the copy's path in the bundle; `sha256`; `missing` when the file was not found), `spacemissionstudio_version`, `created_utc`. Read by `reproduce` (`spacemissionstudio.reproduction`). |
 | `lifetime --out`, `budget --out`, `link-budget --out` | One JSON object (`engine.analysis_records`): `kind` (`lifetime`, `propellant_budget` or `link_budget`; a link budget also names its `ground_station`, and its `results` are each figure, keyed as its trace, with `traces`), `spacecraft`, `inputs` (the options given), `model` (the values used that are not in the scenario file, named as in the code: for a lifetime the area, drag coefficient, mass, ballistic coefficient and re-entry perigee; for a budget its rules and margins under their parameter names, with the values in effect, and Earth's constants under `constants`), `results` (the figures printed, units in the names; a lifetime adds `decay`: `time_s`, `perigee_altitude_km`, `apogee_altitude_km`, and `traces`: `orbit`, `mass`, `ballistic_coefficient`, `lifetime`, `deorbit` after a burn, and one per disposal rule under its key; a budget's rows each carry `delta_v_trace` and `propellant_trace`, and `traces` holds the budget-wide ones, `efficiency`, `exhaust_speed`, `dry_mass` and `total_propellant`: each trace is `quantity`, `symbol`, `value`, `unit`, `equation`, `reference` (the AD10 section), `inputs` and `intermediates` (each `name`, `symbol`, `value`, `unit`, `source`: `scenario:`, `parameter:`, `constant:`, `last run:`, `computed:`, `trace:` or `option:` (the analysis's own option) and what it names) and `notes`), `warnings` or `notes`, and `provenance`: the versions, `scenario_name`, `scenario_sha256`, `scenario_file`, `scenario_file_sha256`, `created_utc`, `data_files` (the space-weather files read, as in `provenance.json`) and `configuration` (as in `provenance.json`); after `budget --run` also `run`, that run's `provenance.json` record. |
 | `archive.provenance.json` | In a Monte Carlo folder: the versions, `scenario_name`, `scenario_sha256` (dispersions included), `scenario_file`, `scenario_file_sha256` (empty for a scenario edited since it was saved), `created_utc`; `nominal_run`, the keys of `provenance.json` every run shares (integrator and tolerances, time step, central body, time system, frames, transformations, series frames, `data_files`); `rng_seeds`, a note that each run's seeds are in its `run<N>.json`. |
 | SIL report | The `sil --report` JSON (`sil.report.SilReport`) carries `provenance`: the versions, `scenario_name`, `scenario_sha256`, `created_utc`, and once the run ended `run`, that run's `provenance.json` record (the SIL copy of the scenario, without its Mission Sequence or Monte Carlo). Empty in a report written by 1.3.1 or earlier. |
@@ -161,12 +161,9 @@ messages (`SimulationBaseClass`, `spacecraft`, `gravityEffector`,
 - Basilisk is not modified.
 - Version 2.12.0 is checked at start-up.
 
-#### 5.3.8 Vizard (ICD-08)
+#### 5.3.8 Retired (ICD-08)
 
-- **Save file:** a `.bin` file written through `vizSupport`.
-- **Live:** a ZMQ stream to a Vizard process started by the tool or by the
-  user.
-- Vizard is never downloaded; only a Vizard the user chose is started.
+Retired on 2026-11-10 with SRS-I-08.
 
 #### 5.3.9 Flight-software export (ICD-09)
 
@@ -193,12 +190,12 @@ messages (`SimulationBaseClass`, `spacecraft`, `gravityEffector`,
 
 | Item | Definition |
 |---|---|
-| Service | The 3D model editor and `spacemissionstudio model` read mesh and mass-property files; a run with Vizard, `model --export-obj` and the editor's export write `.obj`. Module `spacemissionstudio.model3d`. |
+| Service | The 3D model editor and `spacemissionstudio model` read mesh and mass-property files; `model --export-obj` and the editor's export write `.obj`. Module `spacemissionstudio.model3d`. |
 | `.obj` read | `v x y z`; `f` with three or more corners written `i`, `i/t`, `i//n` or `i/t/n`, indices from 1 or negative, polygons split into a fan; `o`/`g` names start a group (one part each; faces before any name go to `default`); `usemtl`, and `mtllib` from the model's own folder only, give a group the `Kd` colour of its first material. Everything else is ignored. No unit and no up direction are in the file: the import states the unit (m, mm, cm, in) and whether the file is Z-up or Y-up. Limits: 50 MB and 1,000,000 triangles. |
-| `.obj` written | One `o` group and one material per part, triangles, metres. Export: body frame, +z up. Vizard copy: a body point (x, y, z) written as (-y, z, -x), the axes Vizard reads (its importer mirrors x; body axes map to Unity (y, z, -x)). |
+| `.obj` written | One `o` group and one material per part, triangles, metres. Export: body frame, +z up. |
 | Mass-property file | JSON: `mass_kg`, `center_of_mass_m` [x, y, z], `inertia_kg_m2` (3x3 or nine numbers), optional `inertia_about` (`center_of_mass` or `origin`) and `products_of_inertia` (`tensor`, Ixy = -integral(xy dm), or `integral`). CSV: `quantity,value` rows `mass_kg`, `com_x_m`, `com_y_m`, `com_z_m`, `Ixx`, `Iyy`, `Izz`, `Ixy`, `Ixz`, `Iyz`, and the same two options. SI units, body axes, from point B. At most 1 MB. The inertia must be symmetric with positive principal moments that satisfy the triangle inequality. |
 | Record in the scenario | `SpacecraftConfig.model` (parts, meshes with path, SHA-256, unit and up axis; mass-property source and values; the import's file name and SHA-256) and the applied `dry_mass_kg`, `center_of_mass_b_m`, `inertia_kg_m2`, `facets` (RD1). |
-| Frequency | On the user's request; the Vizard copy on each run with Vizard. |
+| Frequency | On the user's request. |
 
 #### 5.3.12 IDM-CIC model files (ICD-12)
 
@@ -221,7 +218,7 @@ messages (`SimulationBaseClass`, `spacecraft`, `gravityEffector`,
 | ICD-05 | T | `tests/test_spaceweather.py` |
 | ICD-06 | T | `tests/test_earth_orientation.py`, `tests/test_dependencies.py` |
 | ICD-07 | T, I | the test suite against Basilisk 2.12.0 (CI); `tests/test_dependencies.py` |
-| ICD-08 | T | `tests/test_vizard*.py` |
+| ICD-08 | - | retired |
 | ICD-09 | T | `tests/test_fsw_export.py`, `tests/test_fsw_export_units.py`, `tests/test_fsw_vendored_sources.py` |
 | ICD-10 | T | `tests/test_sil_contract.py` (both sides of the frames, every refusal), `tests/test_sil.py` (the C harness against the Python side) |
 | ICD-11 | T | `tests/test_model3d.py` (reading, writing, limits, malformed files), `tests/test_model3d_model.py` (mass-property files) |
@@ -231,7 +228,7 @@ messages (`SimulationBaseClass`, `spacecraft`, `gravityEffector`,
 
 - **Backward (ICD → SRS):** column "SRS" of 5.2.
 - **Forward (SRS-I-01 to SRS-I-08 → ICD):** one-to-one. ICD-nn details
-  SRS-I-nn. ICD-09 details the export format of SRS-F-18, ICD-10 the
+  SRS-I-nn (SRS-I-08 and ICD-08 retired). ICD-09 details the export format of SRS-F-18, ICD-10 the
   SIL link of SRS-F-19, ICD-11 the 3D-model files of SRS-F-20, ICD-12
   the IDM-CIC model files of SRS-F-28.
 - **Further:** the CCSDS items are traced in
