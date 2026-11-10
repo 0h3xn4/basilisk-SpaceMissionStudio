@@ -2872,8 +2872,10 @@ the risk register.
   `packaging/legal/texts/` (with the source archive's SHA-256), and the bundle
   copies them to `licenses/`. Why: the `install_only` archive carries no text
   for OpenSSL, SQLite, libffi, Tcl/Tk and the others it links.
-- **Windows runs the gate in `warn` mode** until the first release build lists
-  its unclaimed files. Why: only the Linux build could be read here.
+- **Windows ran the gate in `warn` mode** until a full Windows build listed
+  its unclaimed files. Why: only the Linux build could be read here. Since
+  2026-11-10 it fails like Linux: the first full Windows build with the
+  Windows components reported only the warnings for the open data rights.
 - **Wheel notices are generated and committed** (`THIRD_PARTY_NOTICES`),
   and CI fails when they are stale. Why: a hand-kept list drifts.
 - **`tool.setuptools.license-files` is used** (deprecated in favour of
@@ -2965,3 +2967,35 @@ Not legal advice; the owner decided not to involve a lawyer.
   privacy text is needed.
 - **No lawyer.** Items the plan marked "for a lawyer" stay open in the risk
   register, marked as the owner's accepted risk.
+
+## Legal groundwork M4: the risk register (2026-11-10)
+
+`docs/legal/RISK_REGISTER.md` holds R1 to R13 with facts, what was done and
+what is open. Not legal advice.
+
+- **Sign-off is checked for pull requests from forks only**
+  (`spacemissionstudio-signoff.yml`, `scripts/check_signoff.py`). Why: a
+  sign-off is a personal statement under the Developer's Certificate of
+  Origin; the maintainer's own commits are written with an AI tool, and
+  nobody may sign off on the maintainer's behalf.
+- **Release files get a signed build provenance** (`actions/attest@v4`,
+  Sigstore). Why: free for a public repository, and anyone can verify it;
+  Windows code signing costs money, so it is only proposed (Q7).
+- **Licence matching is case-sensitive on every system.** Why: on Windows
+  `fnmatch` ignores case, and Tcl's pattern `lib/thread*` claimed
+  `Lib/threading.py`.
+- **The Microsoft C++ runtime in the Windows Python is a component of its
+  own** (D10). Its redistribution status was open until the owner decided
+  D10 on 2026-11-10: rely on CPython's statement in its Windows
+  `LICENSE.txt`, so the status is `verified`. Why: that statement is the
+  only text read, and relying on it was the owner's call.
+- **`libtommath.dll` is pruned with Tcl/Tk.** Why: Tcl is its only user;
+  this is within the owner's decision Q3 (D9).
+- **Non-affiliation (W1) and no warranty (W2) are stated; the flight-use
+  sentence (W3) is not** (`docs/legal/WORDING_DRAFTS.md`). W1 and W2 are in
+  both READMEs and the manual's introduction, and W2 in the About box. Why:
+  the owner approved W1 and W2 and rejected W3 on 2026-11-10; the brief
+  allows legal text only with the owner's approval.
+- **The author name and import paths in scenario files stay as they are**
+  (proposal P2 in the register, declined by the owner on 2026-11-10). Why:
+  changing them changes scenario files and CLI output.

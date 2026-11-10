@@ -58,6 +58,14 @@ def test_the_about_text_names_the_licence_the_isc_releases_and_basilisk():
     assert "2.6.0" in text and "ISC" in text and "Basilisk" in text
 
 
+def test_the_about_text_says_there_is_no_warranty():
+    """The About box carries the owner's no-warranty sentence (wording W2, approved 2026-11-10): free of
+    charge, no warranty, the EUPL's Articles 7 and 8, and check the results independently."""
+    text = legal.about_html()
+    assert legal.NO_WARRANTY in text
+    assert "without warranty" in text and "Articles 7 and 8 of the EUPL-1.2" in text and "independently" in text
+
+
 def test_every_source_file_carries_the_eupl_notice():
     """Every Python and shell file of the app, its tests and tools names its licensor and its licence (SPDX). The flight-software templates are the generated project's text and
     keep their notice (an output may not change without the owner's approval)."""

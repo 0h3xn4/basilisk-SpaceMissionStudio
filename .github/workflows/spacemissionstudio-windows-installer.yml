@@ -22,6 +22,7 @@ on:
       - "SpaceMissionStudio/packaging/constraints.txt"
       - "SpaceMissionStudio/packaging/constraints-hashes.txt"
       - "SpaceMissionStudio/packaging/hash_constraints.py"
+      - "SpaceMissionStudio/packaging/legal/**"
       - ".github/workflows/spacemissionstudio-windows-installer.yml"
   workflow_dispatch:
     inputs:
@@ -85,6 +86,9 @@ jobs:
           # A short folder: the checkout path plus Qt's deepest files would pass
           # Windows' 260-character limit.
           $dest = Join-Path $env:RUNNER_TEMP "py"
+          # The licence gate's full list of problems (docs/legal/OBLIGATIONS.md, Windows), kept as an artifact.
+          $env:SMS_LICENCE_REPORT = Join-Path $PWD "packaging\windows\Output\licence-gate.txt"
+          New-Item -ItemType Directory -Force packaging\windows\Output | Out-Null
           python packaging\bundle_python.py --platform windows --dest $dest --wheel $wheel.FullName
           if ($LASTEXITCODE -ne 0) { throw "bundle_python.py failed" }
           "PYTHON_DIR=$dest" >> $env:GITHUB_ENV
@@ -142,6 +146,14 @@ jobs:
             SpaceMissionStudio/packaging/windows/Output/*.exe
             SpaceMissionStudio/packaging/windows/Output/SHA256SUMS-windows
             SpaceMissionStudio/packaging/windows/Output/install.log
+            SpaceMissionStudio/packaging/windows/Output/licence-gate.txt
+      # The gate's full report again at the end of the log, so that it can be read without the
+      # artifact (the bundle step shows at most 400 lines of it).
+      - name: The licence gate's report
+        if: always()
+        run: |
+          $report = "packaging\windows\Output\licence-gate.txt"
+          if (Test-Path $report) { "licence gate report: $((Get-Content $report | Measure-Object -Line).Lines) lines"; Get-Content $report } else { "no licence gate report" }
 
   attach:
     needs: installer
