@@ -217,17 +217,23 @@ _KEPT = [
 ]
 
 
-def test_the_unused_modules_are_removed_and_the_ones_the_app_needs_kept(bundle, tmp_path):
+@pytest.mark.parametrize("layout", ["linux", "windows"])
+def test_the_unused_modules_are_removed_and_the_ones_the_app_needs_kept(bundle, tmp_path, layout):
     """Legal decision D9: the GPL-only Qt modules, the plugins that load them, Tcl/Tk and _dbm leave
-    the bundle; Qt WebEngine, Qt Quick, Qt Qml and the rest of the standard library stay."""
-    for relative in _PRUNED + _KEPT:
+    the bundle; Qt WebEngine, Qt Quick, Qt Qml and the rest of the standard library stay. Each layout in
+    a folder of its own: on Windows, ``Lib`` and ``lib`` would be the same folder."""
+    windows = ("Lib/", "DLLs/", "tcl/")
+    pruned = [p for p in _PRUNED if p.startswith(windows) == (layout == "windows")]
+    kept = [p for p in _KEPT if p.startswith(windows) == (layout == "windows")]
+    for relative in pruned + kept:
         path = tmp_path / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("x", encoding="utf-8")
     removed = bundle.prune_unused(tmp_path)
-    assert sorted(removed) == sorted(_PRUNED)
-    assert all((tmp_path / relative).is_file() for relative in _KEPT)
-    assert not (tmp_path / "lib/python3.14/tkinter").exists()  # its emptied folder goes too
+    assert sorted(removed) == sorted(pruned)
+    assert all((tmp_path / relative).is_file() for relative in kept)
+    if layout == "linux":
+        assert not (tmp_path / "lib/python3.14/tkinter").exists()  # its emptied folder goes too
 
 
 def test_no_qt_module_the_app_imports_is_pruned(bundle):
