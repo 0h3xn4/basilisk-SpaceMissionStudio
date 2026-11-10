@@ -2907,4 +2907,3 @@ Not legal advice; the owner decided not to involve a lawyer.
   privacy text is needed.
 - **No lawyer.** Items the plan marked "for a lawyer" stay open in the risk
   register, marked as the owner's accepted risk.
-
