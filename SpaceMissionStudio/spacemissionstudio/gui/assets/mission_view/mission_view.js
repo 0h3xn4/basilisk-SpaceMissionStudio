@@ -799,10 +799,11 @@ MV.updateLabels = function () {
   });
 };
 
+// Without WebGL the scene is still updated (time, views, lines of sight,
+// labels), only not drawn.
 MV.render = function () {
-  if (!MV.renderer) { MV.dirty = false; return; }
   MV.update();
-  MV.renderer.render(MV.scene, MV.camera);
+  if (MV.renderer) MV.renderer.render(MV.scene, MV.camera);
   MV.updateLabels();
   MV.dirty = false;
 };
@@ -870,6 +871,7 @@ MV.checkFrameTime = function () {
   if (!MV.data || !MV.style || MV.quality !== 'full' || !MV.autoQuality) return;
   if (!MV.loaded.earth && MV.data.body.earth || !MV.loaded.stars) { setTimeout(MV.checkFrameTime, 200); return; }
   const result = MV.benchmark(5);
+  if (!result) return;  // no WebGL: nothing to time
   MV.frameMs = result.median;
   if (MV.shouldReduce([result.median])) {
     MV.autoReduced = true;
@@ -900,7 +902,8 @@ MV.state = function () {
     labels: MV.labels.filter(function (l) { return l.shown; }).map(function (l) { return l.text; }),
     hud: document.getElementById('hud-time').textContent + document.getElementById('hud-craft').textContent,
     styleMode: MV.style ? MV.style.mode : null, webgl: MV.webgl,
-    clear: MV.renderer ? '#' + MV.renderer.getClearColor(new THREE.Color()).getHexString(THREE.SRGBColorSpace) : null,
+    clear: '#' + (MV.renderer ? MV.renderer.getClearColor(new THREE.Color())
+      : new THREE.Color(MV.style ? MV.style.space : 0)).getHexString(THREE.SRGBColorSpace),
     hudBackground: getComputedStyle(document.getElementById('hud')).backgroundColor,
     fov: MV.camera.fov, pixelRatio: MV.renderer ? MV.renderer.getPixelRatio() : null,
     gl2: MV.renderer ? MV.renderer.capabilities.isWebGL2 : false,

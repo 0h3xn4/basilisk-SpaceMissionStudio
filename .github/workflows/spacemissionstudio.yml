@@ -274,6 +274,14 @@ jobs:
         working-directory: SpaceMissionStudio
     env:
       QT_QPA_PLATFORM: offscreen
+      # The Windows runner has no GPU and, offscreen, no WebGL context:
+      # Chromium's software WebGL (ANGLE on SwiftShader) for the 3D View's
+      # tests, with the app's own no-background-network flags
+      # (gui/webengine_setup.py), which this variable replaces.
+      QTWEBENGINE_CHROMIUM_FLAGS: >-
+        --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --ignore-gpu-blocklist
+        --disable-background-networking --disable-component-update --disable-domain-reliability
+        --no-pings --dns-prefetch-disable
     steps:
       - uses: actions/checkout@v5
         with:
