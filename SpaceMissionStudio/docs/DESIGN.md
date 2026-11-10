@@ -575,6 +575,11 @@ An empty view says why it is empty and what fills it, for example:
 - **Log:** "Nothing logged yet in this session."
 - **Explain, while the scenario does not validate:** "The scenario has
   a problem (see Problems): fix it to see its summary here."
+- **A work area with no scenario open** (Scenario, Run, Results,
+  Timeline, Reports; the window starts so): "No scenario is open", what
+  the area works on, and New Scenario (the primary action), Open... and
+  Go to Home (`gui.app_shell.NoScenarioState`, in place of the area's
+  header and content: `AreaPage.show_empty`).
 
 ## Rules for new code
 

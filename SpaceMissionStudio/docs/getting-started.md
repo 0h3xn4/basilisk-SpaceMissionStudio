@@ -187,7 +187,8 @@ orbit for one day, with a ground station in Berlin.
 
 **In the GUI** (about a minute):
 
-1. Start the app. It opens on **Home**. Each time it starts, a **Fetch
+1. Start the app. It opens on **Home**, with no scenario open (the
+   last session's scenario is not reopened). Each time it starts, a **Fetch
    or update reference data?** card at the top offers to check for
    newer reference data. **Not now** is fine once the data is installed;
    **Fetch now** downloads only what you tick.

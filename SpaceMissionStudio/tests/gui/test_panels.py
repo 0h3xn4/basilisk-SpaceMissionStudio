@@ -418,6 +418,7 @@ def test_a_keyboard_only_walk_of_the_shell(shown, qtbot, monkeypatch):
     from spacemissionstudio.gui import command_palette
 
     window = shown
+    window.on_new()  # the window starts with nothing open (the landing page): New opens a scenario
     for number, (area_id, _icon, _label) in enumerate(window._AREAS, start=1):
         qtbot.keyClick(window, getattr(Qt.Key, f"Key_{number}"), Qt.KeyboardModifier.ControlModifier)
         assert window.shell.current_area() == area_id

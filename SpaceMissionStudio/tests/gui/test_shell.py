@@ -24,7 +24,8 @@ import pytest
 
 
 @pytest.fixture
-def window(qtbot, monkeypatch):
+def unopened_window(qtbot, monkeypatch):
+    """A main window as it starts: on Home, with no scenario open."""
     from PySide6.QtWidgets import QMessageBox
 
     from spacemissionstudio.gui.main_window import MainWindow
@@ -33,6 +34,13 @@ def window(qtbot, monkeypatch):
     w = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(w)
     return w
+
+
+@pytest.fixture
+def window(unopened_window):
+    """A main window with a new scenario open."""
+    unopened_window.on_new()  # the window starts with nothing open (the landing page): New opens a scenario
+    return unopened_window
 
 
 # -- the action registry ------------------------------------------------------------
@@ -158,11 +166,12 @@ def test_the_rail_collapses_to_icons_and_back(window):
     assert rail.buttons["home"].toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonTextUnderIcon
 
 
-def test_a_new_window_opens_on_home_and_a_template_opens_the_scenario(window):
+def test_a_new_window_opens_on_home_and_a_template_opens_the_scenario(unopened_window):
     """A new user's first move is picking a template or a file: the window
     opens on Home; opening a template goes to the Scenario area."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
 
+    window = unopened_window
     assert window.shell.current_area() == "home"
     assert window.open_path(TEMPLATES_DIR / "22_starter_first_leo_satellite.json")
     assert window.shell.current_area() == "scenario" and window.current_view() is window.scenario_editor
@@ -170,10 +179,11 @@ def test_a_new_window_opens_on_home_and_a_template_opens_the_scenario(window):
 
 # -- the top bar -------------------------------------------------------------------
 
-def test_the_breadcrumbs_say_where_the_window_is(window):
+def test_the_breadcrumbs_say_where_the_window_is(unopened_window):
     """Area › page: the Scenario tree's path, or the tab of Run and Results."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
 
+    window = unopened_window
     assert window.top_bar.breadcrumb_label.text() == "Home"
     window.open_path(TEMPLATES_DIR / "22_starter_first_leo_satellite.json")
     window.scenario_editor.page_tree.tree.setCurrentItem(window.scenario_editor.environment_item)

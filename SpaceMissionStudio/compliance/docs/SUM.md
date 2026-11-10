@@ -89,7 +89,7 @@ The tool lets a mission analyst do the following without writing code:
 | Project configuration files (`.yaml`) | Where the scenario's `config_file` names them | Optional; they change the named parameters (HT `project-configuration.md`) |
 | 3D model files (`.obj` meshes, IDM-CIC `.idm` models) | Where you keep them; an IDM-CIC import writes its meshes beside the scenario | Your data |
 | Results (`.csv`, `provenance.json`, `.oem`) | The output folder you choose | Your data |
-| Saved runs | `~/.spacemissionstudio/runs/` | **Run > History** and **Results > Compare** read them |
+| Saved runs | `~/.spacemissionstudio/runs/` | **Run > History** and **Results > Compare** list the open scenario's |
 | Log file | `~/.spacemissionstudio/logs/` | For problem reports |
 | Network log, offline choice | `~/.spacemissionstudio/logs/network.log`, `~/.spacemissionstudio/network.json`; an administrator's `/etc/spacemissionstudio/policy.json` or `%ProgramData%\SpaceMissionStudio\policy.json` | Every network use allowed or refused; **Settings > Network** (`docs/reference/network.md`) |
 

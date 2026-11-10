@@ -14547,6 +14547,62 @@ old documentation site's address, and the dated briefs
 (`docs/ui/UI_OVERHAUL.md`, `docs/LEGAL_AND_WEBSITE.md`), as for the
 rename of 2026-10-13.
 
+## A landing page at start-up (2026-11-10)
+
+**What was found.** The owner relayed the users' feedback: "whenever
+they start the tool, it loads whatever was previously worked on". Started
+headlessly, a new window showed Home, but behind it the editor held a
+blank "new scenario" as if it were open (the title said "untitled", Save
+and Run were enabled, and the other areas showed that blank scenario),
+and the run store's index of every earlier session's runs was read at
+start and listed in Results, **Run > History** and **Compare**. So after
+a restart the last session's runs came back, whatever the user meant to
+work on.
+
+**Why.** The owner decided: the app starts on a landing page, Home with
+nothing open; earlier runs come back only with their scenario; the
+window's size, position and panels are kept, everything else about the
+last session's work is forgotten (apart from crash recovery).
+
+**What changed.**
+
+- `MainWindow` has an explicit "scenario open" state, switched in one
+  place (`_set_scenario_open`). The editor keeps its blank default inside;
+  the window behaves as if nothing were open: the Scenario, Run, Results,
+  Timeline and Reports areas show an empty state ("No scenario is open",
+  with **New Scenario**, **Open...** and **Go to Home**;
+  `app_shell.NoScenarioState` in place of the area's header and content,
+  `AreaPage.show_empty`), the commands that work on a scenario are
+  disabled, the title and the top bar say no scenario is open, Problems is
+  empty and nothing can be marked unsaved. The command palette lists the
+  disabled commands greyed (as before) and leaves out the scenario's
+  pages, the run views and the series.
+- New Scenario, Open..., a recent file, a template (opened or customized)
+  and accepting the crash-recovery prompt open a scenario. No IDM-CIC or
+  CCSDS import creates one: both import into a spacecraft of the open
+  scenario.
+- The run store is still read at start (new runs number on from it), but
+  only the open scenario's runs are listed: the stored runs of a scenario
+  with the same name, and the runs made since it was opened. A run is
+  matched by name because the run store records the scenario as it ran,
+  not its file's path (`docs/DECISIONS.md`, "Landing page at start-up").
+  New Scenario lists no earlier runs. Nothing is deleted.
+- The window's geometry and panels are saved and restored as before, and
+  so is a project's own layout when it is opened.
+
+**How it was verified.** `tests/gui/test_landing_page.py` (8 tests): the
+start on Home with nothing open (title, top bar, every area's empty
+state, empty Problems); the disabled commands and the palette; New
+Scenario from an empty state; Open and Go to Home from an empty state; a
+template and a restored autosave opening a scenario; a stored run of A
+listed after opening A, not at start, not after opening B or New; a run
+made since opening listed through a rename and back after reopening; the
+window's size kept while the scenario is not. The tests that edit, save
+or run a scenario now open one first (`docs/ui/TEST_CHANGES.md`,
+"Landing page at start-up"). Screenshots of Home at start and of an empty
+work area, offscreen at 1440 x 900, were checked by eye.
+Full suite on Python 3.14 (a home holding only the reference data cache): 4875 passed, 1 skipped, in 18 min 26 s.
+
 ## Release 2.6.0 prepared (2026-11-09)
 
 A minor release: it adds features. The standing instruction is to

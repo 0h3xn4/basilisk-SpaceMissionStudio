@@ -59,7 +59,9 @@ the base:
 * **Plots**: one series of every ticked run, overlaid.
 
 Every run is saved in `~/.spacemissionstudio/runs` (the newest 20), so
-you can compare with a run from an earlier session. **Delete run...**
+you can compare with a run from an earlier session: opening a scenario
+lists its own earlier runs (those of a scenario with the same name).
+**Delete run...**
 removes one. On **Results > Plots**, **Compare with** draws an earlier run's
 curves dashed, and **Input differences...** lists what differs.
 

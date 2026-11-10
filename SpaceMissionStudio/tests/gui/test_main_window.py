@@ -45,7 +45,8 @@ def _isolated_autosave(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def window(qtbot, monkeypatch):
+def unopened_window(qtbot, monkeypatch):
+    """A main window as it starts: on Home, with no scenario open."""
     from PySide6.QtWidgets import QMessageBox
 
     from spacemissionstudio.gui.main_window import MainWindow
@@ -66,6 +67,13 @@ def window(qtbot, monkeypatch):
     return w
 
 
+@pytest.fixture
+def window(unopened_window):
+    """A main window with a new scenario open."""
+    unopened_window.on_new()  # the window starts with nothing open (the landing page): New opens a scenario
+    return unopened_window
+
+
 def _add_valid_spacecraft(window):
     from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig
 
@@ -76,7 +84,8 @@ def _add_valid_spacecraft(window):
 
 
 def test_initial_title_is_untitled(window):
-    """A new window's title says the scenario is untitled."""
+    """A new scenario's title says it is untitled (the window's own title
+    at start, "no scenario open", is test_landing_page.py's)."""
     assert window.windowTitle() == "SpaceMissionStudio -- untitled"
 
 
@@ -300,8 +309,9 @@ def test_open_missing_file_shows_error(window, tmp_path, monkeypatch, reported):
     assert window._current_path is None
 
 
-def test_window_starts_on_load_scenario_tab(window):
+def test_window_starts_on_load_scenario_tab(unopened_window):
     """The window starts on the Load scenario page."""
+    window = unopened_window
     assert window.current_view() is window.load_scenario_widget
 
 
@@ -331,6 +341,7 @@ def test_choosing_a_template_with_unsaved_changes_prompts_first(window, monkeypa
                          staticmethod(lambda *a, **k: question_calls.append(1) or QMessageBox.StandardButton.Cancel))
 
     template_path = sorted(TEMPLATES_DIR.glob("*.json"))[0]
+    window.shell.show_area("home")  # templates are chosen on Home
     window.load_scenario_widget.path_chosen.emit(template_path)
 
     assert len(question_calls) == 1
@@ -377,6 +388,7 @@ def test_choosing_a_customized_scenario_with_unsaved_changes_prompts_first(windo
                          staticmethod(lambda *a, **k: question_calls.append(1) or QMessageBox.StandardButton.Cancel))
 
     scenario = load_scenario(TEMPLATES_DIR / "03_geo_station_keeping.json")
+    window.shell.show_area("home")  # templates are customized on Home
     window.load_scenario_widget.scenario_customized.emit(scenario)
 
     assert len(question_calls) == 1
@@ -392,6 +404,7 @@ def test_customized_scenario_that_fails_validation_shows_error_not_crash(window,
     scenario = load_scenario(TEMPLATES_DIR / "03_geo_station_keeping.json")
     scenario.spacecraft[0].geo_station_keeping.longitude_deadband_deg = -1.0  # invalid: must be > 0
 
+    window.shell.show_area("home")  # templates are customized on Home
     window.load_scenario_widget.scenario_customized.emit(scenario)
 
     assert len(reported) == 1 and reported[0][0].startswith("Could not open the customized scenario")

@@ -162,6 +162,7 @@ def test_alt_backspace_clears_the_time_cursor_in_the_window(qtbot):
 
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
+    window.on_new()  # the window starts with nothing open (the landing page): New opens a scenario
     with qtbot.waitExposed(window):
         window.show()
     with warnings.catch_warnings():  # Qt's own active window, as in the test above

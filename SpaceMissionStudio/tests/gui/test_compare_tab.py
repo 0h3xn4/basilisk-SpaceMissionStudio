@@ -137,17 +137,24 @@ def test_the_plots_overlay_one_series_of_every_ticked_run(compare):
 
 
 def test_runs_of_an_earlier_session_are_listed_and_read_back_when_ticked(qtbot, tmp_path):
-    """The main window lists the saved runs at start-up and reads a run's
-    series from disk only when it is compared."""
+    """The main window lists the saved runs of the scenario opened (the
+    landing page: none before) and reads a run's series from disk only when
+    it is compared."""
     from PySide6.QtWidgets import QMessageBox
 
+    from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from spacemissionstudio.gui.main_window import MainWindow
+    from spacemissionstudio.schema.scenario import load_scenario
 
     earlier = RunHistory(store_root=run_store.default_root())  # under the test's home folder
     earlier.add(_scenario(1.0), _result(1.0), "", finished=datetime(2026, 10, 13, 17, 0))
     earlier.add(_scenario(2.0), _result(2.0), "", finished=datetime(2026, 10, 13, 17, 30))
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
+    demo = load_scenario(TEMPLATES_DIR / "01_two_body_circular_orbit.json")
+    demo.name = "demo"  # the runs' scenario
+    demo.save(tmp_path / "demo.json")
+    assert window.open_path(tmp_path / "demo.json")
     compare = window.compare_widget
     window.show_view(compare)  # listed in a worker, Compare refreshed when shown (M5a)
     qtbot.waitUntil(lambda: compare.run_list.count() == 2, timeout=10000)

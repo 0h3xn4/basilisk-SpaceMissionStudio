@@ -122,6 +122,7 @@ def test_confirmations_name_the_object_and_the_consequence(qtbot, monkeypatch):
                                      or QMessageBox.StandardButton.Cancel))
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
+    window.on_new()  # the window starts with nothing open (the landing page): New opens a scenario
     window.scenario_editor.name_edit.setText("my mission")
     window._mark_dirty()
     assert window._confirm_discard_unsaved() is False

@@ -266,6 +266,7 @@ def test_undo_and_redo_name_the_edit_they_change_back(qtbot, monkeypatch):
     monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
+    window.on_new()  # the window starts with nothing open (the landing page): New opens a scenario
     editor = window.scenario_editor
     original = editor.name_edit.text()
     assert window.undo_action.text() == "&Undo"
@@ -296,6 +297,7 @@ def test_the_history_view_shows_the_saves_newest_first(qtbot, tmp_path, monkeypa
     monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
+    window.on_new()  # the window starts with nothing open (the landing page): New opens a scenario
     reported = []
     monkeypatch.setattr(main_window_module, "report", lambda widget, text, kind="error": reported.append(text))
     window.change_history_action.trigger()

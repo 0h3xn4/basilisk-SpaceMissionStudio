@@ -60,7 +60,9 @@ class Area:
 
 class AreaPage(QWidget):
     """An area's page: a header with the title and the area's commands,
-    over ``content``, the screen it hosts unchanged."""
+    over ``content``, the screen it hosts unchanged. With an empty state
+    (:meth:`set_empty_state`) the page can show that instead of its header
+    and content (:meth:`show_empty`): the area while no scenario is open."""
 
     def __init__(self, area_id: str, title: str, content: QWidget, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -80,9 +82,12 @@ class AreaPage(QWidget):
         self._buttons_layout = FlowLayout(self._buttons, spacing=SPACE["xs"])
         header_layout.addWidget(self._buttons, 1)
         self.buttons: dict[QAction, QToolButton] = {}
-        self.header.setVisible(False)  # shown once it has a command
+        self._has_commands = False  # the header shows once it has a command
+        self.header.setVisible(False)
         layout.addWidget(self.header)
         layout.addWidget(content, 1)
+        self.empty_state: QWidget | None = None
+        self.showing_empty = False
 
     def add_command(self, action: QAction, primary: bool = False) -> QToolButton:
         """A button for ``action`` in the header: its text, icon and
@@ -94,13 +99,31 @@ class AreaPage(QWidget):
             button.setObjectName("primaryToolButton")
         self._buttons_layout.addWidget(button)
         self.buttons[action] = button
-        self.header.setVisible(True)
+        self._has_commands = True
+        self.header.setVisible(not self.showing_empty)
         return button
 
     def add_widget(self, widget: QWidget) -> None:
         """A control of the area's own in the header (the run mode button)."""
         self._buttons_layout.addWidget(widget)
-        self.header.setVisible(True)
+        self._has_commands = True
+        self.header.setVisible(not self.showing_empty)
+
+    def set_empty_state(self, widget: QWidget) -> None:
+        """``widget``: what the page shows instead of its header and content
+        while :meth:`show_empty` says so."""
+        self.empty_state = widget
+        self.layout().addWidget(widget, 1)
+        widget.setVisible(self.showing_empty)
+
+    def show_empty(self, empty: bool) -> None:
+        """The empty state (``empty``, when the page has one) or the header
+        and content."""
+        self.showing_empty = empty and self.empty_state is not None
+        self.header.setVisible(self._has_commands and not self.showing_empty)
+        self.content.setVisible(not self.showing_empty)
+        if self.empty_state is not None:
+            self.empty_state.setVisible(self.showing_empty)
 
 
 class AreaStack(QStackedWidget):

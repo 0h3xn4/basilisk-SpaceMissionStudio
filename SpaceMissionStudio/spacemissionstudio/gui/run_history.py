@@ -20,8 +20,9 @@ docs/ux-audit.md U-33, decision 5: runs are saved to disk).
 
 With a store (:mod:`engine.run_store`, the main window's
 ``~/.spacemissionstudio/runs``) every finished or cancelled run is saved
-as it ends, and the runs of earlier sessions are listed again at start-up,
-numbered on from the last one ("Run 8" after "Run 7" of yesterday). Only
+as it ends, and the runs of earlier sessions are read again at start-up,
+numbered on from the last one ("Run 8" after "Run 7" of yesterday); the
+main window lists those of the scenario open (``MainWindow._listed_runs``). Only
 the last :data:`MAX_RUNS` keep their series in memory; an older run reads
 its series back from disk the first time it is compared. Without a store
 (tests, or a store that cannot be written) the runs stay in memory, the
