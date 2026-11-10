@@ -4,8 +4,8 @@
 
 # SpaceMissionStudio
 
-[![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-[![Version 2.6.0](https://img.shields.io/badge/version-2.6.0-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.6.0)
+[![CI](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/workflows/spacemissionstudio.yml)
+[![Version 2.6.0](https://img.shields.io/badge/version-2.6.0-blue)](https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.6.0)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence EUPL-1.2](https://img.shields.io/badge/licence-EUPL--1.2-green)
 
@@ -33,7 +33,7 @@ battery, link margin, lifetime and propellant.
 
 ## Quick start
 
-**Linux and Windows:** the [releases page](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases)
+**Linux and Windows:** the [releases page](https://github.com/0h3xn4/basilisk_space-mission-studio/releases)
 has a `.deb` (`sudo apt install ./spacemissionstudio_<version>_amd64.deb`),
 a Windows setup program and the wheel. From 1.1.1 both installers bring
 their own Python, Basilisk and reference data, and install with no
@@ -44,8 +44,8 @@ versions are not supported.
 [Getting started](SpaceMissionStudio/docs/getting-started.md)):
 
 ```bash
-git clone https://github.com/0h3xn4/basilisk-SpaceMissionStudio.git
-cd basilisk-SpaceMissionStudio/SpaceMissionStudio
+git clone https://github.com/0h3xn4/basilisk_space-mission-studio.git
+cd basilisk_space-mission-studio/SpaceMissionStudio
 python3 -m venv .venv
 source .venv/bin/activate
 pip install "bsk[all]==2.12.0"
@@ -144,7 +144,7 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
   SpaceMissionStudio is free of charge and comes without warranty; see
   Articles 7 and 8 of the EUPL-1.2. Check its results independently
   before you use them for a real mission.
-- **Version:** 2.6.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.6.0),
+- **Version:** 2.6.0 ([release](https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.6.0),
   [changelog](SpaceMissionStudio/CHANGELOG.md)): a run plays back in 3D
   inside the app (**Results › 3D View**), in place of the Vizard download;
   every network use is enforced, can be switched off and is logged, with

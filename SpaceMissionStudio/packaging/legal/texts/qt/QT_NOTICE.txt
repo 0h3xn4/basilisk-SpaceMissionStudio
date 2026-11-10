@@ -18,7 +18,7 @@ other authors named in the Qt source code.
 * The complete corresponding source code is attached to every
   SpaceMissionStudio release on GitHub as qt-everywhere-src-6.11.2.tar.xz and
   pyside-setup-everywhere-src-6.11.2.tar.xz, with their SHA-256 in
-  SHA256SUMS-sources: https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases
+  SHA256SUMS-sources: https://github.com/0h3xn4/basilisk_space-mission-studio/releases
   The Qt Company publishes the same archives at https://download.qt.io/ .
   The licences of the third-party code inside Qt and Qt WebEngine are listed
   at https://doc.qt.io/qt-6.11/licenses-used-in-qt.html and

@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: spacemissionstudio
-Upstream-Contact: https://github.com/0h3xn4/basilisk-SpaceMissionStudio/issues
-Source: https://github.com/0h3xn4/basilisk-SpaceMissionStudio
+Upstream-Contact: https://github.com/0h3xn4/basilisk_space-mission-studio/issues
+Source: https://github.com/0h3xn4/basilisk_space-mission-studio
 Comment:
  The package is self-contained: /opt/spacemissionstudio/python is a
  private CPython with Basilisk, SpaceMissionStudio, the packages they use

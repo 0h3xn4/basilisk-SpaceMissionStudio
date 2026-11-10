@@ -122,7 +122,7 @@ If someone already installed SpaceMissionStudio for you, skip to
 [Section 3](#3-starting-the-app).
 
 **Linux:** double-click the `.deb` file you were given, or the one
-from the [releases page](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases) (or run
+from the [releases page](https://github.com/0h3xn4/basilisk_space-mission-studio/releases) (or run
 `sudo apt install ./spacemissionstudio_<version>_amd64.deb` in a terminal), then
 find **SpaceMissionStudio** in your application menu like any other program.
 

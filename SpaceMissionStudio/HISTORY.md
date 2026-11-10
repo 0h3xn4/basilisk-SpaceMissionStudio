@@ -8953,7 +8953,7 @@ is refused; the installer pin check allows `-c constraints.txt`; two
 thermal-sensor fixtures add the Sun. The full suite, ruff and the
 compliance generators ran clean before the commit.
 
-**Released.** The user published [`v3.0.0`](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0) on 2026-10-12 on
+**Released.** The user published [`v3.0.0`](https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/v3.0.0) on 2026-10-12 on
 the merge commit `a84ae3784`, with the wheel, sdist, `.deb` and
 `SHA256SUMS`; the downloaded assets match the checksums. The tag also
 started two workflows this fork inherits from Basilisk. One was a wheel
@@ -12989,7 +12989,7 @@ The user tagged `spacemissionstudio-v1.3.0` (lightweight, not signed) on
 release "Space Mission Studio 1.3.0" at 11:55 UTC. The release workflow
 (run 40318662400) built, installed and checked the six files and
 attached them at 12:07, and wrote the notes, since the release had none:
-<https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.3.0>.
+<https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v1.3.0>.
 For 12 minutes the public release had no files or notes, as with 1.2.0.
 
 The tagged `CHANGELOG.md` still reads "1.3.0 (not yet released)": the
@@ -14514,6 +14514,39 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Release 2.6.0 published, and the repository renamed (2026-11-10)
+
+#240 was merged once CI was green. The user saved the release "Space
+Mission Studio 2.6.0" as a draft with notes written for it (prepared with
+the assistant in the structure of the 2.5.0 notes), tagged
+`spacemissionstudio-v2.6.0` on the merge commit `dcbb95e09` with `git`,
+pushed the tag and published the release at 06:51:54 UTC. The release
+workflow ([run 42771178369](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/42771178369)),
+started by the tag at 06:50:13, ran the whole suite on the tagged commit
+on Linux and Windows with the network audits, built the `.deb` and the
+setup program from hash-checked packages, installed and ran each, and
+attached the eight files at 07:29:40, the two bills of materials among
+them, keeping the notes. So the release was public without files for 38
+minutes, the eleventh release so (`releasing.md`). SRelD issue 32, the
+SDP, H05 and `releasing.md` record the tag, the run and the files'
+digests.
+
+The user then renamed the repository from
+`0h3xn4/basilisk-SpaceMissionStudio` to
+`0h3xn4/basilisk_space-mission-studio`. Every link to the repository,
+the clone steps (`cd basilisk_space-mission-studio/SpaceMissionStudio`),
+the `.deb`'s `Homepage` and `copyright` source, the release notes'
+repository address (`packaging/release_notes.py`), the Qt notice's
+link to the release's source archives
+(`packaging/legal/texts/qt/QT_NOTICE.txt`) and the SMP's and
+SRelD's names of the repository now use the new name; the test that
+checks the `.deb`'s fields follows them. GitHub redirects the old
+addresses, so the published release notes, which use them, still work.
+Kept as they were: this file's account of the 2026-10-13 rename and the
+old documentation site's address, and the dated briefs
+(`docs/ui/UI_OVERHAUL.md`, `docs/LEGAL_AND_WEBSITE.md`), as for the
+rename of 2026-10-13.
+
 ## Release 2.6.0 prepared (2026-11-09)
 
 A minor release: it adds features. The standing instruction is to
@@ -14762,7 +14795,7 @@ the release at 19:29:07 UTC with notes written for it (prepared with the
 assistant in the structure of the 2.1.0 to 2.2.0 notes: what is new, the
 earlier releases, who should update, downloads, install, how it was
 checked, known limits). The release workflow
-([run 42515265320](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/42515265320))
+([run 42515265320](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/42515265320))
 started a second later; it ran the whole suite on the tagged commit on
 Linux and Windows, built, installed and checked the six files and
 attached them at 20:01, keeping the notes. So the release was public
@@ -14987,7 +15020,7 @@ pull request.
 the release at 20:58:24 UTC with notes written for it (prepared with the
 assistant: what is new, who should update, install, known limits, and
 the IDM-CIC credit). The release workflow
-([run 42108301360](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/42108301360)) started two seconds
+([run 42108301360](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/42108301360)) started two seconds
 later; it ran the whole suite on the tagged commit on Linux and Windows,
 built, installed and checked the six files and attached them at 21:33,
 keeping the notes. So the release was public without files for 35
@@ -15106,7 +15139,7 @@ angle worked out by hand from the rotations. No existing test changed.
 the release at 16:17:58 UTC with notes written for it (prepared with the
 assistant at the user's request: what is new, who should update, install,
 known limits, and the IDM-CIC credit). The release workflow
-([run 42062956336](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/42062956336)) started two seconds
+([run 42062956336](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/42062956336)) started two seconds
 later; it ran the whole suite on the tagged commit on Linux and Windows,
 built, installed and checked the six files and attached them at 16:56,
 keeping the notes. So the release was public without files for 39
@@ -15398,7 +15431,7 @@ Full suite on Python 3.14 (a home holding only the reference data cache): 4610 p
 the release at 08:55:50 UTC with notes written for it (the CCSDS files
 in the app, the windows of their own, a section for users coming from
 2.0.0 or 2.1.0, downloads, install, checks and known limits). The release
-workflow ([run 41998260915](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/41998260915)) started two seconds later; it ran the whole suite on the
+workflow ([run 41998260915](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/41998260915)) started two seconds later; it ran the whole suite on the
 tagged commit on Linux and Windows, built, installed and checked the six
 files and attached them at 09:34, keeping the notes. So the release was
 public without files for 38 minutes, the seventh release so
@@ -15526,7 +15559,7 @@ looked at.
 the release at 19:58:37 UTC with notes written for it (what each fix was
 before and is now, a section for users coming from 2.0.0, downloads,
 install, checks and known limits). The release workflow
-([run 41902117432](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/41902117432))
+([run 41902117432](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/41902117432))
 started two seconds later; it ran the whole suite on the tagged commit
 on Linux and Windows, built, installed and checked the six files and
 attached them at 20:33, keeping the notes. So the release was public
@@ -15631,7 +15664,7 @@ run: the panel was checked through the message it reads.
 the release at 14:57:45 UTC with notes written for it (a release note
 for new users: what the tool is, then what 2.1.0 adds, downloads,
 install, checks and known limits). The release workflow
-([run 41852813354](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/41852813354))
+([run 41852813354](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/41852813354))
 started two seconds later; it ran the whole suite on the tagged commit
 on Linux and Windows, built, installed and checked the six files and
 attached them at 15:34, keeping the notes. So the release was public

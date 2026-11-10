@@ -45,7 +45,7 @@ against. Linux on ARM (aarch64) has no installer: use path B or C.
 
 ## 3. Path A: the installer
 
-From the [releases page](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases),
+From the [releases page](https://github.com/0h3xn4/basilisk_space-mission-studio/releases),
 download the installer for your system with its checksum file, and check
 it (`sha256sum -c SHA256SUMS-linux --ignore-missing` on Linux;
 `Get-FileHash` in PowerShell on Windows). You can also build the
@@ -105,8 +105,8 @@ end; the Windows script has not yet been run on a real Windows machine.
 folder:
 
 ```bash
-git clone https://github.com/0h3xn4/basilisk-SpaceMissionStudio.git
-cd basilisk-SpaceMissionStudio/SpaceMissionStudio
+git clone https://github.com/0h3xn4/basilisk_space-mission-studio.git
+cd basilisk_space-mission-studio/SpaceMissionStudio
 ```
 
 **2. Make a private Python environment**, so nothing touches your system
