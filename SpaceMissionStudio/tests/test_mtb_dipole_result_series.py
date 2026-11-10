@@ -23,7 +23,7 @@ discard the second value entirely (``mtb_effector, _ = fsw.
 build_mtb_desaturation(...)``) -- so a spacecraft with
 ``schema.scenario.MagneticMomentumManagementConfig`` configured had its
 commanded dipole (``mtbMomentumManagement.mtbCmdOutMsg``) invisible to
-both the results UI and Vizard, unlike every other actuator-management
+the results UI, unlike every other actuator-management
 feature (``momentum_dumping``, ``station_keeping``, ``phasing_keeping``),
 which all got a matching result series the moment they shipped.
 

@@ -33,8 +33,7 @@ Covered: the results CSVs and their provenance, the events CSV, the
 Mission Output CSV and its provenance, the Monte Carlo runs table, the
 budget CSV, the ``.obj`` model and the SIL report. Not covered: the PNG
 and SVG plots (the web engine draws them), the flight-software project
-(``tests/test_fsw_export.py`` checks it against Basilisk's files) and the
-Vizard file (Basilisk writes it during a run).
+(``tests/test_fsw_export.py`` checks it against Basilisk's files).
 """
 
 from __future__ import annotations

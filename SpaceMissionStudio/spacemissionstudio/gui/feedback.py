@@ -30,13 +30,8 @@ never at the specific field, at the moment it's typed):
   notification, for "did my action actually do something" feedback on
   actions where a blocking ``QMessageBox`` would be overkill (Save, Add
   spacecraft, Remove sensor, ...) and a status-bar message alone is too
-  easy to miss. That's not a guess: ``MainWindow.on_launch_vizard``'s own
-  docstring already documents exactly this problem for ONE case (a
-  status-bar message "easy to miss/get overwritten by the 'Running...'
-  message that follows moments later") and had to be promoted to a
-  one-time blocking dialog to be noticed at all -- a toast is the
-  general-purpose fix that case shouldn't have needed a bespoke one-off
-  dialog for.
+  easy to miss (a status-bar message is easily overwritten by the
+  "Running..." message that follows moments later).
 * :func:`report` -- a routine outcome (a file written, a file that could
   not be read, a launch that failed) said without a message box
   (docs/ux-audit.md U-39): a toast, the window's status bar, and for a

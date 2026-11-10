@@ -27,7 +27,7 @@ import pytest
 pytestmark = pytest.mark.requires_gui
 
 _TEMPLATES = Path(__file__).resolve().parents[2] / "spacemissionstudio" / "scenarios" / "templates"
-_ORBIT_ONLY_TABS = ["Orbit / mass", "Power / propulsion / link budget", "3D model", "Vizard model", "Budget (AD10)"]
+_ORBIT_ONLY_TABS = ["Orbit / mass", "Power / propulsion / link budget", "3D model", "Budget (AD10)"]
 
 
 @pytest.fixture(autouse=True)
@@ -94,8 +94,8 @@ def test_a_tab_node_shows_its_tab_without_a_tab_bar(window):
     form = editor._spacecraft_nodes[0].form
     assert tree.tree.currentItem() is _sections(editor)[0] and form.tabs.tabText(form.tabs.currentIndex()) == "Orbit / mass"
     assert not form.tabs.tabBar().isVisibleTo(form)
-    tree.show_section(editor._spacecraft_nodes[0].item, "Vizard model")
-    assert form.tabs.tabText(form.tabs.currentIndex()) == "Vizard model"
+    tree.show_section(editor._spacecraft_nodes[0].item, "Budget (AD10)")
+    assert form.tabs.tabText(form.tabs.currentIndex()) == "Budget (AD10)"
     assert tree.current_page() is editor._spacecraft_nodes[0].holder
 
 
@@ -103,10 +103,10 @@ def test_a_problem_in_another_tab_moves_the_tree_there(window):
     """Problems opens a field on another tab: the form shows the tab and
     the tree selects its node."""
     editor = window.scenario_editor
-    editor.show_spacecraft_problem("my-sat", "vizard_model_offset_m", "vizard_model_offset_m: not finite")
+    editor.show_spacecraft_problem("my-sat", "propellant_budget", "propellant_budget: not finite")
     form = editor._spacecraft_nodes[0].form
-    assert form.tabs.tabText(form.tabs.currentIndex()) == "Vizard model"
-    assert editor.page_tree.section_key(editor.page_tree.tree.currentItem()) == "Vizard model"
+    assert form.tabs.tabText(form.tabs.currentIndex()) == "Budget (AD10)"
+    assert editor.page_tree.section_key(editor.page_tree.tree.currentItem()) == "Budget (AD10)"
 
 
 def test_a_tab_counts_the_problems_about_its_fields(window):
@@ -200,5 +200,7 @@ def test_an_edit_in_a_section_built_later_reaches_the_scenario(window, qtbot):
     editor.page_tree.tree.setCurrentItem(editor._spacecraft_nodes[0].item)
     form = editor._spacecraft_nodes[0].form
     qtbot.waitUntil(lambda: not form._pending_sections, timeout=5000)
-    form.viz_offset_x.setValue(0.5)  # [m] the Vizard model section, built after Orbit / mass
-    qtbot.waitUntil(lambda: editor.spacecraft_list.to_list()[0].vizard_model_offset_m[0] == 0.5, timeout=5000)
+    form.budget_group.setChecked(True)  # the Budget (AD10) section, built after Orbit / mass
+    form.budget_group.mission_years.setValue(7.5)  # [year]
+    qtbot.waitUntil(lambda: getattr(editor.spacecraft_list.to_list()[0].propellant_budget, "mission_years", None)
+                    == 7.5, timeout=5000)

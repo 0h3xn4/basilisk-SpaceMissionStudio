@@ -762,7 +762,7 @@ _SPECS: dict[str, TemplateWizardSpec] = {
                         hint="Higher = slower, longer-period orbit",
                     ),
                     WizardField(
-                        "Inclination", "Watch the ground track in Vizard change with this.",
+                        "Inclination", "Watch the orbit tilt in Results › 3D View.",
                         lambda s: _sc(s).orbit.inclination_deg,
                         lambda s, v: setattr(_sc(s).orbit, "inclination_deg", v),
                         0.0, 180.0, decimals=2, step=1.0, suffix=" deg",

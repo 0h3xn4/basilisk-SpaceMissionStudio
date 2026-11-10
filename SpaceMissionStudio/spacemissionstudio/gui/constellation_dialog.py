@@ -24,7 +24,7 @@ docstring for the Walker-pattern math and why only orbit/name vary.
 Does not import ``engine.constellation`` at module scope beyond the
 request dataclass itself (no Basilisk anywhere in that chain, so this is
 safe -- but kept consistent with this project's "gui/ doesn't need to
-know engine/ imports Basilisk" split used elsewhere, e.g. vizard_dialog.py).
+know engine/ imports Basilisk" split used elsewhere).
 """
 
 from __future__ import annotations

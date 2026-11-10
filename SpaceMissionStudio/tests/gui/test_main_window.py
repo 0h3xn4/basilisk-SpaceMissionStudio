@@ -149,7 +149,7 @@ def test_explain_tab_refreshes_on_new(window, qtbot):
 
 def test_toolbar_actions_are_all_visible(window, qtbot):
     """Regression test for a real user report, with a screenshot: on
-    their platform, one toolbar button ("Launch Vizard") simply wasn't
+    their platform, one toolbar button simply wasn't
     visible in a single, wide, un-movable QToolBar -- confirmed present
     in the Run menu (so the QAction itself was fine), meaning it was a
     toolbar-width/overflow rendering issue this sandbox's own offscreen
@@ -159,7 +159,7 @@ def test_toolbar_actions_are_all_visible(window, qtbot):
     -overflow behavior. The toolbars are gone (UI overhaul M2a): assert
     every command they held is a visible button where it now lives -- the
     top bar (Save, Run and its mode), the Run area's header (the run
-    controls, Vizard, the reference data check) and Home (New and Open,
+    controls, the reference data check) and Home (New and Open,
     as the page's own New blank scenario and Browse for a file...) --
     not just present as a QAction object somewhere.
     """
@@ -171,14 +171,13 @@ def test_toolbar_actions_are_all_visible(window, qtbot):
         assert widget.isVisibleTo(window), f"{widget.text()!r} is not visible in the top bar"
     window.shell.show_area("run")
     header = window.shell.page("run").buttons
-    for action in (window.run_action, window.abort_action, window.vizard_launch_action, window.check_kernels_action):
+    for action in (window.run_action, window.abort_action, window.check_kernels_action):
         assert action in header, f"{action.text()!r} is missing from the Run area"
         assert header[action].isVisibleTo(window), f"{action.text()!r}'s button is not visible"
     assert window.run_mode_control.isVisibleTo(window)
-    # M5b: Live plot and the Vizard options are on Run > Run
+    # M5b: Live plot is on Run > Run
     window.show_view(window.run_page)
     assert window.run_page.live_plot_check.isVisibleTo(window)
-    assert window.run_page.vizard_section.isVisibleTo(window)
     window.shell.show_area("home")
     home = window.load_scenario_widget
     assert home.start_from_scratch.button.isVisibleTo(window) and home.browse_button.isVisibleTo(window)
@@ -186,6 +185,34 @@ def test_toolbar_actions_are_all_visible(window, qtbot):
     assert window.run_mode_button.menu().actions() == window.run_mode_group.actions()
     assert sorted(window.run_mode_control.buttons) == sorted(a.data() for a in window.run_mode_group.actions())  # M5b
     assert window.monte_carlo_action in window.run_mode_group.actions()
+
+
+def test_nothing_in_the_window_names_vizard(window):
+    """Vizard was removed (2026-11-10): no command, action, object name,
+    text, tooltip or setting page of the window names it."""
+    from PySide6.QtCore import QObject
+    from PySide6.QtGui import QAction
+
+    found = []
+    for command in window.commands:
+        for value in (command.id, command.label, command.tip, " ".join(command.keywords)):
+            if "vizard" in value.lower():
+                found.append(f"command {command.id}: {value!r}")
+    for obj in [window, *window.findChildren(QObject)]:
+        values = [obj.objectName()]
+        for getter in ("text", "toolTip", "statusTip", "whatsThis", "windowTitle", "title", "placeholderText"):
+            method = getattr(obj, getter, None)
+            if callable(method):
+                try:
+                    value = method()
+                except TypeError:  # a getter that needs arguments
+                    continue
+                if isinstance(value, str):
+                    values.append(value)
+        if isinstance(obj, QAction):
+            values.append(str(obj.data()))
+        found.extend(f"{type(obj).__name__}: {value!r}" for value in values if "vizard" in value.lower())
+    assert found == []
 
 
 def test_editing_marks_dirty(window):
@@ -511,57 +538,26 @@ def test_save_in_the_unsaved_changes_question_saves_then_goes_ahead(window, monk
     assert window._confirm_discard_unsaved() is True
     assert target.is_file() and not window._dirty and window._current_path == target
 
-def test_configure_vizard_sets_request(window, monkeypatch):
-    """Accepting the Vizard dialog with live streaming chosen stores a
-    live-stream request."""
-    assert window._vizard_request is None
-
-    window.on_configure_vizard()  # M5b: the Vizard form on Run > Run, applied as it is edited
-    window.run_page.vizard_form.live_stream_radio.setChecked(True)
-
-    assert window._vizard_request is not None
-    assert window._vizard_request.live_stream is True
-
-
-def test_configure_vizard_cancel_leaves_request_unchanged(window, monkeypatch):
-    """Cancelling the Vizard dialog stores no request."""
-    from PySide6.QtWidgets import QDialog
-
-    from spacemissionstudio.gui.vizard_dialog import VizardDialog
-
-    monkeypatch.setattr(VizardDialog, "exec", lambda self: QDialog.DialogCode.Rejected)
-    window.on_configure_vizard()
-    assert window._vizard_request is None
-
-
-def test_run_passes_vizard_request_to_worker(window, monkeypatch):
-    """Run hands the stored Vizard request to the run worker."""
-    from spacemissionstudio.gui.main_window import MainWindow
+def test_run_passes_the_scenario_folder_to_worker(window, monkeypatch, tmp_path):
+    """Run hands the scenario file's folder to the run worker: a 3D
+    model's relative mesh paths are read from there."""
     from spacemissionstudio.gui.run_worker import RunWorker
-    from spacemissionstudio.engine.vizard import VizardRequest
 
     _add_valid_spacecraft(window)
-    window._vizard_request = VizardRequest(live_stream=True)
-    # on_run() now confirms Vizard is connected before starting a
-    # live-stream run (see its own comment) -- stubbed out here since
-    # this test is about vizard_request passthrough, not the Vizard
-    # process itself (see test_run_ensures_vizard_is_running_before_a_
-    # live_stream_run for that).
-    monkeypatch.setattr(MainWindow, "on_launch_vizard", lambda self: True)
-
+    window._current_path = tmp_path / "mission.json"
     captured = {}
     original_init = RunWorker.__init__
 
-    def spy_init(self, scenario, vizard_request=None, live=False, parent=None, allow_scripts=False):
-        captured["vizard_request"] = vizard_request
-        original_init(self, scenario, vizard_request=vizard_request, live=live, parent=parent,
+    def spy_init(self, scenario, model_base_dir=None, live=False, parent=None, allow_scripts=False):
+        captured["model_base_dir"] = model_base_dir
+        original_init(self, scenario, model_base_dir=model_base_dir, live=live, parent=parent,
                       allow_scripts=allow_scripts)
 
     monkeypatch.setattr(RunWorker, "__init__", spy_init)
     monkeypatch.setattr(RunWorker, "start", lambda self: None)  # don't actually spin up the thread
 
     window.on_run()
-    assert captured["vizard_request"] is window._vizard_request
+    assert captured["model_base_dir"] == str(tmp_path)
 
 
 def test_run_starts_busy_indicator_and_disables_other_run_actions(window, monkeypatch):
@@ -593,10 +589,10 @@ def test_run_passes_live_flag_from_action_to_worker(window, monkeypatch):
     captured = {}
     original_init = RunWorker.__init__
 
-    def spy_init(self, scenario, vizard_request=None, live=False, parent=None, allow_scripts=False):
+    def spy_init(self, scenario, model_base_dir=None, live=False, parent=None, allow_scripts=False):
         captured["live"] = live
         captured["allow_scripts"] = allow_scripts
-        original_init(self, scenario, vizard_request=vizard_request, live=live, parent=parent,
+        original_init(self, scenario, model_base_dir=model_base_dir, live=live, parent=parent,
                       allow_scripts=allow_scripts)
 
     monkeypatch.setattr(RunWorker, "__init__", spy_init)
@@ -1108,10 +1104,10 @@ def test_run_with_mission_sequence_ignores_live_flag_and_shows_mission_output(wi
     captured = {}
     original_init = RunWorker.__init__
 
-    def spy_init(self, scenario, vizard_request=None, live=False, parent=None, allow_scripts=False):
+    def spy_init(self, scenario, model_base_dir=None, live=False, parent=None, allow_scripts=False):
         captured["live"] = live
         captured["allow_scripts"] = allow_scripts
-        original_init(self, scenario, vizard_request=vizard_request, live=live, parent=parent,
+        original_init(self, scenario, model_base_dir=model_base_dir, live=live, parent=parent,
                       allow_scripts=allow_scripts)
 
     monkeypatch.setattr(RunWorker, "__init__", spy_init)
@@ -1213,524 +1209,6 @@ def test_run_finished_without_command_summary_shows_results_tab(window):
     window._on_run_finished(ResultSet(scenario_name="test", series={}))
     window.finish_run_end()  # M6b: the end of a run is shown in steps; take them
     assert window.current_view() is window.results_widget
-
-
-class _FakeVizardProcess:
-    def __init__(self, pid=999):
-        self.pid = pid
-        self._alive = True
-        self.terminate_calls = 0
-        self.kill_calls = 0
-
-    def poll(self):
-        return None if self._alive else 0
-
-    def kill_for_test(self):
-        self._alive = False
-
-    def terminate(self):
-        self.terminate_calls += 1
-        self._alive = False
-
-    def kill(self):
-        self.kill_calls += 1
-        self._alive = False
-
-    def wait(self, timeout=None):
-        return 0
-
-
-def test_launch_vizard_starts_it_when_not_running(window, monkeypatch):
-    """Launch Vizard starts the found executable and says so in the status
-    bar."""
-    from pathlib import Path
-
-    from spacemissionstudio.gui import main_window
-
-    calls = []
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: Path("/fake/Vizard"))
-    monkeypatch.setattr(main_window, "launch_vizard",
-                         lambda path, direct_comm_address=None: calls.append(path) or _FakeVizardProcess())
-
-    window.on_launch_vizard()
-
-    assert calls == [Path("/fake/Vizard")]
-    assert "Launched Vizard" in window.statusBar().currentMessage()
-
-
-def test_launch_vizard_does_not_relaunch_while_already_running(window, monkeypatch):
-    """The exact behavior the "Launch Vizard" action depends on: clicking
-    it again while Vizard is still open must not spawn a second instance.
-    """
-    from pathlib import Path
-
-    from spacemissionstudio.gui import main_window
-
-    calls = []
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: Path("/fake/Vizard"))
-    monkeypatch.setattr(main_window, "launch_vizard",
-                         lambda path, direct_comm_address=None: calls.append(path) or _FakeVizardProcess())
-
-    window.on_launch_vizard()
-    window.on_launch_vizard()
-    window.on_launch_vizard()
-
-    assert len(calls) == 1
-    assert "already running" in window.statusBar().currentMessage().lower()
-
-
-def test_launch_vizard_relaunches_after_the_process_exits(window, monkeypatch):
-    """After Vizard exits, Launch Vizard starts a new process."""
-    from pathlib import Path
-
-    from spacemissionstudio.gui import main_window
-
-    processes = [_FakeVizardProcess(pid=111), _FakeVizardProcess(pid=222)]
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: Path("/fake/Vizard"))
-    monkeypatch.setattr(main_window, "launch_vizard", lambda path, direct_comm_address=None: processes.pop(0))
-
-    window.on_launch_vizard()
-    first = window._vizard_process
-    first.kill_for_test()
-
-    window.on_launch_vizard()
-    assert window._vizard_process.pid == 222
-
-
-def test_launch_vizard_not_found_falls_back_to_browse(window, monkeypatch):
-    """`on_launch_vizard()`'s own contract once `find_vizard_executable()`
-    comes up empty: whatever `_locate_vizard()` resolves to (via either
-    its "Download" or "Browse..." path -- see the dedicated tests for
-    those below) gets launched. Mocked at that seam rather than
-    QFileDialog directly, since which of the two sub-paths the user took
-    is no longer this test's concern.
-    """
-    from pathlib import Path
-
-    from spacemissionstudio.gui import main_window
-
-    picked = Path("/picked/Vizard")
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: None)
-    monkeypatch.setattr(main_window.MainWindow, "_locate_vizard", lambda self: picked)
-    monkeypatch.setattr(main_window, "launch_vizard", lambda path, direct_comm_address=None: _FakeVizardProcess())
-
-    window.on_launch_vizard()
-
-    assert window._vizard_process is not None
-
-
-def test_launch_vizard_not_found_and_resolution_cancelled_does_nothing(window, monkeypatch):
-    """When Vizard is not found and the user cancels locating it, nothing is
-    launched."""
-    from spacemissionstudio.gui import main_window
-
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: None)
-    monkeypatch.setattr(main_window.MainWindow, "_locate_vizard", lambda self: None)
-    launch_calls = []
-    monkeypatch.setattr(main_window, "launch_vizard",
-                         lambda path, direct_comm_address=None: launch_calls.append(path))
-
-    window.on_launch_vizard()
-
-    assert launch_calls == []
-    assert window._vizard_process is None
-
-
-def test_locate_vizard_browse_option_remembers_the_picked_path(window, monkeypatch):
-    """The original manual-browse path, now reached via the "not found"
-    QMessageBox's "Browse..." button -- clicked here by text match (see
-    this test's own `_click` helper) rather than assuming a specific
-    button object, since QMessageBox builds its buttons fresh each call.
-    """
-    from pathlib import Path
-
-    from PySide6.QtWidgets import QFileDialog, QMessageBox
-
-    picked = Path("/picked/Vizard")
-    monkeypatch.setattr(QMessageBox, "exec", _click_message_box_button("Browse..."))
-    monkeypatch.setattr(QFileDialog, "getOpenFileName", staticmethod(lambda *a, **k: (str(picked), "")))
-    remembered = []
-    monkeypatch.setattr("spacemissionstudio.gui.main_window.remember_vizard_executable",
-                         lambda path: remembered.append(path))
-
-    result = window._locate_vizard()
-
-    assert result == picked
-    assert remembered == [picked]
-
-
-def test_locate_vizard_browse_cancelled_returns_none(window, monkeypatch):
-    """Cancelling the Browse dialog while locating Vizard returns no path."""
-    from PySide6.QtWidgets import QFileDialog, QMessageBox
-
-    monkeypatch.setattr(QMessageBox, "exec", _click_message_box_button("Browse..."))
-    monkeypatch.setattr(QFileDialog, "getOpenFileName", staticmethod(lambda *a, **k: ("", "")))
-
-    assert window._locate_vizard() is None
-
-
-def test_locate_vizard_dismissed_returns_none(window, monkeypatch):
-    """Neither "Open the 3D View" nor "Browse..." clicked (e.g. the dialog
-    was closed via its window decoration) -- QMessageBox's own
-    `clickedButton()` then returns its implicit Cancel button, which
-    matches neither of the two named buttons this method checks for.
-    """
-    from PySide6.QtWidgets import QMessageBox
-
-    monkeypatch.setattr(QMessageBox, "exec", lambda self: 0)  # never click anything
-
-    assert window._locate_vizard() is None
-
-
-def _click_message_box_button(button_text):
-    """Returns a replacement for ``QMessageBox.exec`` that, instead of
-    actually blocking on user input, finds one of the box's own
-    ``addButton()``-added buttons by its visible text and clicks it --
-    exercising the real ``clickedButton()``/``buttonClicked`` machinery
-    (that connection is wired in ``addButton()`` itself, not only while
-    ``exec()`` is actually running) rather than faking the outcome.
-    """
-    def _exec(self):
-        for button in self.buttons():
-            if button.text() == button_text:
-                button.click()
-                return 0
-        raise AssertionError(f"no QMessageBox button with text {button_text!r}")
-    return _exec
-
-
-def test_the_vizard_not_found_dialog_offers_the_3d_view_and_no_download(window, monkeypatch):
-    """SpaceMissionStudio no longer downloads Vizard (AVS Lab's build has
-    Unity Analytics on): the dialog says why, offers the built-in 3D view
-    and Browse, and no button downloads anything."""
-    from PySide6.QtWidgets import QMessageBox
-
-    seen = {}
-
-    def exec_(box):
-        seen["text"] = box.text()
-        seen["buttons"] = [button.text() for button in box.buttons()]
-        return _click_message_box_button("Open the 3D View")(box)
-
-    monkeypatch.setattr(QMessageBox, "exec", exec_)
-    assert window._locate_vizard() is None
-    assert "does not download Vizard" in seen["text"] and "Unity Analytics" in seen["text"]
-    assert not any("Download" in text for text in seen["buttons"])
-    assert window.current_view() is window.mission_view_widget
-
-
-def test_launch_vizard_failure_shows_error(window, monkeypatch, reported):
-    """An OS error launching Vizard is reported with its reason, and no process
-    is kept."""
-    from pathlib import Path
-
-    from spacemissionstudio.gui import main_window
-
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: Path("/fake/Vizard"))
-
-    def raise_oserror(path, direct_comm_address=None):
-        raise OSError("permission denied")
-
-    monkeypatch.setattr(main_window, "launch_vizard", raise_oserror)
-
-    window.on_launch_vizard()
-
-    assert len(reported) == 1 and reported[0][1] == "error" and "permission denied" in reported[0][0]
-    assert window._vizard_process is None
-
-
-def test_launch_vizard_passes_direct_comm_address_when_live_stream_configured(window, monkeypatch):
-    """Direct user feedback: manually launching Vizard for a live-stream
-    run left it sitting on its own manual launcher screen (see
-    on_launch_vizard()'s own docstring) -- it must be started with its
-    -directComm flag whenever Vizard Configuration is set to live-stream.
-    """
-    from pathlib import Path
-
-    from PySide6.QtWidgets import QMessageBox
-
-    from spacemissionstudio.engine.vizard import VizardRequest
-    from spacemissionstudio.gui import main_window
-    from spacemissionstudio.gui.vizard_launcher import DEFAULT_LIVE_STREAM_ADDRESS
-
-    window._vizard_request = VizardRequest(live_stream=True)
-    calls = []
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: Path("/fake/Vizard"))
-    monkeypatch.setattr(main_window, "launch_vizard",
-                         lambda path, direct_comm_address=None: calls.append(direct_comm_address)
-                         or _FakeVizardProcess())
-    # A real launch with a -directComm address shows a one-time
-    # "needs one click" info dialog (see on_launch_vizard()'s own
-    # comment) -- mocked here since this test is about the address
-    # passed to launch_vizard(), not that dialog itself (see
-    # test_launch_vizard_shows_the_one_click_hint_once_per_session for
-    # that).
-    monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
-
-    window.on_launch_vizard()
-
-    assert calls == [DEFAULT_LIVE_STREAM_ADDRESS]
-
-
-def test_launch_vizard_shows_the_one_click_hint_once_per_session(window, monkeypatch):
-    """-directComm pre-fills Vizard's socket address but (confirmed by
-    direct user report) does not click "Start Visualization" for the
-    user -- shown once per session as an info dialog so that one
-    remaining click isn't a silent surprise, but not repeated on every
-    single subsequent live-stream launch/run. A long info toast since
-    U-39, not a message box.
-    """
-    from pathlib import Path
-
-    from spacemissionstudio.engine.vizard import VizardRequest
-    from spacemissionstudio.gui import main_window
-
-    window._vizard_request = VizardRequest(live_stream=True)
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: Path("/fake/Vizard"))
-    monkeypatch.setattr(main_window, "launch_vizard",
-                         lambda path, direct_comm_address=None: _FakeVizardProcess())
-    info_calls = []
-    real_toast = main_window.show_toast
-    monkeypatch.setattr(main_window, "show_toast",
-                        lambda parent, message, kind="success", **k: info_calls.append((message, kind))
-                        or real_toast(parent, message, kind, **k))
-
-    assert not window._vizard_live_stream_hint_shown
-    window.on_launch_vizard()
-    assert len(info_calls) == 1
-    assert "Start Visualization" in info_calls[0][0] and info_calls[0][1] == "info"
-    assert window._vizard_live_stream_hint_shown
-
-    # Vizard process still running -> "already running" early return,
-    # no relaunch, no repeated dialog.
-    window.on_launch_vizard()
-    assert len(info_calls) == 1
-
-
-def test_launch_vizard_passes_no_direct_comm_address_without_live_stream(window, monkeypatch):
-    """Without a live-stream request, Vizard is launched without a
-    direct-communication address."""
-    from pathlib import Path
-
-    from spacemissionstudio.gui import main_window
-
-    assert window._vizard_request is None  # save-file mode, or never configured at all
-    calls = []
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: Path("/fake/Vizard"))
-    monkeypatch.setattr(main_window, "launch_vizard",
-                         lambda path, direct_comm_address=None: calls.append(direct_comm_address)
-                         or _FakeVizardProcess())
-
-    window.on_launch_vizard()
-
-    assert calls == [None]
-
-
-def test_launch_vizard_relaunches_a_mismatched_already_running_instance(window, monkeypatch):
-    """The known residual gap this closes: Vizard was already launched
-    (by this same session's "Launch Vizard" button) before live-stream
-    was ever configured -- e.g. for a save-file run, or before Vizard
-    Configuration was set at all -- so the running instance has no
-    -directComm connection. Simply trusting "already running" here would
-    reproduce the exact original bug one launch later; it must be
-    terminated and replaced with a live-stream-ready one instead.
-    """
-    from pathlib import Path
-
-    from PySide6.QtWidgets import QMessageBox
-
-    from spacemissionstudio.engine.vizard import VizardRequest
-    from spacemissionstudio.gui import main_window
-    from spacemissionstudio.gui.vizard_launcher import DEFAULT_LIVE_STREAM_ADDRESS
-
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: Path("/fake/Vizard"))
-    launch_calls = []
-    monkeypatch.setattr(main_window, "launch_vizard",
-                         lambda path, direct_comm_address=None: launch_calls.append(direct_comm_address)
-                         or _FakeVizardProcess())
-    monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
-
-    # First launch: no live-stream configured yet.
-    window.on_launch_vizard()
-    first_process = window._vizard_process
-    assert launch_calls == [None]
-
-    # Now live-stream gets configured, and Vizard is asked for again.
-    window._vizard_request = VizardRequest(live_stream=True)
-    window.on_launch_vizard()
-
-    assert first_process.terminate_calls == 1
-    assert launch_calls == [None, DEFAULT_LIVE_STREAM_ADDRESS]
-    assert window._vizard_process is not first_process
-    assert window._vizard_direct_comm_address == DEFAULT_LIVE_STREAM_ADDRESS
-
-
-def test_launch_vizard_keeps_a_live_stream_ready_instance_for_a_later_save_file_launch(window, monkeypatch):
-    """The opposite direction is NOT a mismatch worth relaunching over --
-    a -directComm connection doesn't stop Vizard from also being used to
-    open a save file, so an already-live-stream-ready instance is kept.
-    """
-    from pathlib import Path
-
-    from PySide6.QtWidgets import QMessageBox
-
-    from spacemissionstudio.engine.vizard import VizardRequest
-    from spacemissionstudio.gui import main_window
-
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: Path("/fake/Vizard"))
-    launch_calls = []
-    monkeypatch.setattr(main_window, "launch_vizard",
-                         lambda path, direct_comm_address=None: launch_calls.append(direct_comm_address)
-                         or _FakeVizardProcess())
-    monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
-
-    window._vizard_request = VizardRequest(live_stream=True)
-    window.on_launch_vizard()
-    first_process = window._vizard_process
-
-    window._vizard_request = None  # switch to save-file/no request
-    window.on_launch_vizard()
-
-    assert first_process.terminate_calls == 0
-    assert len(launch_calls) == 1  # never relaunched
-    assert window._vizard_process is first_process
-
-
-def test_launch_vizard_never_touches_an_instance_it_did_not_itself_launch(window, monkeypatch):
-    """self._vizard_process is None (this session never launched Vizard
-    itself) even though Vizard may well already be running externally --
-    there is no reliable way to ask it whether it's connected, so a
-    fresh, correctly-configured instance is launched alongside it rather
-    than guessing about (or worse, killing) a process this app doesn't
-    own.
-    """
-    from pathlib import Path
-
-    from PySide6.QtWidgets import QMessageBox
-
-    from spacemissionstudio.engine.vizard import VizardRequest
-    from spacemissionstudio.gui import main_window
-    from spacemissionstudio.gui.vizard_launcher import DEFAULT_LIVE_STREAM_ADDRESS
-
-    assert window._vizard_process is None
-    window._vizard_request = VizardRequest(live_stream=True)
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: Path("/fake/Vizard"))
-    launch_calls = []
-    monkeypatch.setattr(main_window, "launch_vizard",
-                         lambda path, direct_comm_address=None: launch_calls.append(direct_comm_address)
-                         or _FakeVizardProcess())
-    monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
-
-    window.on_launch_vizard()
-
-    assert launch_calls == [DEFAULT_LIVE_STREAM_ADDRESS]
-
-
-def test_run_ensures_vizard_is_running_before_a_live_stream_run(window, monkeypatch):
-    """Regression test for a real user report: a live-stream run appeared
-    to hang at 0% with Abort having no effect, because Vizard was never
-    actually connected (see on_run()'s own comment) -- on_run() must
-    confirm Vizard first via on_launch_vizard(), not just hand the
-    request to RunWorker and hope.
-    """
-    from spacemissionstudio.engine.vizard import VizardRequest
-    from spacemissionstudio.gui.main_window import MainWindow
-    from spacemissionstudio.gui.run_worker import RunWorker
-
-    _add_valid_spacecraft(window)
-    window._vizard_request = VizardRequest(live_stream=True)
-    calls = []
-    monkeypatch.setattr(MainWindow, "on_launch_vizard", lambda self: calls.append(1) or True)
-    monkeypatch.setattr(RunWorker, "start", lambda self: None)  # don't actually spin up the thread
-
-    window.on_run()
-
-    assert calls == [1]
-    assert window._run_worker is not None  # the run actually proceeded
-
-
-def test_run_refuses_to_start_when_vizard_cannot_be_confirmed(window, monkeypatch):
-    """A live Vizard stream that cannot be confirmed running stops the run
-    before it starts, and says why."""
-    from spacemissionstudio.engine.vizard import VizardRequest
-    from spacemissionstudio.gui.main_window import MainWindow
-    from spacemissionstudio.gui.run_worker import RunWorker
-
-    _add_valid_spacecraft(window)
-    window._vizard_request = VizardRequest(live_stream=True)
-    monkeypatch.setattr(MainWindow, "on_launch_vizard", lambda self: False)
-    start_calls = []
-    monkeypatch.setattr(RunWorker, "start", lambda self: start_calls.append(1))
-
-    window.on_run()
-
-    assert len(window.run_problems) == 1 and "Vizard is not connected" in window.run_problems[0]
-    assert start_calls == []
-    assert window._run_worker is None  # never even constructed
-
-
-def test_run_always_relaunches_vizard_fresh_for_a_live_stream_run(window, monkeypatch):
-    """Real user feedback: "when running a new simulation after a
-    previous simulation finished, vizard should completely refresh so it
-    actually displays only stuff from the current simulation, and not the
-    previous one." Confirmed directly from Vizard's own Unity source (see
-    on_run()'s own comment): a running Vizard Main Scene has no way to
-    reset itself live, so reusing an already-running, matching instance
-    across separate runs (on_launch_vizard()'s own deliberate behavior,
-    still correct for its OWN "Launch Vizard" menu entry point) must NOT
-    happen when on_run() itself starts a new live-stream run -- the
-    previous self-launched process must always be terminated and a fresh
-    one started, even though it would otherwise "match" and be reused.
-    """
-    from pathlib import Path
-
-    from PySide6.QtWidgets import QMessageBox
-
-    from spacemissionstudio.engine.vizard import VizardRequest
-    from spacemissionstudio.gui import main_window
-    from spacemissionstudio.gui.run_worker import RunWorker
-
-    _add_valid_spacecraft(window)
-    window._vizard_request = VizardRequest(live_stream=True)
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: Path("/fake/Vizard"))
-    launch_calls = []
-    processes = [_FakeVizardProcess(pid=1), _FakeVizardProcess(pid=2)]
-    monkeypatch.setattr(
-        main_window, "launch_vizard",
-        lambda path, direct_comm_address=None: launch_calls.append(direct_comm_address) or processes[len(launch_calls) - 1]
-    )
-    monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
-    monkeypatch.setattr(RunWorker, "start", lambda self: None)
-
-    window.on_run()  # first run: nothing to terminate yet, launches process 1
-    first_process = window._vizard_process
-    assert first_process is processes[0]
-    assert first_process.terminate_calls == 0
-
-    window.on_run()  # second run: must terminate process 1 and launch a fresh one
-
-    assert first_process.terminate_calls == 1
-    assert window._vizard_process is processes[1]
-    assert window._vizard_process is not first_process
-    assert len(launch_calls) == 2
-
-
-def test_run_never_touches_vizard_without_a_live_stream_request(window, monkeypatch):
-    """Vizard Configuration defaults to None (no request at all) --
-    on_run() must not try to launch/confirm Vizard for an ordinary run.
-    """
-    from spacemissionstudio.gui.main_window import MainWindow
-    from spacemissionstudio.gui.run_worker import RunWorker
-
-    _add_valid_spacecraft(window)
-    assert window._vizard_request is None
-    calls = []
-    monkeypatch.setattr(MainWindow, "on_launch_vizard", lambda self: calls.append(1) or True)
-    monkeypatch.setattr(RunWorker, "start", lambda self: None)
-
-    window.on_run()
-
-    assert calls == []
 
 
 def test_close_with_no_unsaved_changes_does_not_prompt(window, monkeypatch):
@@ -2151,37 +1629,6 @@ def test_a_run_hands_the_scenarios_featured_series_to_the_results_tab(window, mo
     window.on_run()
     assert window.results_widget._featured == featured_series(load_scenario(path))
     assert len(window.results_widget._featured) == 5
-
-
-def test_results_offer_the_last_runs_vizard_file_and_open_it(window, monkeypatch, tmp_path):
-    """After a run that wrote a playback file, Results shows "Open in
-    Vizard", which starts Vizard with -loadFile on that file; a new run
-    hides it again."""
-    from pathlib import Path
-
-    from spacemissionstudio.gui import main_window
-
-    playback = tmp_path / "run.bin"
-    playback.write_bytes(b"\x00")
-    window._last_run_vizard_file = str(playback)
-    window._offer_vizard_playback()
-    assert window.results_widget.vizard_button.isVisibleTo(window.results_widget)
-    calls = []
-    monkeypatch.setattr(main_window, "find_vizard_executable", lambda: Path("/fake/Vizard"))
-    monkeypatch.setattr(main_window, "launch_vizard",
-                        lambda path, load_file=None: calls.append((path, load_file)) or _FakeVizardProcess())
-    window.results_widget.vizard_button.click()
-    assert calls == [(Path("/fake/Vizard"), playback)]
-    window._clear_run_views()
-    assert not window.results_widget.vizard_button.isVisibleTo(window.results_widget)
-
-
-def test_no_vizard_button_when_the_run_wrote_no_file(window, tmp_path):
-    """When the run's Vizard file does not exist, the Results page offers no
-    Vizard playback button."""
-    window._last_run_vizard_file = str(tmp_path / "missing.bin")
-    window._offer_vizard_playback()
-    assert not window.results_widget.vizard_button.isVisibleTo(window.results_widget)
 
 
 def test_finished_runs_are_kept_for_comparison(window):

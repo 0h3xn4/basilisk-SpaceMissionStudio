@@ -251,8 +251,7 @@ _ATMOSPHERIC_LOSS = "link.atmospheric_loss"
 _LINK_INPUTS = ("The slant range [m] and the station's elevation [deg] at each sample of an access",
                 "The link's frequency [Hz]")
 _LINK_OUTPUTS = ("<station>.access_to_<spacecraft>.link_margin_db [dB], and so the live link gate's downlink",
-                 "The link budget's traces (Calculation panel, spacemissionstudio link-budget)",
-                 "Vizard's link-status panel")
+                 "The link budget's traces (Calculation panel, spacemissionstudio link-budget)")
 
 register(
     Model(_ATMOSPHERIC_LOSS, "none", "None",

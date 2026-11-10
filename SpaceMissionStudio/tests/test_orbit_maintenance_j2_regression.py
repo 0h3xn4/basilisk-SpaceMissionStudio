@@ -19,8 +19,8 @@
 """Regression tests reproducing, against a REAL Basilisk build with real
 (degree >= 2) spherical-harmonics Earth gravity, the two independent real
 bugs a full audit found in ``engine.orbit_maintenance`` after a real user's
-Vizard screenshot kept showing the ``05_formation_flying_phasing`` template's
-along-track separation pinned at the Vizard gauge ceiling even after the
+run kept showing the ``05_formation_flying_phasing`` template's
+along-track separation far off its target even after the
 cold-start fix (see ``StationKeepingController``'s own docstring) had
 already landed:
 

@@ -125,7 +125,7 @@ def _measured_separation_km(chief, follower):
 
 def test_along_track_separation_matches_target_exactly_with_zero_radial_and_cross_track():
     """Regression test for the real bug this generator's docstring
-    describes: a real user's Vizard run showed a requested along-track
+    describes: a real user's run showed a requested along-track
     separation reading as ~0 km to PhasingKeepingController. With R and N
     both 0, the along-track separation the controller will actually
     measure at epoch must match the request to high precision.

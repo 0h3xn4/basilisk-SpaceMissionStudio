@@ -207,7 +207,7 @@ parameters:
 
   # -- link ------------------------------------------------------------------
 
-  # The link closes while its Eb/N0 margin (over the required Eb/N0) is at least this: the simulated downlink is allowed, Vizard shows the link OK, and a lower margin is marked on the dashboard and the results overview.
+  # The link closes while its Eb/N0 margin (over the required Eb/N0) is at least this: the simulated downlink is allowed, and a lower margin is marked on the dashboard and the results overview.
   # Source: SpaceMissionStudio's own choice. 0 dB: the link closes with nothing to spare. Projects usually require a few dB; set that here.
   # Limits: -20 to 30 [dB]
   # link.required_margin_db: 0.0  # [dB]

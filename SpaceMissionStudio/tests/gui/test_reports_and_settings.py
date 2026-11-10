@@ -19,15 +19,14 @@
 
 """Reports › Exports and the M8 settings (UI overhaul M8): every export in
 one table with the time this machine last wrote it, a row opening the view
-that makes it; the UI scale for the next start, reduce motion for the
-toasts, and the Vizard location."""
+that makes it; the UI scale for the next start and reduce motion for the
+toasts."""
 
 import re
 from pathlib import Path
 
 import numpy as np
 import pytest
-from PySide6.QtCore import QSettings
 
 pytestmark = pytest.mark.requires_gui
 
@@ -44,17 +43,7 @@ def _isolated_autosave(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def vizard_settings(tmp_path, monkeypatch):
-    """The Vizard launcher's settings in a file of this test's own."""
-    from spacemissionstudio.gui import vizard_launcher
-
-    path = str(tmp_path / "vizard.ini")
-    monkeypatch.setattr(vizard_launcher, "QSettings", lambda: QSettings(path, QSettings.Format.IniFormat))
-    return path
-
-
-@pytest.fixture
-def window(qtbot, monkeypatch, vizard_settings):
+def window(qtbot, monkeypatch):
     from PySide6.QtWidgets import QMessageBox
 
     from spacemissionstudio.gui.main_window import MainWindow
@@ -74,14 +63,14 @@ def test_every_export_is_listed_never_written_at_first(qtbot):
     page = ExportsPage()
     qtbot.addWidget(page)
     table = page.table
-    assert table.row_count() == len(EXPORTS) == 19
+    assert table.row_count() == len(EXPORTS) == 18
     assert [table.header_text(c) for c in range(table.column_count())] == [
         "Export", "Last written\n[UTC]", "Format", "Made in", "Default destination", "Provenance"]
     names = {table.cell(r, 0) for r in range(table.row_count())}
     assert names == {"Plot data", "Plot image", "Every shown plot", "Reproduction bundle", "Events", "Mission output",
                      "Monte Carlo runs", "Lifetime estimate", "Budget", "Design checks", "Model analyses",
                      "Re-entry estimate", "Flight software", "SIL report",
-                     "Vizard playback", "Starting orbits", "Ephemeris", "3D model"}
+                     "Starting orbits", "Ephemeris", "3D model"}
     assert all(table.cell(r, 1) == "never" for r in range(table.row_count()))
     assert all(table.cell(r, c) for r in range(table.row_count()) for c in range(6))
 
@@ -123,8 +112,7 @@ def test_a_row_opens_the_view_that_makes_it(window):
     assert window.current_view() is window.exports_page
     table = window.exports_page.table
     for key, view in (("events_csv", window.event_timeline_widget), ("plot_png", window.results_widget),
-                      ("budget_csv", window.budget_widget), ("sil_report", window.flight_software_widget),
-                      ("vizard_file", window.run_page)):
+                      ("budget_csv", window.budget_widget), ("sil_report", window.flight_software_widget)):
         index = table.proxy.index([export.key for export in EXPORTS].index(key), 0)
         table.view.activated.emit(index)
         assert window.current_view() is view, key
@@ -179,20 +167,3 @@ def test_toasts_fade_unless_motion_is_reduced(window, qtbot):
     qtbot.waitUntil(lambda: not toast.isVisible(), timeout=5000)
 
 
-def test_the_vizard_location_is_browsed_and_cleared(window, tmp_path, monkeypatch, vizard_settings):
-    """Settings › Vizard: Browse remembers the program Launch Vizard uses;
-    Clear forgets it."""
-    from PySide6.QtWidgets import QFileDialog
-
-    from spacemissionstudio.gui import vizard_launcher
-
-    settings = window.settings_page
-    assert settings.vizard_path.text() == "Not set" and not settings.vizard_clear.isEnabled()
-    program = tmp_path / "Vizard.x86_64"
-    program.write_text("")
-    monkeypatch.setattr(QFileDialog, "getOpenFileName", staticmethod(lambda *a, **k: (str(program), "")))
-    settings.vizard_browse.click()
-    assert settings.vizard_path.text() == str(program) and settings.vizard_clear.isEnabled()
-    assert vizard_launcher.find_vizard_executable() == program
-    settings.vizard_clear.click()
-    assert settings.vizard_path.text() == "Not set" and vizard_launcher.remembered_vizard_executable() == ""

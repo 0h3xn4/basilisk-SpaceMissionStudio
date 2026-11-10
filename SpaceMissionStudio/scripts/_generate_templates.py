@@ -1557,7 +1557,7 @@ def build_28_octagonal_bus_3d_model() -> Scenario:
     # A spacecraft described by a 3D model (spacemissionstudio.model3d):
     # its mass, center of mass, inertia (with products of inertia) and
     # drag/SRP facets are all derived from the parts and written into the
-    # spacecraft's own fields, and Vizard draws the model. Sun-safe
+    # spacecraft's own fields, and the 3D views draw the model. Sun-safe
     # pointing with wheels only (no torque rods), so the wheels keep the
     # momentum that drag and sunlight put in through the offset center of
     # mass.

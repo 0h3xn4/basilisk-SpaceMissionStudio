@@ -125,17 +125,21 @@ def test_a_bundle_runs_again_and_a_changed_result_is_caught(tmp_path, capsys):
 
 @pytest.mark.requires_basilisk
 def test_a_bundle_carries_the_files_its_scenario_refers_to(tmp_path, capsys):
-    """A run on the user's own space-weather file and with a Vizard model
-    from a file: the bundle holds copies, and reproduces with the
+    """A run on the user's own space-weather file and with a 3D model
+    mesh from a file: the bundle holds copies, and reproduces with the
     originals gone, saying which copies it used."""
     from spacemissionstudio.engine import spaceweather
+    from spacemissionstudio.schema.scenario import ModelMeshConfig, ModelPartConfig, SpacecraftModelConfig
 
     weather = tmp_path / "mine" / "my_weather.txt"
     weather.parent.mkdir()
     shutil.copy(spaceweather.BUNDLED_DATA_PATH, weather)
     (tmp_path / "sat.obj").write_text("v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n", encoding="utf-8")
     path = tmp_path / "s.json"
-    scenario = _scenario(path, enable_drag=True, vizard_model_path="sat.obj")
+    model = SpacecraftModelConfig(  # the mesh is only referred to: the box gives no mass or facets
+        parts=[ModelPartConfig(name="bus", shape="box", dimensions_m={"x": 1.0, "y": 1.0, "z": 1.0})],
+        meshes=[ModelMeshConfig(path="sat.obj")], apply_mass_properties=False, apply_facets=False)
+    scenario = _scenario(path, enable_drag=True, model=model)
     scenario.space_weather.source, scenario.space_weather.local_file_path = "local_file", str(weather)
     scenario.config_file = "project.yaml"  # the project configuration travels too (Phase 3b)
     (tmp_path / "project.yaml").write_text("parameters:\n  propellant_budget.residual_fraction: 0.05\n",
@@ -146,7 +150,7 @@ def test_a_bundle_carries_the_files_its_scenario_refers_to(tmp_path, capsys):
     manifest = json.loads((bundle / reproduction.MANIFEST).read_text(encoding="utf-8"))
     roles = {entry["role"]: entry["file"] for entry in manifest["inputs"]}
     assert roles["space_weather.local_file_path"] == "inputs/my_weather.txt"
-    assert roles["spacecraft[sat-1].vizard_model_path"] == "inputs/sat.obj"
+    assert roles["spacecraft[sat-1].model.meshes[0]"] == "inputs/sat.obj"
     assert roles["config_file"] == "inputs/project.yaml"
     shutil.rmtree(weather.parent)
     (tmp_path / "sat.obj").unlink()

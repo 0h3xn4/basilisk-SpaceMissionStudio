@@ -47,7 +47,6 @@ also adjusting the same mass.
 
 from __future__ import annotations
 
-
 from .. import constants
 
 

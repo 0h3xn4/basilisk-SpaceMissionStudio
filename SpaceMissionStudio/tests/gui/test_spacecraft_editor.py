@@ -59,8 +59,8 @@ def test_long_description_labels_wrap_instead_of_blowing_up_dialog_width(qtbot):
     """Regression guard for a real bug, found via an actual user
     screenshot of gui.phasing_formation_dialog.PhasingFormationDialog
     (same copy-pasted top-description-QLabel shape, same missing
-    word-wrap): the Vizard-model tab's own description QLabel had the
-    identical problem. See that dialog's own test docstring for the
+    word-wrap): a tab's own description QLabel had the identical
+    problem. See that dialog's own test docstring for the
     full explanation of what goes wrong without setWordWrap(True).
     """
     from PySide6.QtWidgets import QLabel
@@ -1049,85 +1049,6 @@ def test_dialog_full_attitude_mode_keeps_tabs_visible(qtbot):
     assert dialog.tabs.isTabVisible(dialog._sensors_tab_index)
     assert dialog.tabs.isTabVisible(dialog._fsw_tab_index)
     assert not dialog.power_group.isHidden()
-
-
-def test_dialog_defaults_to_no_vizard_model(qtbot):
-    """A new dialog has no Vizard model: no path, zero offset and rotation,
-    unit scale."""
-    from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
-
-    dialog = SpacecraftEditorDialog()
-    qtbot.addWidget(dialog)
-    assert not dialog.viz_model_group.isChecked()
-    sc = dialog.to_dataclass()
-    assert sc.vizard_model_path is None
-    assert sc.vizard_model_offset_m == [0.0, 0.0, 0.0]
-    assert sc.vizard_model_rotation_deg == [0.0, 0.0, 0.0]
-    assert sc.vizard_model_scale == [1.0, 1.0, 1.0]
-
-
-def test_dialog_builds_vizard_model_when_group_checked(qtbot):
-    """With the Vizard model group checked, the dialog gives the typed path,
-    offset, rotation and scale."""
-    from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
-
-    dialog = SpacecraftEditorDialog()
-    qtbot.addWidget(dialog)
-    dialog.viz_model_group.setChecked(True)
-    dialog.viz_model_path_edit.setText("/tmp/my_bus.obj")
-    dialog.viz_offset_x.setValue(0.1)
-    dialog.viz_offset_y.setValue(-0.2)
-    dialog.viz_offset_z.setValue(0.3)
-    dialog.viz_rotation_z.setValue(90.0)
-    dialog.viz_scale_x.setValue(2.0)
-    dialog.viz_scale_y.setValue(2.0)
-    dialog.viz_scale_z.setValue(2.0)
-
-    sc = dialog.to_dataclass()
-    assert sc.vizard_model_path == "/tmp/my_bus.obj"
-    assert sc.vizard_model_offset_m == [0.1, -0.2, 0.3]
-    assert sc.vizard_model_rotation_deg == [90.0, 0.0, 0.0]
-    assert sc.vizard_model_scale == [2.0, 2.0, 2.0]
-
-
-def test_dialog_vizard_model_checked_but_blank_path_is_none(qtbot):
-    """Checking the group box without filling in a path shouldn't produce
-    an unvalidatable half-configured model -- it's simply treated as "no
-    custom model", same as leaving the group box unchecked.
-    """
-    from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
-
-    dialog = SpacecraftEditorDialog()
-    qtbot.addWidget(dialog)
-    dialog.viz_model_group.setChecked(True)
-
-    sc = dialog.to_dataclass()
-    assert sc.vizard_model_path is None
-
-
-def test_dialog_round_trips_vizard_model(qtbot):
-    """A spacecraft's Vizard model opens checked and comes back unchanged."""
-    from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
-    from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig
-
-    existing = SpacecraftConfig(
-        name="sat-with-model",
-        orbit=OrbitIC(type="cartesian", position_km=[7000, 0, 0], velocity_km_s=[0, 7.5, 0]),
-        vizard_model_path="CYLINDER",
-        vizard_model_offset_m=[0.0, 0.0, -0.5],
-        vizard_model_rotation_deg=[0.0, 45.0, 0.0],
-        vizard_model_scale=[1.5, 1.5, 3.0],
-    )
-    dialog = SpacecraftEditorDialog(config=existing)
-    qtbot.addWidget(dialog)
-    assert dialog.viz_model_group.isChecked()
-    assert dialog.viz_model_path_edit.text() == "CYLINDER"
-
-    got = dialog.to_dataclass()
-    assert got.vizard_model_path == "CYLINDER"
-    assert got.vizard_model_offset_m == [0.0, 0.0, -0.5]
-    assert got.vizard_model_rotation_deg == [0.0, 45.0, 0.0]
-    assert got.vizard_model_scale == [1.5, 1.5, 3.0]
 
 
 def test_dialog_round_trips_phasing_keeping(qtbot):
