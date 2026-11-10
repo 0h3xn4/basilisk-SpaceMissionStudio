@@ -14514,6 +14514,32 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Release 2.7.0 prepared (2026-11-10)
+
+A minor release: it adds features. Contents since 2.6.0: the legal
+groundwork (#241 the licence inventory, gate and notices; #242 the
+licence change to EUPL-1.2 and the provenance scan; #243 the owner's
+decisions; #245 the risk register, security policy, sign-off, signed
+provenance and the Windows licence gate), the 2.6.0 publication record
+and the repository's new name (#244), the start on Home with no scenario
+open (#246), the external viewer support removed (#247), and Results ›
+3D View as a renderer (#248) that can show a run live (#249, still open
+as a pull request when the release branch was made from it).
+
+Prepared by `docs/developer/releasing.md`: version 2.7.0 in
+`pyproject.toml`, `__init__.py` and the Inno Setup script; the
+CHANGELOG's Unreleased entries under 2.7.0 with an introduction, Who
+should update and Known limits; SRelD issue 33 (2.7.0 prepared, 2.6.0
+previous, K-05 and K-32 closed, K-13 refreshed, K-33 for the MSFC
+prediction not adopted, the Qt sources and the signed provenance among
+the delivered files); the SDP, SRS, ICD, CSD, SUM, both READMEs and
+`releasing.md` name 2.7.0, and `releasing.md` lists the release's
+eleven files. The space weather was refreshed first (the entry below).
+
+Compatibility checked with 2.6.0's own code (the tagged commit
+`dcbb95e09`, extracted with `git archive`): the 32 templates, saved by
+this code, open and validate in 2.6.0 with no message.
+
 ## Space weather refreshed for 2.7.0 (2026-11-10)
 
 `docs/developer/releasing.md` section 1, for the release. CelesTrak

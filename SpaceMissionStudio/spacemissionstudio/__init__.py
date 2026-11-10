@@ -24,7 +24,7 @@ kernel management, space weather, results). See ``SpaceMissionStudio/README.md``
 for the phased roadmap and what is/isn't implemented yet.
 """
 
-__version__ = "2.6.0"
+__version__ = "2.7.0"
 
 # Before anything imports Basilisk: keep its import-time GitHub request local (F-16).
 from . import _offline  # noqa: E402

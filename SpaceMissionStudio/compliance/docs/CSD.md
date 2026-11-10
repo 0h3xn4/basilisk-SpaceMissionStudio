@@ -20,7 +20,7 @@ for the tool's inputs, results and exchanged data.
 
 It was prepared during the ECSS/CCSDS audit (remediation R02 implemented
 the frame and time layer; R14 wrote this document). It applies to versions
-1.1.0 to 2.6.0 of the tool (1.1.1 changes only the packaging, 1.2.0,
+1.1.0 to 2.7.0 of the tool (1.1.1 changes only the packaging, 1.2.0,
 1.3.0 and 1.3.1 only the GUI, 2.1.0 adds analyses in the body frame and
 no frame or time conversion, 2.1.1 only fixes the GUI and the IDM-CIC
 import, 2.2.0 makes the CCSDS files the command line already wrote and
@@ -33,7 +33,10 @@ direction, unchanged), with no conversion either, 2.5.0 thrusters in
 the body frame from the model's plume cones and a JSON editor, with
 none either, 2.6.0 a 3D view of the run in its inertial frame, the
 Earth turned by the IERS Earth rotation angle for display only, with no
-conversion of any result; 2.0.0 computes the Earth's rotation angle
+conversion of any result, 2.7.0 the same view as a renderer, with the
+Moon by a low-precision formula, the stars in J2000 and the ground
+track and the stations' lines of sight by the same angle, for display
+only, with none either; 2.0.0 computes the Earth's rotation angle
 of the pass predictions and GEO elements with the leap seconds of the
 date, as the simulation already did, and takes the physical constants
 from one set, Basilisk's: `docs/changes.md`, 2026-10-30).

@@ -1,7 +1,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/workflows/spacemissionstudio.yml)
-![Version 2.6.0](https://img.shields.io/badge/version-2.6.0-blue)
+![Version 2.7.0](https://img.shields.io/badge/version-2.7.0-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence EUPL-1.2](https://img.shields.io/badge/licence-EUPL--1.2-green)
 
@@ -149,11 +149,16 @@ internet needed.
   SpaceMissionStudio is free of charge and comes without warranty; see
   Articles 7 and 8 of the EUPL-1.2. Check its results independently
   before you use them for a real mission.
-- **Version:** 2.6.0 ([release](https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.6.0),
-  [changelog](CHANGELOG.md)): **Results › 3D View** plays a run back in
-  3D inside the app; network use is
-  enforced, can be switched off and is logged, with an audit you can run;
-  the installers are hash-checked and carry a bill of materials. 2.5.0
+- **Version:** 2.7.0 ([release](https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.7.0),
+  [changelog](CHANGELOG.md)): **Results › 3D View** is a real 3D
+  renderer (the textured Earth lit by the Sun, the stars, the Moon, each
+  spacecraft's model with its fields of view and plumes, the ground
+  stations, several camera views) and can show a run live while it
+  computes, paced to real time if you like; the app starts on Home with
+  nothing open; the external viewer support is removed; and the licence
+  is the EUPL-1.2. 2.6.0 played a run back in 3D inside the app, enforced
+  and logged network use, with an audit you can run, and made the
+  installers hash-checked with a bill of materials. 2.5.0
   made the JSON page a code editor and put IDM-CIC thrusters on the 3D
   model from their plume cones; 2.4.0 read each device's axis from its shapes and can put the
   body frame's origin at the centre of gravity; 2.3.0 brought the satellite's sensors, actuators,
@@ -177,7 +182,7 @@ internet needed.
   relative-orbital-element formations, optical and landmark navigation,
   asteroid Eros, Mars's gravity field and albedo on the sun sensors; and
   1.0.0 was the first release of the renewed tool.
-- **Platforms:** 2.6.0 has the Linux `.deb`, the Windows setup program
+- **Platforms:** 2.7.0 has the Linux `.deb`, the Windows setup program
   and the wheel. Both installers carry their own Python, Basilisk and
   reference data; each was installed and run offline by the release
   workflow, the `.deb` also by hand in a container

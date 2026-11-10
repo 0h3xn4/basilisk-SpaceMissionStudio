@@ -99,9 +99,14 @@ release"). On GitHub's runners it:
   every package with the file installed and its SHA-256) and attaches it
   beside the installer as `spacemissionstudio_X.Y.Z_amd64.cdx.json` and
   `spacemissionstudio-X.Y.Z-setup.cdx.json`;
+- downloads the complete source of the Qt and PySide6 libraries the
+  installers carry (`packaging/legal/qt-sources.json`), checked against
+  the size and SHA-256 Qt publishes, with `SHA256SUMS-sources`, and signs
+  a build provenance of every built file (Sigstore; `gh attestation
+  verify <file> --repo 0h3xn4/basilisk_space-mission-studio`);
 - writes `SHA256SUMS-linux` and `SHA256SUMS-windows` (the bills of
   materials included), checks every file against them and attaches all
-  of them to the tag's release. A release
+  of them, and the source archives, to the tag's release. A release
   that does not exist yet is created as a draft. An existing release
   keeps its notes unless they are empty, and its files are replaced.
 - writes the notes with `packaging/release_notes.py`, in a fixed layout:
@@ -148,8 +153,9 @@ what has been verified where.
   workflow again for the tag.
 - Read the draft on
   <https://github.com/0h3xn4/basilisk_space-mission-studio/releases>: the
-  eight files (the wheel, the sdist, each installer and its bill of
-  materials, `SHA256SUMS-linux` and `SHA256SUMS-windows`), and the notes, which say which platform has which file and
+  eleven files (the wheel, the sdist, each installer and its bill of
+  materials, `SHA256SUMS-linux` and `SHA256SUMS-windows`, and from 2.7.0
+  the two Qt source archives and `SHA256SUMS-sources`), and the notes, which say which platform has which file and
   name the workflow run that installed them. Then publish it.
 - After publishing, download the assets from the release and run
   `sha256sum -c SHA256SUMS-linux` and `sha256sum -c SHA256SUMS-windows`.
@@ -368,6 +374,21 @@ tag, so it was public without files for 38 minutes, until the workflow
 attached its eight files at 07:29, the eleventh release so. To avoid
 it: keep the draft until the workflow has attached the files (about 40
 minutes: the full suite runs on both platforms first), then publish.
+
+2.7.0 was prepared on 2026-11-10 by this checklist: the 3D View as a
+renderer (#248) that can show a run live (#249), the start on Home with
+no scenario open (#246), the external viewer support removed (#247),
+and the legal groundwork (#241 to #243, #245), with the 2.6.0
+publication record and the repository's new name (#244), a minor release
+because it adds features. The first release under the EUPL-1.2, and the
+first whose files include the Qt and PySide6 source archives with
+`SHA256SUMS-sources` (eleven files) and a signed build provenance of
+each built file. No template, golden file or scenario field a 2.6.0 file
+can hold changed; 2.6.0 opens the files 2.7.0 saves (checked with 2.6.0's
+code on the 32 templates as 2.7.0 saves them). The space weather was
+refreshed: CelesTrak answered for the first time since 1.3.0
+(observations to 2026-11-09). NASA MSFC's November 2026 prediction was
+not adopted, because it changes every template's drag (SRelD K-33).
 
 ---
 
