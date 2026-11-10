@@ -1962,6 +1962,93 @@ The new behaviour is tested in `tests/gui/test_landing_page.py` (8 tests).
 | `tests/gui/test_compare_tab.py::test_runs_of_an_earlier_session_are_listed_and_read_back_when_ticked` | the saved runs are listed at start | the saved runs are listed once their scenario ("demo", a template saved under that name) is opened | Earlier runs come back with their scenario only (`docs/DECISIONS.md`); the rest of the test is unchanged |
 | `tests/gui/test_run_record.py::test_history_lists_earlier_runs_read_in_a_worker` | the saved run is listed at start | the saved run is listed once its scenario ("yesterday", template 01 under that name) is opened | As above; the worker-thread read and the entry's fields are asserted as before |
 
+## Vizard removed (2026-11-10)
+
+The owner wanted no trace of Vizard left in SpaceMissionStudio: the
+playback files, the live stream, starting a Vizard, the scenario's Vizard
+fields, the settings, the Run page's options, the CLI's `--vizard-*`
+options and the Vizard-only messages of the controllers are removed.
+Tests of what was removed go with it; the other assertions of a mixed
+test stay. Nothing that feeds a result changed: `tests/test_golden_outputs.py`
+passes with the golden files unchanged.
+
+Removed with the code they tested (46 test functions):
+
+| File | Tests | What they tested |
+|---|---|---|
+| `tests/test_vizard.py` | 6 (7 cases) | `enable_vizard`: a station-keeping save file, the panels' storage lists kept alive, a ground station, the comms-pointing panels, trail and ground tracks, the ground station's cone |
+| `tests/test_vizard_battery_panel.py` | 1 | the battery panel in watt-hours |
+| `tests/test_vizard_fuel_tank_panel.py` | 5 | the fuel tank's panel and its label, a second run's settings, an unwritable save folder |
+| `tests/test_vizard_labels.py` | 9 | the panels' label widths and the slant-range geometry of the access label |
+| `tests/test_vizard_roe_panels.py` | 4 | an ROE follower's panels, their labels and gauge scales |
+| `tests/gui/test_vizard_dialog.py` | 11 | the Vizard options form |
+| `tests/gui/test_vizard_launcher.py` | 10 | the Vizard the user chose, starting it, its playback file name |
+| `tests/data/vizard_station_keeping_crash_regression.json` | - | the scenario `test_vizard.py` ran |
+
+Removed from mixed files, the rest of each file unchanged:
+
+| Test | Why |
+|---|---|
+| `tests/gui/test_main_window.py`: `test_configure_vizard_sets_request`, `test_configure_vizard_cancel_leaves_request_unchanged`, the 18 `test_launch_vizard_*`, `test_locate_vizard_*`, `test_the_vizard_not_found_dialog_offers_the_3d_view_and_no_download` and `test_run_*vizard*` tests, `test_results_offer_the_last_runs_vizard_file_and_open_it`, `test_no_vizard_button_when_the_run_wrote_no_file` (24), with the helpers `_FakeVizardProcess` and `_click_message_box_button` | The Vizard options, Launch Vizard and Open in Vizard are removed |
+| `tests/gui/test_reports_and_settings.py::test_the_vizard_location_is_browsed_and_cleared` and the `vizard_settings` fixture | Settings › Vizard is removed |
+| `tests/gui/test_run_page.py::test_the_vizard_options_apply_as_they_are_edited` | The Run page's Vizard section is removed |
+| `tests/gui/test_spacecraft_editor.py`: `test_dialog_defaults_to_no_vizard_model`, `test_dialog_builds_vizard_model_when_group_checked`, `test_dialog_vizard_model_checked_but_blank_path_is_none`, `test_dialog_round_trips_vizard_model` | The spacecraft's Vizard model page is removed |
+| `tests/gui/test_input_borders.py::test_every_input_box_has_a_visible_border[vizard]` | The Vizard dialog is removed; the other dialogs are checked as before |
+| `tests/test_cli.py`: `test_run_rejects_both_vizard_flags_at_once`, `test_run_parses_vizard_camera_and_orbit_line_flags`, `test_run_vizard_camera_target_defaults_to_none`, `test_run_parses_vizard_trail_and_ground_track_flags` | The `--vizard-*` options are removed |
+| `tests/test_comms_pointing.py`: `test_mode_cmd_out_msg_mirrors_mode_log_in_the_1_2_vizard_convention`, `test_pointing_error_out_msg_matches_pointing_error_deg_log`, `test_link_status_cmd_out_msg_reports_no_link_without_rf_link_config`, `test_link_status_cmd_out_msg_tracks_a_real_link_budget_margin_sign`, `test_link_status_cmd_out_msg_uses_the_projects_required_margin` | The arbitrator's three messages fed only Vizard's badges; its mode and pointing-error logs, which the results read, are tested as before |
+| `tests/test_orbit_maintenance.py`: `test_station_keeping_dv_budget_is_tsiolkovsky_closed_form`, `test_phasing_keeping_dv_budget_is_passed_through_from_constructor` | The delta-V budget was only the scale of a Vizard gauge |
+| `tests/test_propellant_bookkeeping.py`: the three `test_total_delta_v_budget_*` | `total_delta_v_budget` only scaled that gauge and is removed; `apply_propellant_burn`, which runs the burns, is tested as before |
+| `tests/test_model3d_engine.py`: `test_vizard_copy_is_written_in_vizards_axes`, `test_service_hands_vizard_the_model_next_to_the_save_file` | The Vizard copy of a 3D model is removed; the model's `.obj` export is tested as before |
+| `tests/test_scenario_schema.py`: `test_blank_vizard_model_path_rejected`, `test_vizard_model_vectors_require_3_elements` (3 cases), `test_vizard_model_path_round_trips_through_json` | The fields are removed; that old files still open is tested in `tests/test_migrations.py` |
+
+Changed:
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_main_window.py::test_run_passes_vizard_request_to_worker` | the stored Vizard request reaches the run worker | renamed `test_run_passes_the_scenario_folder_to_worker`: the scenario file's folder reaches the worker as `model_base_dir` | The request carried that folder; it is now its own argument, so the model analyses read meshes from the same place |
+| `tests/gui/test_main_window.py`: `test_run_passes_live_flag_from_action_to_worker`, `test_run_with_mission_sequence_ignores_live_flag_and_shows_mission_output` | the spy takes `vizard_request` | it takes `model_base_dir` | `RunWorker`'s signature; the assertions are unchanged |
+| `tests/gui/test_main_window.py::test_toolbar_actions_are_all_visible` | Launch Vizard's button and the Run page's Vizard section are visible | not asserted | Both are removed; the other buttons are checked as before |
+| `tests/gui/test_reports_and_settings.py::test_every_export_is_listed_never_written_at_first` | 19 exports, "Vizard playback" among them | 18, without it | The export is removed |
+| `tests/gui/test_reports_and_settings.py::test_a_row_opens_the_view_that_makes_it` | the `vizard_file` row opens Run | no such row | As above; the four other rows are checked |
+| `tests/gui/test_results_widget.py::test_the_shown_run_exports_as_a_reproduction_bundle`, `tests/test_reproduction.py::test_a_bundle_carries_the_files_its_scenario_refers_to` | the file the scenario refers to is a Vizard model | it is a 3D model's mesh (`spacecraft[sat-1].model.meshes[0]`) | The field is removed; the bundle copies a mesh the same way, and is asserted as strictly |
+| `tests/gui/test_run_page.py::test_the_segmented_control_and_the_mode_follow_each_other` | the Vizard section hidden in Monte Carlo mode, shown in SIL mode | not asserted | The section is removed |
+| `tests/gui/test_run_worker.py` (the fake service) | takes `vizard_request` | takes `model_base_dir` | `SimulationService`'s signature |
+| `tests/gui/test_shell_reachability.py` | every row of the plan's §5.2 has a check | the four rows that name Vizard (Run › Vizard Configuration…, Run › Launch Vizard, Toolbar row 2, `VizardDialog`) are left out of both the plan's rows and the checks (`_REMOVED_SINCE`) | The plan is a record and is not edited. Check Reference Data, also in Toolbar row 2, keeps its own row and check |
+| `tests/gui/test_template_wizard.py::test_every_wizard_offers_every_setting_of_its_template` | the Vizard model's settings were exempt | no exemption | The settings are removed: the check is stricter |
+| `tests/gui/test_tree_sections.py`: the orbit-only tab list, `test_a_tab_node_shows_its_tab_without_a_tab_bar`, `test_a_problem_in_another_tab_moves_the_tree_there`, `test_an_edit_in_a_section_built_later_reaches_the_scenario` | the Vizard model tab, its offset field and a problem on it | Budget (AD10): its tab, `propellant_budget` and its mission duration | The tab is removed; another later-built tab is used, with the same assertions |
+| `tests/gui/test_wheel_in_dialogs.py::test_mouse_wheel_changes_nothing` | every dialog but the Vizard one | every dialog | The Vizard dialog is removed |
+| `tests/gui/test_workspace.py::test_the_areas_and_what_they_hold`, `tests/gui/test_landing_page.py::test_the_scenario_commands_are_disabled_until_a_scenario_is_open` | the spacecraft's "Vizard model" node; `run.vizard_config` disabled | without them | The page and the command are removed |
+| `tests/test_comms_pointing.py` (`_run_comms_pointing`) | passed `rf_link`, `ground_station_config`, `scenario` and recorded the three badge messages | does not | Only the removed tests used them |
+| `tests/test_constants.py::test_every_analysis_takes_the_one_set` | g0 is `total_delta_v_budget`'s default | it is `apply_propellant_burn`'s | The function is removed; the same constant is checked in the same module |
+| `tests/test_orbit_maintenance.py::test_station_keeping_publishes_delta_v_message_after_update` | the delta-V message's level and capacity | renamed `test_station_keeping_burns_once_the_smoothing_window_is_full`: the cumulative delta-V is above zero | The message is removed; the burn it showed is asserted directly |
+| `tests/test_orbit_maintenance.py::test_phasing_keeping_publishes_rtn_separation_and_delta_v_messages` | the three separation gauges (clamped) and the delta-V gauge, and the signed `last*Km` values | renamed `test_phasing_keeping_records_the_signed_rtn_separation`: the signed values, as before | The gauges are removed; the values the results read are asserted as before |
+| `tests/test_orbit_maintenance.py::test_phasing_keeping_rtn_separation_is_unclamped_when_within_capacity` | the gauges' levels against the geometry | renamed `test_phasing_keeping_on_target_follower_reads_its_target_separation`: `lastTransverseKm`, `lastRadialKm`, `lastNormalKm` and the target against the same geometry and tolerances | As above |
+| `tests/test_formation_control.py::test_no_thrust_in_eclipse_and_none_without_propellant` | the bridge is built with `dv_budget_mps=10.0` | without it | The argument fed only a Vizard gauge and is removed; the assertions are unchanged |
+| `tests/test_long_run.py::test_the_vizard_view_and_phasing_keeping_are_refused` | a split run with Vizard is refused; without it allowed | renamed `test_a_plain_long_run_can_be_split`: allowed | The refusal is removed |
+| `tests/test_idm_origin.py::test_moving_the_origin_moves_every_position_from_b_and_nothing_else` | the Vizard model's offset moves too | not set, not in the list of what moved | The field is removed; every other position is asserted as before |
+| `tests/test_temp_folders.py`: `test_each_folder_is_named_after_its_process`, `test_a_folder_removed_at_exit_is_registered_for_it`, `test_only_the_folders_left_behind_are_removed` | Vizard's model folder kind | the icons' and the model view's kinds | The kind is removed; the same rules are checked on kinds that remain |
+| Docstrings of `tests/test_formation.py`, `tests/test_mtb_dipole_result_series.py`, `tests/test_orbit_maintenance_j2_regression.py`, `tests/test_series_names.py`, `tests/test_template_claims.py`, `tests/test_run_page.py`, `tests/gui/test_spacecraft_editor.py`, `tests/gui/test_reports_and_settings.py`, `tests/test_model3d_engine.py`, `tests/test_reproduction.py` | named Vizard | do not | Text only |
+
+Added:
+
+- `tests/test_migrations.py`: `test_a_file_with_the_retired_fields_opens_and_says_what_was_dropped`
+  (template 28 with the five retired fields opens as the template, each
+  field is in the file's record as removed, and the file saved again has
+  none), `test_the_retired_fields_are_dropped_after_the_version_steps`
+  (a schema 1 file), `test_a_stored_run_record_with_the_retired_fields_still_opens`
+  (the v4 bundle's `scenario_as_run.json`, from the file and from its dict).
+- `tests/test_cli.py::test_run_rejects_the_removed_vizard_flags` (6
+  cases): `run` refuses each former option with argparse's usage error.
+- `tests/gui/test_main_window.py::test_nothing_in_the_window_names_vizard`:
+  no command, action, object name, text or tooltip of the window.
+- `tests/test_model3d_engine.py::test_the_model_analyses_read_meshes_from_the_folder_given`:
+  the folder given to `SimulationService`, else the scenario file's.
+
+Golden and output files: `tests/data/scenario_hashes.json` re-recorded
+for all 32 templates (their files lose the retired fields; templates 01,
+04, 06, 10, 11, 15 and 28 also their descriptions' Vizard sentences). No
+golden output file changed.
+
 ## The 3D View as a renderer (2026-11-10)
 
 Results › 3D View is now drawn by three.js instead of plotly.js

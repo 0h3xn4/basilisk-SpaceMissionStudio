@@ -346,7 +346,6 @@ def capture(out: Path, theme: str) -> int:
     from spacemissionstudio.gui.spacecraft_template_dialog import SpacecraftTemplateDialog
     from spacemissionstudio.gui.startup_fetch_dialog import StartupFetchDialog
     from spacemissionstudio.gui.template_wizard import TemplateCustomizeWizard, get_wizard_spec
-    from spacemissionstudio.gui.vizard_dialog import VizardDialog
 
     scenario = load_scenario(TEMPLATES_DIR / EXAMPLE)
     sc = scenario.spacecraft[0]
@@ -392,7 +391,6 @@ def capture(out: Path, theme: str) -> int:
     dialog_shot(RoeFormationDialog(names, parent=window, spacecraft=scenario.spacecraft), "dialog_roe_formation",
                 size=(820, 640))
     dialog_shot(SilRunDialog(sc.name, parent=window), "dialog_sil_run", size=(820, 600))
-    dialog_shot(VizardDialog(parent=window), "dialog_vizard", size=(760, 560))
     dialog_shot(StartupFetchDialog(window), "dialog_startup_fetch", size=(760, 520))
     dialog_shot(CommandPalette(window.palette_entries(), window), "dialog_command_palette", size=(720, 520))
     window.on_keyboard_shortcuts()  # Settings > Keyboard since M2a, no longer a dialog

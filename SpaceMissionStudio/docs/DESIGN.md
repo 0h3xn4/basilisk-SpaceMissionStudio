@@ -312,7 +312,7 @@ bar and no toolbar:
 - **Run › Run (M5b):** the run mode as a segmented control in the Run
   area's header (`gui.run_page.RunModeControl`, the same `segmentedControl`
   look as Form · JSON); the Run page (`RunPage`) shows what the next run
-  uses for the mode chosen: Live plot and the Vizard form for a single
+  uses for the mode chosen: Live plot for a single
   run, the archive folder (a field and Browse..., remembered per
   scenario) for a Monte Carlo batch, the spacecraft and the program for
   a SIL run. Forms that were dialogs are embedded (`embed_dialog`) and
@@ -651,5 +651,3 @@ Where the app does not meet `docs/ui/UI_OVERHAUL.md` after the overhaul
   dialog are still `QTableWidget`s.
 - **Spacing:** the 4 px grid is in the style sheet and the theme's
   `SPACE`; some layouts built in code still set their own margins.
-- **Vizard** (audit U-37) still has two commands in the Run area's
-  header and no connection status chip.

@@ -120,7 +120,7 @@ TECHNICAL_RULES = [
      "template 19 check). The prime meridian is IAU_EARTH until R04. The CSD (R14) restates the definitions.",
      "-", "S", "yes (Basilisk's public API only)", "R05"),
     ("E-ST-10-09C", "5.4.7*", "P", "schema OrbitIC; compliance/docs/CSD.md section 7 (parameterisations within systems and transformations)", "Parameterisations specified in words; mean-element theory and singularities are not given mathematically.", "Add the formulae if the reviewers require them (H01).", "S", "yes", "R14,H01"),
-    ("E-ST-10-09C", "5.4.8*", "P", "compliance/docs/CSD.md sections 3 and 7 (DCM convention dcm_XY, MRP sigma_XY with shadow set, right-handed; 3-2-1 Euler only for the Vizard model; no quaternions)", "Conventions stated in words; not reviewed (H01).", "Review (H01).", "S", "yes (documents Basilisk conventions)", "R14,H01"),
+    ("E-ST-10-09C", "5.4.8*", "P", "compliance/docs/CSD.md sections 3 and 7 (DCM convention dcm_XY, MRP sigma_XY with shadow set, right-handed; 3-2-1 Euler only for a 3D model part's orientation; no quaternions)", "Conventions stated in words; not reviewed (H01).", "Review (H01).", "S", "yes (documents Basilisk conventions)", "R14,H01"),
     ("E-ST-10-09C", "5.4.8h", "P", "Basilisk outputs MRPs, not quaternions",
      "No error quaternion is output; if quaternions are added (e.g. CCSDS AEM/OEM extensions) the positive "
      "scalar convention applies.", "Keep in mind for any quaternion output.", "S", "no", "R02"),

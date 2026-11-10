@@ -88,7 +88,7 @@ Scenario (one .json file)
           |  Run: Basilisk computes the physics
           v
 Results: a plot of every quantity, a timeline of events, mission reports,
-         a dashboard, CSV export, a 3D replay in Vizard
+         a dashboard, CSV export, a 3D view of the run
 ```
 
 Where each piece lives in the app, and which template shows it best:
@@ -188,7 +188,7 @@ A few things to notice right away:
     of Section 7), **Scenario**, **Environment**, **Spacecraft** with
     a node per spacecraft, and under each one a node per part of its page
     (**Orbit / mass**, **Sensors / actuators**, **Attitude control**,
-    **Power / propulsion / link budget**, **3D model**, **Vizard model**,
+    **Power / propulsion / link budget**, **3D model**,
     **Budget (AD10)**; orbit-only scenarios have no sensors or attitude
     control), **Ground stations** with a node per station, **Mission
     sequence**, **Monte Carlo** and **Assumptions** (Section 6). A node with
@@ -198,10 +198,10 @@ A few things to notice right away:
     these pages and the scenario as text (Section 6), and **3D Model...**
     opens the 3D model editor for a spacecraft.
   * **Run**: Run, the run mode (**Single · Monte Carlo · SIL**),
-    **Cancel Run**, **Launch Vizard**, **Open Monte Carlo Results...** and
+    **Cancel Run**, **Open Monte Carlo Results...** and
     **Check Reference Data** at the top; under them the **Run** page
-    (what the next run uses, for the mode chosen: **Live plot** and the
-    Vizard options for a single run, the archive folder for a Monte
+    (what the next run uses, for the mode chosen: **Live plot**
+    for a single run, the archive folder for a Monte
     Carlo batch, the spacecraft and program for a SIL run; each applies
     as you change it), **End of Life** and **Budget** (re-entry
     and delta-V estimates, Section 11), **History** (every run: its
@@ -224,12 +224,12 @@ A few things to notice right away:
     images (PNG, SVG, **Export all**), the reproduction bundle
     (`spacemissionstudio reproduce` runs it again, Section 7), events,
     mission output, the Monte Carlo runs table, the lifetime estimate,
-    the budget, the flight-software project, the SIL report, the Vizard
-    playback file, the 3D model and the CCSDS orbit files. Each row gives the
+    the budget, the flight-software project, the SIL report, the 3D
+    model and the CCSDS orbit files. Each row gives the
     format, the view and button that make it, where it goes by default,
     the provenance written with it (the versions, the run or the
-    scenario's SHA-256 and the time, in the file or beside it; the Vizard
-    file and the 3D model have none), and when this computer last
+    scenario's SHA-256 and the time, in the file or beside it; the 3D
+    model has none), and when this computer last
     wrote one, in UTC (hover for the path). Double-click a row, or select
     it and press `Enter`, to open the view that makes it.
   * **Settings**, at the bottom: **Appearance** (the theme: **System**,
@@ -249,8 +249,7 @@ A few things to notice right away:
     use allowed or refused: [Network use and offline mode](docs/reference/network.md)),
     **Change history** (**Author**: the name each save records in the
     scenario's change history, the command line's too; empty: your user
-    name), **Vizard** (the Vizard program **Launch Vizard** starts: **Browse...**
-    to choose it, **Clear** to have it looked for again), **Layout** (the rail as icons only, the **Inspector** and **Problems** panels, **Reset Layout**),
+    name), **Layout** (the rail as icons only, the **Inspector** and **Problems** panels, **Reset Layout**),
     **Keyboard** (every shortcut) and **About** (the version and the
     licence; **Third-Party Licences...** shows the EUPL-1.2 text and the
     licences of everything the package contains).
@@ -327,7 +326,7 @@ A few things to notice right away:
   traces of a comparison name them.
 * When a run ends, a note at the bottom right says so: "Run 2 complete
   in 6 s: 4 passes, 15 eclipses". A run that cannot start (a problem in
-  the scenario, Monte Carlo turned off, Vizard not connected) or that
+  the scenario, Monte Carlo turned off) or that
   fails says why in a note and the status bar and opens where it is
   dealt with: **Problems** at the field, the Monte Carlo page, or the
   **Log** at its errors. The message stays in the Log. Message boxes are
@@ -505,8 +504,8 @@ fixed:
 * **Spacecraft** -- the list of spacecraft in the mission, and under it a
   node for each one. A spacecraft's page has a node per part: **Orbit /
   mass**, **Sensors / actuators**, **Attitude control**, **Power /
-  propulsion / link budget**, **3D model**, a cosmetic **Vizard model**
-  page (Section 9) and **Budget (AD10)** (Section 11). In the list,
+  propulsion / link budget**, **3D model** and **Budget (AD10)**
+  (Section 11). In the list,
   **Edit** (or a double-click) goes to the spacecraft's node, and
   **Add** adds one with the default values and opens its node, ready to
   set up (Remove or Undo take it back). **New from template...** adds a complete
@@ -932,7 +931,7 @@ budget from its power modes and solar arrays, read the values your team
 keeps as properties, and put the body frame's origin at the center of
 gravity ([Import from IDM-CIC](docs/user-manual/idm-cic.md)). The model then sets the spacecraft's
 dry mass, center of mass, inertia and surface facets, and its look in
-Vizard; mass properties can also be typed in or imported from a file.
+the 3D views; mass properties can also be typed in or imported from a file.
 A model problem in **Problems**, or the "3D model" badge in **Explain**,
 opens the editor for that spacecraft too. Its **Equipment** tab mounts
 items and the spacecraft's devices on the model, drawn in the view with
@@ -1121,8 +1120,8 @@ than one can), or `spacemissionstudio sil` runs
 the scenario with that spacecraft's flight software in a separate
 program: software in the loop (SIL). Each step the tool sends the
 program the spacecraft's inputs, waits for its commands, and gives them
-to the wheels, thrusters or torque rods in that same step. Vizard shows
-the run as usual. The spacecraft's own modules keep running on the same
+to the wheels, thrusters or torque rods in that same step. Results › 3D
+View shows the run as usual. The spacecraft's own modules keep running on the same
 inputs as the reference, so every command can be compared with what
 they computed.
 
@@ -1520,27 +1519,6 @@ inertial axes, and the note says so. The Earth's turning, the Sun and
 the Moon come from standard formulas, close enough to see where things
 are, not to measure them: the plots and exports hold the run's numbers.
 
-**Vizard** is AVS's separate 3D application. SpaceMissionStudio no
-longer downloads or looks for it: the build AVS Lab publishes has Unity
-Analytics switched on, which sends usage data to Unity. A Vizard you
-built or checked yourself can still be used:
-
-* The **Vizard** options on the Run area's **Run** page (or **Vizard
-  Configuration...** in the command palette, which shows them) decide how
-  the *next* run feeds Vizard -- live streaming while the simulation
-  runs, or saving a playback file to watch afterward. A change applies
-  at once; there is no OK.
-* **Launch Vizard** (the Run area) starts the Vizard you chose (**Settings >
-  Vizard > Browse...**). With none chosen, it offers the 3D View, or
-  **Browse...** for your own.
-* **Open in Vizard** appears in Results after a run that saved a
-  playback file, and starts Vizard on that file. Vizard cannot follow
-  the time cursor (Section 7): it has no way for another program to set
-  its playback time.
-
-Vizard is entirely optional: the 3D View and the plots in Results show
-the mission without it.
-
 ## 10. Monte Carlo: running many variations at once
 
 Real spacecraft never have perfectly known mass, attitude, etc. --
@@ -1643,7 +1621,7 @@ it's always safe to use, never a forced/unsafe kill.
 segments of up to 90 days, chained automatically, and the result is
 still one run. Also set **Record every** (e.g. 600 s), or the results
 fill memory. For scale: 5 years of LEO station keeping took about 50
-minutes and 450 MB. Mission sequences, phasing keeping, Monte Carlo and Vizard
+minutes and 450 MB. Mission sequences, phasing keeping and Monte Carlo
 are limited to 100 days.
 
 **You want to know when the spacecraft comes down.** Open the **End of

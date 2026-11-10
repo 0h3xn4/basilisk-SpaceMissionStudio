@@ -14514,6 +14514,63 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Vizard removed (2026-11-10)
+
+**What was found.** 2.6.0 stopped downloading Vizard, but the app still
+wrote Vizard playback files, streamed to a running Vizard, started one the
+user chose, and had Vizard fields in every scenario file, a Settings
+section, Run options, a spacecraft page, an export row, commands, CLI
+options and documentation.
+
+**Why.** The owner: "I don't want any trace of vizard left in
+spacemissionstudio". **Results › 3D View** is the app's 3D view.
+
+**What changed.**
+
+- `engine/vizard.py`, `gui/vizard_launcher.py` and `gui/vizard_dialog.py`
+  are deleted, with their callers: the service, long runs, SIL runs, the
+  command line (`--vizard-*`), the Run page, Results, Settings, the
+  spacecraft editor's Vizard model page, the model editor's switch, the
+  exports, the commands and their two icons, and the temporary folder for
+  Vizard's model files.
+- `SimulationService` takes `model_base_dir`, which the Vizard request
+  used to carry; the GUI, the command line, long runs and SIL runs pass
+  it, so the model analyses read meshes from the same folder as before.
+- The controllers' messages that only fed Vizard's panels and badges go
+  (station keeping, phasing keeping, formation control, ROE formation,
+  comms pointing, `total_delta_v_budget`); what feeds logs, results and
+  events stays.
+- Scenario files lose `vizard_model_path`, `vizard_model_offset_m`,
+  `vizard_model_rotation_deg`, `vizard_model_scale` and the model's
+  `use_for_vizard`. Older files open: `schema/migrations.py` drops the
+  fields at any version and records each one (step "retired fields") in
+  the run's `scenario_file_migrations`; `Scenario.from_dict` drops them
+  from stored run records. The schema version stays 4.
+- The templates were regenerated without the fields; their descriptions
+  point to Results › 3D View. Template 03 was rebuilt from its own file:
+  the generator gives its GEO elements different last digits here (an
+  environment difference, not this change), so the file keeps its
+  numbers. `field_help.json` and the scenario-hash baseline re-recorded.
+- The user manual, the user-manual pages (`vizard.md` became
+  `3d-view.md`, the 3D View only), the reference pages, FAQ, glossary,
+  tips, the design and developer notes and both READMEs. SRS-F-16 is the
+  3D View only; SRS-I-08, ICD-08 and security analysis S-05, S-06 and
+  S-11 are retired; the compliance tables were regenerated.
+- The network guard's loopback allowance stays: SIL, Basilisk's
+  import-time redirect and local name lookups use it.
+
+**How it was verified.** The golden-output and template regression tests
+(`tests/test_golden_outputs.py` and the template claims, 197 tests) pass
+with the golden files unchanged. The 32 regenerated templates load and
+validate with 2.6.0's own code (the tag `spacemissionstudio-v2.6.0` in a
+scratch worktree). New tests: an old file with the retired fields opens
+and the dropped fields are recorded, also from a schema 1 file and from
+the v4 bundle's run record; `run` refuses each `--vizard-*` option; no
+command, action, object name, text or tooltip of the window names
+Vizard; the model analyses' mesh folder. The tests removed and changed
+are listed in `docs/ui/TEST_CHANGES.md`, "Vizard removed".
+Full suite on Python 3.14 (a home holding only the reference data cache): 4788 passed, 1 skipped and 2 failed, in 18 min 43 s. The two failures, both fixed: a formation-control test still passed the removed delta-V budget, and template 28's first paragraph was 9 characters over its 300-character limit ("its look in the 3D views" became "3D look"). Their files and the hash and migration tests then passed (320 tests).
+
 ## Release 2.6.0 published, and the repository renamed (2026-11-10)
 
 #240 was merged once CI was green. The user saved the release "Space

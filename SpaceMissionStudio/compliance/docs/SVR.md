@@ -255,7 +255,7 @@ in RD1:
 ## 7 Throughput and latency of external interfaces (M.2.1<7>)
 
 Not applicable. The tool controls no external interface in real time (ICD
-5.2): its interfaces are files, a CLI and the optional Vizard stream.
+5.2): its interfaces are files and a CLI.
 
 ## 8 Compliance status (supplementary)
 

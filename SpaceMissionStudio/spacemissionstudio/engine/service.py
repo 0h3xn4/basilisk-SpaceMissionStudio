@@ -44,8 +44,7 @@ What :meth:`SimulationService.build` assembles
   :mod:`engine.fsw`; orbit control (:mod:`engine.orbit_maintenance`,
   :mod:`engine.geo_station_keeping`, :mod:`engine.formation_control`);
   power, flexible solar arrays, thermal sensors and the data-handling chain.
-* Ground-station access for every (station, spacecraft) pair, and the
-  optional Vizard output (:mod:`engine.vizard`).
+* Ground-station access for every (station, spacecraft) pair.
 
 :meth:`build` takes ``initialize=False`` so :mod:`engine.monte_carlo` can
 apply Basilisk's dispersions before ``InitializeSimulation()``; runs longer
@@ -89,12 +88,11 @@ from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario, import_records, pr
 from . import (atmosphere_tables, data_handling, disturbance_recorder, earth_orientation, effective_config, environment_models, formation_control, frames, fsw,
                gaseous_attenuation, geodesy, geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
                optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, shadows,
-               small_bodies, solar_arrays, solar_degradation, time_system, tle, vizard)
+               small_bodies, solar_arrays, solar_degradation, time_system, tle)
 from .findings import Finding
 from .mean_elements import cl_mean_osc_map
 from .results import ResultSet, RunProvenance, TimeSeries, conservation_drift_warnings
 from .seeds import RNG_SEED_NOTE, assign_rng_seeds
-from .vizard import VizardRequest
 
 # Maps schema.SimSettings.integrator -> the svIntegrator* class it selects.
 # Every entry here is a class this Basilisk checkout actually ships (see
@@ -544,7 +542,7 @@ class _SpacecraftHandle:
     num_thrusters: int = 0
     css_sun_estimate_recorder: object | None = None
     fuel_tank_recorder: object | None = None
-    fuel_tank_effector: object | None = None  # Phase 2: the fuelTank.FuelTank() itself, for engine.vizard's propellant panel
+    fuel_tank_effector: object | None = None  # Phase 2: the fuelTank.FuelTank() itself (long runs carry its mass)
     mtb_dipole_recorder: object | None = None  # Phase 2: only set if sc_config.magnetic_momentum_management was configured
     num_mtb: int = 0
     sensor_recorders: dict[str, object] = field(default_factory=dict)  # sensor.name -> (kind, recorder)
@@ -556,7 +554,7 @@ class _SpacecraftHandle:
     albedo_recorders: dict[str, object] = field(default_factory=dict)
     albedo_msgs: dict[str, object] = field(default_factory=dict)
     battery_recorder: object | None = None  # Phase 4: only set if sc_config.power was configured
-    battery_module: object | None = None  # Phase 4: the simpleBattery.SimpleBattery itself, for engine.vizard
+    battery_module: object | None = None  # Phase 4: the simpleBattery.SimpleBattery itself (power nodes, data handling)
     station_keeping_controller: object | None = None  # Phase 4: only set if sc_config.station_keeping was configured
     geo_station_keeping_controller: object | None = None  # only set if sc_config.geo_station_keeping is
     eclipse_out_msg: object | None = None  # Phase 4: only set if power or station_keeping was configured
@@ -600,10 +598,13 @@ class SimulationService:
     ``SimBaseClass``, which is not designed to be reset and rebuilt).
     """
 
-    def __init__(self, scenario: Scenario, vizard_request: VizardRequest | None = None,
-                 simulation_class: type | None = None):
+    def __init__(self, scenario: Scenario, simulation_class: type | None = None,
+                 model_base_dir: str | None = None):
         self.scenario = scenario
-        self.vizard_request = vizard_request
+        # The folder a 3D model's relative mesh paths are read from (the
+        # app's or the command line's scenario folder); None: the scenario
+        # file's own (see _model_base_dir).
+        self.model_base_dir = model_base_dir
         # A SimBaseClass subclass to build with instead (sil.runner adds its
         # bridge right after the spacecraft's last flight-software module
         # this way); None: SimBaseClass itself.
@@ -652,8 +653,7 @@ class SimulationService:
         # sensorList, only a reference -- if nothing keeps them alive past
         # build(), Basilisk segfaults inside InitializeSimulation() on a
         # dangling reference (see engine.fsw.build_css_sun_estimation's own
-        # docstring). Same lifetime-retention pattern as Vizard's
-        # access_indicator_bridges/generic_storage_list/generic_sensor_list.
+        # docstring).
         self._css_estimation_devices: list = []
         self._sun_state_out_msg = None
         # (spacecraft, [(sensorThermal module, raw inputs)]): the sensors'
@@ -668,7 +668,7 @@ class SimulationService:
         self._mag_field_model = None
         self._access_recorders: dict[tuple, object] = {}  # (ground_station_name, spacecraft_name) -> recorder
         self._ground_station_latitudes: dict[str, tuple] = {}  # name -> (geocentric, geodetic) [rad]
-        self._access_out_msgs: dict[tuple, object] = {}  # (ground_station_name, spacecraft_name) -> accessOutMsg, for engine.vizard
+        self._access_out_msgs: dict[tuple, object] = {}  # (ground_station_name, spacecraft_name) -> accessOutMsg
         self._eclipse_object = None  # Phase 4: only built if some spacecraft has power or station_keeping configured
         self._own_eclipses: list = []  # dynamics.shadowing_bodies "tracked_bodies": one eclipse module per other body
         self._combined_eclipses: list = []  # their CombinedEclipse, one per spacecraft (kept alive)
@@ -677,27 +677,6 @@ class SimulationService:
         # the solar panels' time in orbit (power.degradation).
         self.mission_elapsed_offset_s = 0.0
         self._record_eclipses = False  # built anyway when the Sun is tracked: every spacecraft's eclipses are recorded
-        # Phase 4: retains the vizInterface module enable_vizard() returns,
-        # and (separately -- see that function's own docstring for why a
-        # SWIG VizInterface proxy can't just carry this as one of its own
-        # attributes) every custom bridge SysModel it registered on the
-        # task. Previously enable_vizard()'s return value was discarded
-        # entirely, which let those bridges be garbage-collected while
-        # still C++-task-registered -- undefined behavior that could (and
-        # did) surface as an unrelated-looking crash much later.
-        #
-        # _viz_generic_storage_list/_viz_generic_sensor_list: the same
-        # retention requirement, found the same way, for the GenericStorage
-        # ("Propellant"/battery panels)/GenericSensor (access-window label)
-        # objects enable_vizard() builds -- see that function's own
-        # docstring, second "Real bug found" note, for why these also
-        # need a persistent Python reference despite looking like
-        # "plain data" structs.
-        self._viz = None
-        self._viz_access_indicator_bridges = None
-        self._viz_generic_storage_list = None
-        self._viz_generic_sensor_list = None
-
     @property
     def spacecraft_handles(self) -> dict[str, _SpacecraftHandle]:
         """Read-only view of this run's per-spacecraft handles (``sc_object``,
@@ -708,40 +687,6 @@ class SimulationService:
         instead.
         """
         return dict(self._handles)
-
-    def _vizard_models_from_3d_models(self, scenario: Scenario) -> dict[str, dict]:
-        """``.obj`` files written from each spacecraft's 3D model, for
-        Vizard, where ``use_for_vizard`` is on and no ``vizard_model_path``
-        is set. Next to a Vizard save file (it needs them when it plays the
-        file back), or in a temporary folder for a live stream."""
-        wanted = [sc for sc in scenario.spacecraft
-                  if sc.model is not None and sc.model.use_for_vizard and sc.vizard_model_path is None]
-        if not wanted:
-            return {}
-        if self.vizard_request.save_file:
-            save = Path(self.vizard_request.save_file)
-            directory = save.with_name(f"{save.stem}_models")
-        else:  # removed at exit: Vizard reads the files while it streams (audit R14)
-            from ..temp_folders import VIZARD_MODELS, folder_removed_at_exit
-
-            directory = folder_removed_at_exit(VIZARD_MODELS)
-        from ..model3d.model import mesh_path
-
-        models = {}
-        for sc_config in wanted:
-            for mesh_config in sc_config.model.meshes:  # what the Vizard copy was drawn from
-                mesh_file = mesh_path(mesh_config, self.vizard_request.model_base_dir)
-                if mesh_file.is_file():
-                    self._data_files[f"model_mesh:{sc_config.name}:{mesh_file.name}"] = (
-                        dependencies.file_record(mesh_file))
-            path = vizard.write_model_for_vizard(sc_config, directory, self.vizard_request.model_base_dir)
-            if path is None:
-                _logger.warning("%s: its 3D model has no part that can be drawn; Vizard shows the default model",
-                                sc_config.name)
-                continue
-            models[sc_config.name] = {"path": str(path), "offset_m": [0.0, 0.0, 0.0],
-                                      "rotation_deg": [0.0, 0.0, 0.0], "scale": [1.0, 1.0, 1.0]}
-        return models
 
     def build(self, initialize: bool = True) -> None:
         """Assemble the Basilisk simulation from ``self.scenario`` without
@@ -1243,8 +1188,6 @@ class SimulationService:
 
         self.atmosphere_module = atmo_module
         sc_objects_in_order: list = []
-        rw_effectors_in_order: list = []
-        thr_effectors_in_order: list = []
         eclipse_index = 0  # only incremented for spacecraft added to the eclipse model (all of them when the Sun is tracked)
         drag_index = 0  # only incremented for spacecraft that actually have enable_drag
 
@@ -1598,8 +1541,6 @@ class SimulationService:
                     "command. Set fsw_mode, or remove the actuator(s)."
                 )
 
-            rw_effector_for_viz = None
-            thr_effector_for_viz = None
             if sc_config.fsw_mode is not None:
                 if sc_config.magnetic_momentum_management is not None and self._mag_field_model is None:
                     raise SimulationServiceError(
@@ -1684,7 +1625,6 @@ class SimulationService:
                     handle.rw_speed_recorder = self._record(rw_state_effector.rwSpeedOutMsg)
                     handle.rw_speed_out_msg = rw_state_effector.rwSpeedOutMsg
                     self.scSim.AddModelToTask(dyn_task_name, handle.rw_speed_recorder)
-                    rw_effector_for_viz = rw_state_effector
 
                     # Thermal simulation: an OPTIONAL motor-thermal model
                     # (motorThermal.MotorThermal) for whichever wheels in
@@ -1723,7 +1663,6 @@ class SimulationService:
                             desat_thruster_effector, sc_config.momentum_dumping,
                         )
                         self._desat_controls.append(desat_control)
-                        thr_effector_for_viz = desat_thruster_effector
                         handle.num_thrusters = len(desat_thruster_actuators)
                         handle.thruster_on_time_recorder = self._record(desat_dumping.thrusterOnTimeOutMsg)
                         self.scSim.AddModelToTask(dyn_task_name, handle.thruster_on_time_recorder)
@@ -1773,7 +1712,6 @@ class SimulationService:
                         )
                         handle.thruster_on_time_recorder = self._record(firing_logic.onTimeOutMsg)
                         self.scSim.AddModelToTask(dyn_task_name, handle.thruster_on_time_recorder)
-                        thr_effector_for_viz = thruster_effector
                         if sc_config.fuel_tank is not None:
                             fuel_tank_effector = fsw.build_fuel_tank(
                                 self.scSim, dyn_task_name, sc_config.name, sc_object, thruster_effector,
@@ -1866,8 +1804,6 @@ class SimulationService:
                 handle.nav_recorder = self._record(nav.attOutMsg)
                 self.scSim.AddModelToTask(dyn_task_name, handle.nav_recorder)
 
-            rw_effectors_in_order.append(rw_effector_for_viz)
-            thr_effectors_in_order.append(thr_effector_for_viz)
             self._handles[sc_config.name] = handle
 
         # Phase 4: constellation phasing-keeping (schema.scenario.PhasingKeepingConfig)
@@ -1875,7 +1811,7 @@ class SimulationService:
         # already exist (a follower's chief may be defined later in
         # scenario.spacecraft than the follower itself), so this is its
         # own pass after the main per-spacecraft loop above, mirroring
-        # access analysis/Vizard setup below. Scenario.validate() already
+        # access analysis below. Scenario.validate() already
         # guarantees phasing_keeping implies station_keeping on the same
         # spacecraft and that chief_spacecraft names a real spacecraft.
         spacecraft_by_name = {sc_config.name: sc_config for sc_config in scenario.spacecraft}
@@ -1991,17 +1927,11 @@ class SimulationService:
             handle = self._handles[sc_config.name]
             comms_config = sc_config.comms_pointing
             access_out_msg = self._access_out_msgs[(comms_config.target_ground_station, sc_config.name)]
-            target_gs_config = next(
-                (gs for gs in scenario.ground_stations if gs.name == comms_config.target_ground_station), None
-            )
 
             arbitrator = fsw.build_comms_pointing(
                 self.scSim, dyn_task_name, sc_config.name, comms_config,
                 sun_guid_msg=handle.comms_sun_guid_msg, comms_guid_msg=handle.comms_station_guid_msg,
                 access_out_msg=access_out_msg, comms_power_sink=handle.comms_power_sink,
-                rf_link=sc_config.rf_link, ground_station_config=target_gs_config, scenario=scenario,
-                station_latitudes=self._ground_station_latitudes.get(target_gs_config.name)
-                if target_gs_config is not None else None,
             )
             handle.comms_pointing_arbitrator = arbitrator
 
@@ -2034,64 +1964,6 @@ class SimulationService:
                     sc_config.rf_link.data_rate_bps if sc_config.rf_link is not None else 0.0,
                     handle.battery_module, self._record, scenario.sim_settings.record_interval_s, scenario,
                 )
-
-        if self.vizard_request is not None:
-            battery_by_spacecraft = {
-                name: handle.battery_module for name, handle in self._handles.items()
-                if handle.battery_module is not None
-            }
-            station_keeping_by_spacecraft = {
-                name: handle.station_keeping_controller for name, handle in self._handles.items()
-                if handle.station_keeping_controller is not None
-            }
-            phasing_keeping_by_spacecraft = {
-                name: handle.phasing_keeping_controller for name, handle in self._handles.items()
-                if handle.phasing_keeping_controller is not None
-            }
-            roe_formation_by_spacecraft = {
-                name: handle.roe_formation_controller for name, handle in self._handles.items()
-                if handle.roe_formation_controller is not None
-            }
-            fuel_tank_by_spacecraft = {
-                name: handle.fuel_tank_effector for name, handle in self._handles.items()
-                if handle.fuel_tank_effector is not None
-            }
-            comms_pointing_by_spacecraft = {
-                name: handle.comms_pointing_arbitrator for name, handle in self._handles.items()
-                if handle.comms_pointing_arbitrator is not None
-            }
-            custom_models_by_spacecraft = {
-                sc_config.name: {
-                    "path": sc_config.vizard_model_path,
-                    "offset_m": sc_config.vizard_model_offset_m,
-                    "rotation_deg": sc_config.vizard_model_rotation_deg,
-                    "scale": sc_config.vizard_model_scale,
-                }
-                for sc_config in scenario.spacecraft if sc_config.vizard_model_path is not None
-            }
-            custom_models_by_spacecraft.update(self._vizard_models_from_3d_models(scenario))
-            try:
-                (
-                    self._viz,
-                    self._viz_access_indicator_bridges,
-                    self._viz_generic_storage_list,
-                    self._viz_generic_sensor_list,
-                ) = vizard.enable_vizard(
-                    self.scSim, dyn_task_name, sc_objects_in_order, self.vizard_request,
-                    rw_effectors_by_spacecraft=rw_effectors_in_order,
-                    thr_effectors_by_spacecraft=thr_effectors_in_order,
-                    ground_stations=self._ground_locations, central_body_name=gravity.central_body,
-                    battery_by_spacecraft=battery_by_spacecraft,
-                    station_keeping_by_spacecraft=station_keeping_by_spacecraft,
-                    phasing_keeping_by_spacecraft=phasing_keeping_by_spacecraft,
-                    roe_formation_by_spacecraft=roe_formation_by_spacecraft,
-                    fuel_tank_by_spacecraft=fuel_tank_by_spacecraft,
-                    comms_pointing_by_spacecraft=comms_pointing_by_spacecraft,
-                    access_out_msgs=self._access_out_msgs,
-                    custom_models_by_spacecraft=custom_models_by_spacecraft,
-                )
-            except vizard.VizardError as exc:
-                raise SimulationServiceError(str(exc)) from exc
 
         # Every controller's own Python-side telemetry thins to the same
         # sim_settings.record_interval_s as the Basilisk recorders above.
@@ -2209,7 +2081,7 @@ class SimulationService:
 
     def _run_segmented(self, on_progress=None, should_cancel=None) -> ResultSet:
         try:
-            return long_run.run_segmented(self.scenario, on_progress, should_cancel, self.vizard_request)
+            return long_run.run_segmented(self.scenario, on_progress, should_cancel, self.model_base_dir)
         except long_run.LongRunError as exc:
             raise SimulationServiceError(str(exc)) from None
 
@@ -2617,7 +2489,7 @@ class SimulationService:
                 # No attitude control, so no navigation recorder -- but the
                 # attitude still evolves (template 10's gravity-gradient
                 # drift), and the spacecraft-state message already carries
-                # it. Without this the drift could only be seen in Vizard.
+                # it. Without this the drift would not be in the results.
                 result.add(TimeSeries(f"{name}.attitude_sigma_BN", t_s, ("s1", "s2", "s3"),
                                        handle.recorder.sigma_BN, units="-"))
                 result.add(TimeSeries(f"{name}.body_rate_omega_BN_B", t_s, ("x", "y", "z"),
@@ -2886,10 +2758,11 @@ class SimulationService:
         return result
 
     def _model_base_dir(self):
-        """The folder a model's relative mesh paths are read from: the one the
-        Vizard request names (the app's), else the scenario file's."""
-        request = getattr(self.vizard_request, "model_base_dir", None)
-        return request if request is not None else getattr(self.scenario, "_base_dir", None)
+        """The folder a model's relative mesh paths are read from: the one
+        given (the app's), else the scenario file's."""
+        if self.model_base_dir is not None:
+            return self.model_base_dir
+        return getattr(self.scenario, "_base_dir", None)
 
     def _check_atmospheric_loss(self, scenario) -> None:
         """With ``link.atmospheric_loss: itu_r_p676`` and a link to budget:

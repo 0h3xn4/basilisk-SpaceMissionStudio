@@ -2,7 +2,7 @@
 
 A spacecraft's 3D model gives it its mass, center of mass and moments of
 inertia, the flat plates (facets) drag and sunlight push on, and its look
-in Vizard. You build it from simple shapes, import it from a CAD or
+in the 3D views. You build it from simple shapes, import it from a CAD or
 modelling tool as an `.obj` file, or mix both. Template 28, "Octagonal
 bus from a 3D model", is a worked example.
 
@@ -63,8 +63,8 @@ For each part set:
   own settings.
 
 **Duplicate** copies the selected part, for example a second panel;
-change its position. Untick **Shown** to hide a part from the view and
-Vizard; it keeps its mass and facets.
+change its position. Untick **Shown** to hide a part from the views; it
+keeps its mass and facets.
 
 ## Import an .obj file
 
@@ -157,8 +157,6 @@ edit to the model marks the results as out of date, as any edit does.
 
 While the model provides them, those fields are shown but locked. The
 **Use** tab switches each off, and **Export .obj...** saves the model.
-**Show this model in Vizard** replaces Vizard's default model, unless the
-**Vizard model** page names a file of its own.
 
 The center of mass matters: facets, thrusters and sensors are placed from
 B, so a center of mass away from B gives drag, sunlight and thrust a

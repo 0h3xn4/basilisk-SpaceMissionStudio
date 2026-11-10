@@ -83,8 +83,6 @@ EXPORTS = (
            "Folder chosen", "manifest.json", "manifest.json in the folder"),
     Export("sil_report", "SIL report", "JSON, residuals CSV", "Reports › Flight Software › Save report...",
            "File chosen", "In the report", "In the report: the binary's and the configurations' SHA-256"),
-    Export("vizard_file", "Vizard playback", "Vizard .bin", "Run › Run › Vizard save file", "Set on Run › Run",
-           "None", "None (Basilisk writes it during the run)"),
     Export("ccsds_orbits", "Starting orbits", "CCSDS OPM, or OMM for a TLE", "Tools › Export Orbits as CCSDS...",
            "Folder chosen", "In the file", "COMMENT lines: the scenario's name and hash"),
     Export("ccsds_oem", "Ephemeris", "CCSDS OEM, a file a spacecraft",

@@ -19,7 +19,7 @@
 """Runs a spacecraft's flight software as an external program,
 software-in-the-loop, against the Basilisk dynamics (SRS-F-19).
 
-The scenario runs as it always does (results, plots, Vizard), with three
+The scenario runs as it always does (results, plots), with three
 additions:
 
 * **The bridge**, a SysModel added right after the spacecraft's last
@@ -269,10 +269,10 @@ class _Program:
         self.log_dir.cleanup()
 
 
-def run_sil(scenario, spacecraft_name: str, options: SilOptions, vizard_request=None,
+def run_sil(scenario, spacecraft_name: str, options: SilOptions, model_base_dir: str | None = None,
             on_progress: Callable | None = None, should_cancel: Callable[[], bool] | None = None):
     """Runs ``scenario`` with ``spacecraft_name``'s flight software in
-    ``options.binary``. Returns ``(ResultSet, SilReport)``; raises
+    ``options.binary`` (``model_base_dir`` as for ``SimulationService``). Returns ``(ResultSet, SilReport)``; raises
     :class:`SilRunError` (with the report so far) when the run fails, and
     :class:`SilCancelled` when ``should_cancel`` stops it."""
     binary = check_binary(options.binary)
@@ -303,8 +303,8 @@ def run_sil(scenario, spacecraft_name: str, options: SilOptions, vizard_request=
         last_tag = read_graph(dry, spacecraft_name).last_tag
         del dry
         bridge = Bridge()
-        service = SimulationService(run, vizard_request=vizard_request,
-                                    simulation_class=simulation_class(last_tag, bridge))
+        service = SimulationService(run, simulation_class=simulation_class(last_tag, bridge),
+                                    model_base_dir=model_base_dir)
         service.build(initialize=False)
         if bridge.pending:
             raise SilError(f"the SIL bridge could not be placed after {last_tag}")

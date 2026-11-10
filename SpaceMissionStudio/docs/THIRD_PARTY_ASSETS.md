@@ -30,9 +30,10 @@ recorded here and in `docs/DECISIONS.md`.
 - **The icons bundled:** activity, box, check, chevron-down, chevron-right,
   chevron-up, circle-alert, circle-check, circle-dot, circle-minus,
   circle-stop, circle-x, code, dices, file-check, file-plus, file-text,
-  folder-open, git-branch, info, monitor-play, moon, octagon-alert, orbit,
-  play, repeat, rocket, route, save, search, sliders-horizontal, sun,
-  triangle-alert, variable, x. Of these, check, the chevrons, code, info,
+  folder-open, git-branch, info, moon, octagon-alert, orbit,
+  play, repeat, rocket, route, save, search, sun,
+  triangle-alert, variable, x (monitor-play and sliders-horizontal were
+  removed with the commands that used them). Of these, check, the chevrons, code, info,
   moon, search, x and the three alert icons (Feather's `alert-*`) are
   derived from Feather (MIT).
 - **Added in M2a** (the navigation rail and the top bar), from the same

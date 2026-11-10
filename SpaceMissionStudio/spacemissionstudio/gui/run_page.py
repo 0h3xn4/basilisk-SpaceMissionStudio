@@ -19,8 +19,7 @@
 """Run › Run (UI overhaul M5b): what the next run uses, for the mode
 chosen, on one page instead of menus and dialogs.
 
-- Single: Live plot, and the Vizard options (the Vizard dialog's form,
-  embedded, applied as it is edited).
+- Single: Live plot.
 - Monte Carlo: the archive folder, remembered per scenario.
 - SIL: the spacecraft whose flight software runs, and the run's options
   (the SIL dialog's form, embedded).
@@ -39,7 +38,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit,
                                QPushButton, QScrollArea, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget)
 
-from .page_tree import embed_dialog, watch_edits
+from .page_tree import embed_dialog
 from .theme import CONTENT_MAX_WIDTH_PX, set_role
 from .widgets import ComboBox
 
@@ -80,11 +79,9 @@ def _section(title: str, layout: QVBoxLayout) -> None:
 
 
 class RunPage(QWidget):
-    """The options of the mode shown. ``vizard_changed`` carries the
-    request the Vizard form now holds (None: Vizard off);
-    ``archive_changed`` the Monte Carlo archive folder typed or chosen."""
+    """The options of the mode shown. ``archive_changed`` carries the
+    Monte Carlo archive folder typed or chosen."""
 
-    vizard_changed = Signal(object)
     archive_changed = Signal(str)
     enable_monte_carlo = Signal()  # Enable Monte Carlo, from the note shown while it is off (audit G5)
 
@@ -105,20 +102,11 @@ class RunPage(QWidget):
         layout.addWidget(self.mode_label)
         self.stack = QStackedWidget()
         layout.addWidget(self.stack)
-        # Vizard: for a single run and a SIL run (a Monte Carlo batch has none).
-        self.vizard_section = QWidget()
-        vizard_layout = QVBoxLayout(self.vizard_section)
-        vizard_layout.setContentsMargins(0, 16, 0, 0)  # [px] a section's gap (the 4 px grid)
-        _section("Vizard", vizard_layout)
-        self.vizard_holder = QVBoxLayout()
-        vizard_layout.addLayout(self.vizard_holder)
-        layout.addWidget(self.vizard_section)
         layout.addStretch(1)
         self.pages = {}
         self._build_single()
         self._build_monte_carlo()
         self._build_sil()
-        self.vizard_form = None
         self.sil_form = None
         self._sil_names: list[str] = []
         self._sil_folder: Callable[[str], Path | None] = lambda _name: None
@@ -205,36 +193,11 @@ class RunPage(QWidget):
             page.setSizePolicy(policy, policy)
         self.stack.setCurrentWidget(self.pages[mode])
         self.stack.adjustSize()
-        self.vizard_section.setVisible(mode != "monte_carlo")
         self.mode_label.setText({
             "single": "Run builds the scenario in Basilisk and runs it once.",
             "monte_carlo": "Run runs the scenario's Monte Carlo batch.",
             "sil": "Run runs the scenario with a spacecraft's flight software as a program in the loop.",
         }[mode])
-
-    # -- Vizard -------------------------------------------------------------------------------
-    def set_vizard(self, request) -> None:
-        """The Vizard form, showing ``request`` (None: Vizard off)."""
-        from .vizard_dialog import VizardDialog
-
-        if self.vizard_form is not None:
-            self.vizard_form.setParent(None)
-            self.vizard_form.deleteLater()
-        form = VizardDialog(current_save_file=getattr(request, "save_file", None),
-                            current_live_stream=getattr(request, "live_stream", False),
-                            current_camera_target=getattr(request, "camera_target", None),
-                            current_show_orbit_lines=getattr(request, "show_orbit_lines", True),
-                            current_show_trajectory_trail=getattr(request, "show_trajectory_trail", False),
-                            current_show_ground_tracks=getattr(request, "show_ground_tracks", False), parent=self)
-        embed_dialog(form)
-        form.layout().setContentsMargins(0, 0, 0, 0)  # aligned with the page's other fields
-        watch_edits(form, self._on_vizard_edited)
-        self.vizard_holder.addWidget(form)
-        self.vizard_form = form
-
-    def _on_vizard_edited(self, *_args) -> None:
-        if self.vizard_form is not None:
-            self.vizard_changed.emit(self.vizard_form.to_request())
 
     # -- Monte Carlo ----------------------------------------------------------------------------
     def archive_dir(self) -> str:

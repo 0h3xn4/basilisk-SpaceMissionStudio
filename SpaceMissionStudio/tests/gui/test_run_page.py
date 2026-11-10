@@ -18,7 +18,7 @@
 
 """Run > Run (UI overhaul M5b): the run mode as a segmented control in the
 Run area's header, and on one page what the next run uses -- Live plot
-and the Vizard options for a single run, the archive folder of a Monte
+for a single run, the archive folder of a Monte
 Carlo batch (remembered per scenario), the spacecraft and program of a
 SIL run."""
 
@@ -57,16 +57,15 @@ def window(qtbot, monkeypatch):
 def test_the_segmented_control_and_the_mode_follow_each_other(window):
     """Clicking a segment sets the run mode (the top bar's menu and Run's
     tooltip follow); a mode set elsewhere checks its segment. The page
-    shows the chosen mode's options, and Vizard only where a run has it."""
+    shows the chosen mode's options."""
     control, page = window.run_mode_control, window.run_page
     assert window.shell.page("run").header.isAncestorOf(control)
     assert control.buttons["single"].isChecked() and page.stack.currentWidget() is page.pages["single"]
     control.buttons["monte_carlo"].click()
     assert window.run_mode == "monte_carlo" and window.run_mode_button.text().startswith("Monte Carlo")
-    assert page.stack.currentWidget() is page.pages["monte_carlo"] and page.vizard_section.isHidden()
+    assert page.stack.currentWidget() is page.pages["monte_carlo"]
     window.set_run_mode("sil")
     assert control.buttons["sil"].isChecked() and page.stack.currentWidget() is page.pages["sil"]
-    assert not page.vizard_section.isHidden()
 
 
 def test_live_plot_is_one_setting_on_the_page_and_in_the_palette(window):
@@ -76,16 +75,6 @@ def test_live_plot_is_one_setting_on_the_page_and_in_the_palette(window):
     assert action.isChecked() is check.isChecked()
     action.trigger()
     assert check.isChecked() is action.isChecked()
-
-
-def test_the_vizard_options_apply_as_they_are_edited(window, qtbot):
-    """No OK: an edit of the Vizard form is the next run's request."""
-    window.show()
-    window.on_configure_vizard()
-    assert window.shell.current_area() == "run" and window.run_page.vizard_section.isVisibleTo(window)
-    form = window.run_page.vizard_form
-    form.live_stream_radio.setChecked(True)
-    assert window._vizard_request is not None and window._vizard_request.live_stream is True
 
 
 def test_the_monte_carlo_folder_is_used_without_asking_and_remembered_per_scenario(window, monkeypatch, tmp_path):

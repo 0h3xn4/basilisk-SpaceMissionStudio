@@ -103,7 +103,7 @@ def test_every_analysis_takes_the_one_set():
     assert scenario_explainer._BODY_RADIUS_KM is constants.CENTRAL_BODY_EQUATORIAL_RADIUS_KM
     assert propellant_budget.G0_M_S2 == constants.STANDARD_GRAVITY_M_S2
     assert link_budget._C_LIGHT_M_S == environment_models.SPEED_OF_LIGHT_M_S == constants.SPEED_OF_LIGHT_M_S
-    assert propellant_bookkeeping.total_delta_v_budget.__defaults__[-1] == constants.STANDARD_GRAVITY_M_S2
+    assert propellant_bookkeeping.apply_propellant_burn.__defaults__[-1] == constants.STANDARD_GRAVITY_M_S2
 
 
 def test_no_module_keeps_a_copy_of_a_constant():

@@ -204,8 +204,7 @@ _STANDARD_ATMOSPHERE = ("ITU-R P.676-13 Annex 1, its \"Standard\" atmosphere: IT
 register(
     Parameter("link.required_margin_db", 0.0, "[dB]",
               "The link closes while its Eb/N0 margin (over the required Eb/N0) is at least this: the simulated "
-              "downlink is allowed, Vizard shows the link OK, and a lower margin is marked on the dashboard and "
-              "the results overview.", "SpaceMissionStudio's own choice",
+              "downlink is allowed, and a lower margin is marked on the dashboard and the results overview.", "SpaceMissionStudio's own choice",
               "0 dB: the link closes with nothing to spare. Projects usually require a few dB; set that here.",
               minimum=-20.0, maximum=30.0),
     Parameter("link.pointing_loss_coeff_db", 12.0, "[dB]",

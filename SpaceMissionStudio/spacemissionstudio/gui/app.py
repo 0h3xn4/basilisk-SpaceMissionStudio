@@ -78,8 +78,7 @@ def main(argv: list | None = None) -> int:
     apply_ui_scale()
     app = QApplication(argv if argv is not None else sys.argv)
     app.setApplicationName("SpaceMissionStudio")
-    # Needed for QSettings() (used by gui.vizard_launcher to remember a
-    # user-picked Vizard executable path) to resolve to a stable
+    # Needed for QSettings() (the GUI's remembered preferences) to resolve to a stable
     # per-platform location -- QSettings() with no explicit org/app name
     # falls back to whatever these two are set to.
     app.setOrganizationName("AVSLab")

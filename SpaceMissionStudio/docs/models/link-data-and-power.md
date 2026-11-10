@@ -26,12 +26,11 @@ station is in view. The scenario gives every input: the spacecraft's
 **The link closes** while the station is in view and the margin is at
 least `required_margin_db` (0 dB). The margin already counts the required
 Eb/N0, so 0 dB means the link closes with nothing to spare. Projects
-usually require a few dB more, and set that here. The rule decides four
+usually require a few dB more, and set that here. The rule decides three
 things:
 
 - whether the simulated downlink may send data (the gate below; the run's
   `link_closed` series);
-- the link status Vizard shows during comms pointing;
 - the badge on the mission dashboard;
 - whether the results overview marks the lowest link margin as critical.
   A run is judged by the value it was run with, which its provenance
@@ -245,7 +244,7 @@ and a project configuration file changes them
 
 | Parameter | Default | Unit | What it changes | Source |
 |---|---|---|---|---|
-| `link.required_margin_db` | 0 | [dB] | The margin at which the link closes: the simulated downlink, Vizard, the dashboard, the overview | SpaceMissionStudio's own choice |
+| `link.required_margin_db` | 0 | [dB] | The margin at which the link closes: the simulated downlink, the dashboard, the overview | SpaceMissionStudio's own choice |
 | `link.pointing_loss_coeff_db` | 12 | [dB] | The "fixed" pattern's pointing loss per (angle / beamwidth)^2 | Parabolic main-lobe approximation (Wertz & Larson, *Space Mission Analysis and Design*, ch. 13) |
 | `link.max_pointing_loss_db` | 30 | [dB] | The most pointing loss the "fixed" pattern gives | SpaceMissionStudio's own choice |
 | `link.atmospheric_loss` | `none` | [-] | The atmospheric gases' attenuation: `none` or `itu_r_p676` (above) | SpaceMissionStudio's own choice |
@@ -309,9 +308,6 @@ saved in its file. Their defaults are listed in the
 - the patch and table patterns give their gains and beamwidths;
 - every generated bit is downlinked, lost or still on board;
 - what the ledger counts as downlinked is what the transmitter sent.
-
-`tests/test_comms_pointing.py`: the Vizard link status follows the margin
-and the required margin.
 
 `tests/test_gaseous_attenuation.py`:
 - the specific attenuation and the slant path equal the ITU's validation

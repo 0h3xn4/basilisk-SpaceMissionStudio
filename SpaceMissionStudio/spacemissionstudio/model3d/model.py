@@ -38,7 +38,7 @@ adds their mass to the model's. Parts drawn for an array should therefore
 have ``counts_toward_mass`` off. Station-keeping propellant stays outside
 ``dry_mass_kg``, as before.
 
-``visible`` only controls drawing (the editor and Vizard); a hidden part
+``visible`` only controls drawing (the editor and the 3D views); a hidden part
 still has its mass and faces.
 """
 
@@ -371,8 +371,7 @@ def stale_fields(sc_config, derived: DerivedModel, orbit_only: bool = False) -> 
 
 
 def obj_groups(derived: DerivedModel, visible_only: bool = True) -> list[obj_io.ObjGroup]:
-    """The built parts as ``.obj`` groups (body frame), for Vizard or an
-    export."""
+    """The built parts as ``.obj`` groups (body frame), for an export."""
     return [obj_io.ObjGroup(p.name, p.mesh, p.color) for p in derived.parts
             if p.mesh is not None and (p.visible or not visible_only)]
 

@@ -67,8 +67,7 @@ _configured = False  # set once configure_logging has run, with or without a log
 
 def default_log_dir() -> Path:
     """``~/.spacemissionstudio/logs`` -- alongside ``QSettings``' own default
-    per-platform app-data convention (see ``gui.vizard_launcher``'s own
-    ``QSettings()`` usage), but a plain filesystem path rather than
+    per-platform app-data convention (the GUI's ``QSettings()``), but a plain filesystem path rather than
     ``QSettings`` itself: this needs to work from the CLI too, which has
     no ``QApplication``/organization-name set up to anchor ``QSettings``
     to.

@@ -280,7 +280,7 @@ def test_no_thrust_in_eclipse_and_none_without_propellant():
     bridge = FormationControlBridge(
         name="fc", control_law="mean_oe", mu=3.986004418e14, nominal_a_m=_SMA_M,
         separation_schedule=SeparationSchedule([50.0], 0.0, _SMA_M), thrust_n=0.05, isp_s=1500.0,
-        dry_mass_kg=400.0, dv_budget_mps=10.0, eclipse_sunlit_threshold=0.99)
+        dry_mass_kg=400.0, eclipse_sunlit_threshold=0.99)
     bridge.extForceEffectorB = extForceTorque.ExtForceTorque()
     bridge.altitudeControllerB = sk
     bridge.thruster = sk.thruster

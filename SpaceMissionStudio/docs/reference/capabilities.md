@@ -19,7 +19,7 @@ do it, and what has been verified.
   - [Automatic Sun-pointing / ground-station-pointing attitude switching](#automatic-sun-pointing--ground-station-pointing-attitude-switching)
   - [Orbit maintenance](#orbit-maintenance)
   - [Fuel tank](#fuel-tank)
-  - [Vizard visualization](#vizard-visualization)
+  - [3D view](#3d-view)
   - [Reusable starting points](#reusable-starting-points)
   - [Safe cancellation](#safe-cancellation)
   - [Long runs and end of life](#long-runs-and-end-of-life)
@@ -121,7 +121,7 @@ boxes, n-sided prisms (an octagonal bus), cylinders, cones, spheres and
 thin panels, and from the groups of imported `.obj` files. Its mass,
 center of mass and inertia are computed from the parts (or typed in, or
 read from a JSON or CSV file), its parts' outer faces become the drag and
-solar-pressure facets, and Vizard draws it. The center of mass is
+solar-pressure facets, and the 3D views draw it. The center of mass is
 Basilisk's hub offset (`hub.r_BcB_B`), so drag, sunlight and thrust act
 about it, not about the body origin. The **3D model editor** shows the
 model as it is built; `spacemissionstudio model` reports, applies and
@@ -333,23 +333,9 @@ station-keeping/phasing/constant-thrust burns); this one is Basilisk's
 own effector, including the resulting center-of-mass shift as
 propellant depletes.
 
-### Vizard visualization
+### 3D view
 
-Live-stream or `.bin` playback file, an
-Earth-centered default camera view with orbit trace lines, live
-data panels (battery charge, station-keeping propellant remaining,
-delta-V used -- station-keeping and phasing-keeping reported as separate
-panels, since both draw from one shared tank -- for a phasing formation,
-the real chief/follower offset broken out into Radial/Transverse/Normal
-panels (the same R/T/N terms the phasing-formation wizard itself uses,
-not an abstract single number), ground-station access-window indicators,
-and -- for a `comms_pointing` spacecraft -- a pointing-error bar plus
-"Mode"/"Link status" badges mirroring the Mission Dashboard's own live
-GUI telemetry -- all driven by real, already-simulated values, not
-static snapshots, with Vizard's own native live current/max readout on
-every panel), custom 3D models per spacecraft (a file of your own, cosmetic only, or the spacecraft's [3D model](#3d-spacecraft-models)), and a **Launch
-Vizard** action that starts a Vizard you chose (none is downloaded: AVS
-Lab's build enables Unity Analytics). **Results › 3D View** renders a run
+**Results › 3D View** renders a run
 in 3D inside the app: the Earth (NASA's Blue Marble, turning, lit by
 the Sun) under NASA's star map, the Moon, paths, trails and ground
 tracks, spacecraft models turned by their attitude with their fields of
@@ -475,7 +461,7 @@ compliance matrix.
   in `tests/test_examples.py`. `tests/test_golden_outputs.py` checks that
   all 32 templates still give the outputs recorded in `tests/golden/`.
 - **Long runs**: a real 5-year LEO station-keeping run and a 7-day run of
-  template 05 with live Vizard were run to completion.
+  template 05 were run to completion.
 - **Packaging**: for 1.0.0 the Linux `.deb` and `install.sh`, and for
   1.1.0 the `.deb` (as an upgrade from 1.0.0), were built and installed
   end to end with Basilisk 2.12.0 on Linux. From 1.1.1 both installers

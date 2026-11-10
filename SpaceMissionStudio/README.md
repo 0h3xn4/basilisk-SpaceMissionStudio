@@ -106,7 +106,7 @@ A few seconds later the **Results** area shows the orbit and the
   the command line; IDM-CIC models (read only); flight-software export
   as a standalone C project; software-in-the-loop testing of your own
   flight software.
-- **3D view** in Vizard, live or played back.
+- **3D view** of a run inside the app (**Results › 3D View**).
 - **Command line** for every analysis, and a Python API.
 - **Offline by design:** nothing is downloaded without asking.
 
@@ -150,7 +150,7 @@ internet needed.
   before you use them for a real mission.
 - **Version:** 2.6.0 ([release](https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.6.0),
   [changelog](CHANGELOG.md)): **Results › 3D View** plays a run back in
-  3D inside the app, in place of the Vizard download; network use is
+  3D inside the app; network use is
   enforced, can be switched off and is logged, with an audit you can run;
   the installers are hash-checked and carry a bill of materials. 2.5.0
   made the JSON page a code editor and put IDM-CIC thrusters on the 3D
@@ -193,7 +193,6 @@ internet needed.
 | Tool | Relation |
 |---|---|
 | [Basilisk](https://github.com/AVSLab/basilisk) | The simulation engine; this repository is a fork of it |
-| [Vizard](https://avslab.github.io/basilisk/Vizard/Vizard.html) | Basilisk's 3D viewer; the app streams to it or writes playback files |
 | [GMAT](https://sourceforge.net/projects/gmat/) | NASA's mission analysis tool; used as a reference to validate the app (time scales, propagation, CCSDS files) |
 
 SpaceMissionStudio has no direct integration with other mission tools;

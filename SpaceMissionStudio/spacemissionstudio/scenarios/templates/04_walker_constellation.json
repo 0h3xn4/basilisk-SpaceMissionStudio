@@ -87,22 +87,6 @@
       "navigation_error": null,
       "fuel_tank": null,
       "propellant_budget": null,
-      "vizard_model_path": null,
-      "vizard_model_offset_m": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_rotation_deg": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_scale": [
-        1.0,
-        1.0,
-        1.0
-      ],
       "model": null
     },
     {
@@ -179,22 +163,6 @@
       "navigation_error": null,
       "fuel_tank": null,
       "propellant_budget": null,
-      "vizard_model_path": null,
-      "vizard_model_offset_m": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_rotation_deg": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_scale": [
-        1.0,
-        1.0,
-        1.0
-      ],
       "model": null
     },
     {
@@ -271,22 +239,6 @@
       "navigation_error": null,
       "fuel_tank": null,
       "propellant_budget": null,
-      "vizard_model_path": null,
-      "vizard_model_offset_m": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_rotation_deg": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_scale": [
-        1.0,
-        1.0,
-        1.0
-      ],
       "model": null
     },
     {
@@ -363,22 +315,6 @@
       "navigation_error": null,
       "fuel_tank": null,
       "propellant_budget": null,
-      "vizard_model_path": null,
-      "vizard_model_offset_m": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_rotation_deg": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_scale": [
-        1.0,
-        1.0,
-        1.0
-      ],
       "model": null
     },
     {
@@ -455,22 +391,6 @@
       "navigation_error": null,
       "fuel_tank": null,
       "propellant_budget": null,
-      "vizard_model_path": null,
-      "vizard_model_offset_m": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_rotation_deg": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_scale": [
-        1.0,
-        1.0,
-        1.0
-      ],
       "model": null
     },
     {
@@ -547,22 +467,6 @@
       "navigation_error": null,
       "fuel_tank": null,
       "propellant_budget": null,
-      "vizard_model_path": null,
-      "vizard_model_offset_m": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_rotation_deg": [
-        0.0,
-        0.0,
-        0.0
-      ],
-      "vizard_model_scale": [
-        1.0,
-        1.0,
-        1.0
-      ],
       "model": null
     }
   ],
@@ -591,6 +495,6 @@
   },
   "mission_sequence": [],
   "fsw_exports": [],
-  "description": "A 6-satellite Walker delta constellation (2 planes of 3, phasing factor 1) at 700 km and 53 deg, with full perturbations: degree-10 gravity, Sun and Moon, drag and radiation pressure.\n\nWhat to look at:\n- Ground tracks in Vizard, or each satellite's position_N.\n- The planes are 180 deg apart in RAAN; satellites are evenly spaced in a plane, offset between planes by the phasing factor.\n\nTry changing:\n- Satellite count, planes or phasing factor: regenerate with Spacecraft > Generate Walker constellation.\n\nNote:\n- Drag uses real space weather; 2030 is NASA MSFC's 50th-percentile prediction. For an ESA AD10 operations budget, set Solar activity to Conservative (MSFC 95th) in Propagation setup.\n- Cd 3.0: AD10's operations value.",
+  "description": "A 6-satellite Walker delta constellation (2 planes of 3, phasing factor 1) at 700 km and 53 deg, with full perturbations: degree-10 gravity, Sun and Moon, drag and radiation pressure.\n\nWhat to look at:\n- Results \u203a 3D View: the planes and their satellites, or each satellite's position_N.\n- The planes are 180 deg apart in RAAN; satellites are evenly spaced in a plane, offset between planes by the phasing factor.\n\nTry changing:\n- Satellite count, planes or phasing factor: regenerate with Spacecraft > Generate Walker constellation.\n\nNote:\n- Drag uses real space weather; 2030 is NASA MSFC's 50th-percentile prediction. For an ESA AD10 operations budget, set Solar activity to Conservative (MSFC 95th) in Propagation setup.\n- Cd 3.0: AD10's operations value.",
   "schema_version": 4
 }

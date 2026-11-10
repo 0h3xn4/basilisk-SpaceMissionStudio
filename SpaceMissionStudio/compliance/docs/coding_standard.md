@@ -66,7 +66,6 @@ Each rule names how it is checked:
 3. Network access happens only through the consented fetch functions:
    - `spaceweather.fetch`
    - `earth_orientation.fetch`
-   - the Vizard download
 
    Each uses HTTPS with a timeout. Nothing is downloaded at import or run
    time.

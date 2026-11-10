@@ -58,8 +58,7 @@ way it then runs offline:
   a **Fetch or update reference data?** card on Home offers to check
   for newer reference data; **Not now** touches no network. The **Reference data** window's downloads ask
   first, naming the source, the files and the size, and default to No.
-  Vizard is never downloaded (AVS Lab's build enables Unity Analytics;
-  Results › 3D View is built in). On the
+  On the
   command line, only `kernels-status`, `earth-orientation --fetch`,
   `small-bodies --fetch`, `gaseous-attenuation --fetch` and
   `spaceweather-download` download.
@@ -105,8 +104,8 @@ Up to about 10 years. Past 100 days the run is split into segments and
 chained automatically. Set **Record every** for long runs, or the results
 fill memory. Template 22 (one day, orbit only) takes about 5 s; five years
 of LEO station keeping took about 50 minutes. Mission sequences, phasing
-keeping, ROE formations, optical navigation, runs around a small body,
-Monte Carlo and Vizard are limited to 100 days.
+keeping, ROE formations, optical navigation, runs around a small body
+and Monte Carlo are limited to 100 days.
 
 ## Can I exchange data with other tools?
 

@@ -51,7 +51,7 @@ rather than left to fail later inside a run.
 **Along-track (T) is NOT placed via a single ``hill2rv`` call from the
 chief's state, and this is deliberate, not an oversight** -- a real,
 100%-reproducible bug, found from an actual user's report (a real
-Vizard run showing a requested 500 km separation reading as ~0 km at
+run showing a requested 500 km separation reading as ~0 km at
 generation time): ``orbitalMotion.rv2elem()`` decomposing a
 ``hill2rv``-perturbed near-circular state puts essentially the ENTIRE
 along-track angle into ``omega`` (argument of periapsis), not ``f`` (true
@@ -235,8 +235,7 @@ def generate_phasing_follower(request: PhasingFormationRequest, chief: Spacecraf
     if ``request`` is invalid or ``chief.orbit.type`` is not
     ``"classical_elements"``. Needs a real Basilisk build (imports
     ``Basilisk.utilities.orbitalMotion``/``simIncludeGravBody`` lazily, at
-    call time, not at module import time -- same lazy-Basilisk-import
-    convention ``engine.vizard`` uses).
+    call time, not at module import time).
     """
     request.validate()
     _require(chief.orbit.type == "classical_elements",

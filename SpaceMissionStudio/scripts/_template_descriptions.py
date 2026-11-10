@@ -43,7 +43,7 @@ What to look at:
 
 Try changing:
 - Semi-major axis: higher means a slower orbit and a longer period.
-- Inclination: watch the ground track change in Vizard.
+- Inclination: watch the orbit tilt in Results › 3D View.
 - Eccentricity: see template 02 for an elliptical orbit.""",
 
     "02": """\
@@ -88,7 +88,7 @@ A 6-satellite Walker delta constellation (2 planes of 3, phasing factor 1) at 70
 perturbations: degree-10 gravity, Sun and Moon, drag and radiation pressure.
 
 What to look at:
-- Ground tracks in Vizard, or each satellite's position_N.
+- Results › 3D View: the planes and their satellites, or each satellite's position_N.
 - The planes are 180 deg apart in RAAN; satellites are evenly spaced in a plane, offset between planes by \
 the phasing factor.
 
@@ -124,7 +124,7 @@ or actuators: the control torque is applied ideally, so this shows only the poin
 adds real hardware.
 
 What to look at:
-- Vizard's attitude view: the spacecraft swings onto nadir and holds it.
+- Results › 3D View: the spacecraft swings onto nadir and holds it.
 
 Try changing:
 - Pointing mode: velocityPoint (along the velocity) or inertial3D (fixed in space).
@@ -173,7 +173,7 @@ No attitude control, an elongated 500 kg bus (1 x 1 x 2 m: Ixx = Iyy = 208, Izz 
 gravity-gradient torque on. Without the torque the spacecraft would stay at its initial attitude; with it, it slowly turns.
 
 What to look at:
-- Vizard's attitude view: the spacecraft drifts away from its starting orientation.
+- Results › 3D View: the spacecraft drifts away from its starting orientation.
 - sat-1.attitude_sigma_BN: moving away from zero, its starting value.
 
 Try changing:
@@ -189,7 +189,6 @@ What to look at:
 - sat-1.thruster_on_time: which thrusters fire, and for how long.
 - sat-1.attitude_sigma_BN: from the initial tip to within a few degrees in about 2 minutes, then a small \
 limit cycle as the thrusters pulse.
-- Thruster plumes in Vizard.
 
 Try changing:
 - Thrust per thruster: weaker ones take longer to settle.
@@ -242,7 +241,7 @@ The spacecraft's +Z axis stays pointed at the Moon for the whole run, about thre
 (locationPointing with a celestial target).
 
 What to look at:
-- Vizard's attitude view: the commanded attitude keeps changing as both the spacecraft and the Moon move.
+- Results › 3D View: the attitude keeps changing as both the spacecraft and the Moon move.
 
 Try changing:
 - Target body: the Sun, a farther and slower target.
@@ -472,7 +471,7 @@ Note:
     "28": """\
 A 300 kg satellite built in the 3D model editor: an octagonal bus, two solar panels, a dish, a star \
 tracker and, inside, a battery off to one side. Its mass, center of mass, inertia, drag and sunlight \
-surfaces and Vizard look all come from the model. Sun-safe pointing, wheels only; three orbits.
+surfaces and 3D look all come from the model. Sun-safe pointing, wheels only; three orbits.
 
 What to look at:
 - Spacecraft > Edit... > 3D model: the center of mass is 4.8 cm toward +x and 6.3 cm toward -z of B, the \
