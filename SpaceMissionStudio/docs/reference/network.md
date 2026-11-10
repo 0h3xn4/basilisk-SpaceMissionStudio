@@ -32,7 +32,8 @@ list):
 
 Everything else stays on your computer: a run, an export, a Monte Carlo
 batch, the GUI's plots, the 3D model editor and **Results › 3D View**
-(the run in 3D, drawn by the app's own copy of plotly.js), the IDM-CIC
+(the run in 3D, drawn by the copy of three.js and the NASA images
+bundled in the package), the IDM-CIC
 import. Every file a
 download fetches can also be installed from disk instead
 ([Reference data](../user-manual/reference-data.md)).

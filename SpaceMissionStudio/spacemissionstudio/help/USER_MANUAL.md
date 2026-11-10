@@ -1476,24 +1476,49 @@ few letters of its name ("save as", "events", "sat-1", "05 formation",
 ## 9. 3D visualization
 
 **Results › 3D View** shows the last run in 3D, inside the app, with
-nothing to install and nothing sent anywhere:
+nothing to install and nothing sent anywhere. It draws:
 
-* the central body (Earth shaded by Basilisk's albedo map, turning), each
-  spacecraft's path, the spacecraft themselves (their
-  [3D model](docs/user-manual/3d-model.md) when they have one, else a
-  1 m cube) turned by the run's attitude, the ground stations and the
-  Sun's direction;
-* **Play** plays the run, at the speed beside it (simulated time per
-  second, chosen so a run plays in about 30 s); the slider picks a time.
-  The slider and the shared time cursor (Section 7) move together;
-* **Whole orbit** draws the spacecraft larger than they are, so they can
-  be seen (the note under the controls says by how much); **Follow** a
-  spacecraft shows it at its true size, centred, with its body axes
-  (x red, y green, z blue) and arrows to the Sun and nadir. Drag to
-  turn the view, scroll to zoom.
+* the Earth (NASA's Blue Marble), turning, lit by the Sun, with the thin
+  blue rim of its atmosphere, under NASA's star map; the Sun's glow and
+  the Moon (Earth-centred runs). Other central bodies are plain spheres;
+* each spacecraft: its [3D model](docs/user-manual/3d-model.md) (else a
+  1 m cube) turned by the run's attitude, its path over the run, its
+  trail (the last tenth of the run), its body axes (x red, y green, z
+  blue), arrows to the Sun, to nadir and along its velocity, its
+  instruments' fields of view and its thrusters' plumes;
+* the ground stations, with a line to each spacecraft they see above
+  their minimum elevation, and, if you switch it on, each spacecraft's
+  ground track;
+* labels, and a panel with the time (ISO 8601 UTC), the time since the
+  start, the playback speed and, when you follow a spacecraft, its
+  altitude [km] and speed [km/s].
+
+**Play** (Space) plays the run, at the speed beside it (simulated time
+per second, chosen so a run plays in about 30 s); the slider picks a time.
+The slider and the shared time cursor (Section 7) move together.
+
+**View** chooses the camera (`[` and `]` step through the list):
+
+* **Whole orbit:** around the central body. The spacecraft are drawn
+  larger than they are, so they can be seen; the note under the controls
+  says by how much.
+* **Follow** a spacecraft: around it, at its true size.
+* **Earth-fixed:** around the Earth, turning with it.
+* **From** a spacecraft along a body axis, or from one of its
+  instruments, with that instrument's field of view.
+
+Drag to turn the view, scroll to zoom, right-drag to pan; double-click
+(or Home) resets it. **Show** switches each part on or off (remembered
+for next time) and **Reduced quality**: smaller textures, no atmosphere
+rim, one pixel per screen pixel (edges are smoothed only when the view
+opens in full quality). The view chooses reduced quality by itself when
+a frame takes longer than 50 ms, as on a computer without a graphics
+card.
 
 Without an attitude in the run a spacecraft is drawn aligned with the
-inertial axes, and the note says so.
+inertial axes, and the note says so. The Earth's turning, the Sun and
+the Moon come from standard formulas, close enough to see where things
+are, not to measure them: the plots and exports hold the run's numbers.
 
 ## 10. Monte Carlo: running many variations at once
 

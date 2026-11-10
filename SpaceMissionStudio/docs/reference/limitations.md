@@ -286,19 +286,40 @@ Each item was checked against Basilisk's own source.
   * Rename (F2) covers spacecraft, ground stations and 3D model parts,
     as their forms do; devices and materials are renamed in their forms.
 
-* **The 3D View (`engine/scene3d.py`, `gui/mission_view_widget.py`).**
-  * A playback of the run's own series, not a renderer: at most 1,500
-    frames, each spacecraft's attitude the nearest recorded one (an MRP
-    that switches to its shadow set cannot be interpolated).
+* **The 3D View (`engine/scene3d.py`, `gui/mission_view_widget.py`,
+  `gui/assets/mission_view/`).**
+  * A renderer of the run's own series, after the run: at most 1,500
+    frames spread over the run (playback picks the nearest), each
+    spacecraft's attitude the nearest recorded one (an MRP that switches
+    to its shadow set cannot be interpolated). It does not show a run
+    while it runs.
   * The Earth turns by the IERS Earth rotation angle, with UT1 taken as
     UTC and precession left out: about 0.4 degrees from the true
-    Earth-fixed frame in 2030. Its colours are Basilisk's all-sky albedo
-    map, mostly cloud, not a land map.
+    Earth-fixed frame in 2030. The ground track, the stations and their
+    line of sight use the same angle, so a station's line of sight can
+    start or end a few seconds from the run's own access events.
   * The Sun's direction (the Astronomical Almanac's formula, about 0.01
-    degrees) is drawn for Earth-centred runs only; other central bodies
-    are plain spheres that do not turn.
-  * No instrument or camera views, no panels, and no view while the run
-    is still going: it shows a run once it has ended.
+    degrees) and the Moon (its low-precision formula: about 0.3 degrees,
+    0.3 % in distance) are drawn for Earth-centred runs only; other
+    central bodies are plain spheres that do not turn, and the Moon has
+    no texture. The stars are fixed in the inertial frame (no precession,
+    no aberration).
+  * The Earth's texture is 4096 x 2048 pixels (about 10 km a pixel at
+    the equator; 2048 x 1024 in reduced quality): blurred seen from a
+    low orbit. Cloudless; no night lights, no eclipse shadow on the
+    spacecraft, no cast shadows.
+  * Frame time measured at 1296 x 720 pixels in software rendering
+    (SwiftShader, no graphics card, 2026-11-10): 67 ms (15 frames a
+    second) in full quality, 40 ms (25 frames a second; 27 ms following
+    a spacecraft) in reduced quality, which the view chooses by itself
+    when a frame takes longer than 50 ms. The full-quality target of 20
+    frames a second is not met in software rendering; with a graphics
+    card it was not measured.
+  * The first run shown after the app starts holds the window for about
+    0.12 s (the web view is made and Qt WebEngine starts; measured
+    offscreen); later runs reach the view in about 5 ms of the GUI
+    thread.
+  * No panels or instrument readouts in the view, no recording to video.
 
 ## Planned, not yet built
 

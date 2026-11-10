@@ -1,0 +1,13 @@
+{
+  "name": "spacemissionstudio-three-bundle",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Builds spacemissionstudio/gui/assets/mission_view/three.bundle.min.js (scripts/build_three_bundle.py)",
+  "license": "EUPL-1.2",
+  "dependencies": {
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10"
+  }
+}

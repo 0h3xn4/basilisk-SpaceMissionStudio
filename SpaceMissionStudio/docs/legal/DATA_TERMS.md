@@ -103,3 +103,14 @@ file has it. **Decision D7.**
 * Qt WebEngine: "users need to comply to both the licenses of the Qt WebEngine part ... as well as the licenses that are part of Chromium"; the Chromium part's most restrictive licence is LGPL-2.1; the list has about 100 components (<https://doc.qt.io/qt-6.11/qtwebengine-licensing.html>).
 * Some Qt modules are **GPL only** for open-source use (for example Qt Graphs, Qt Quick 3D, Qt Virtual Keyboard, Qt Wayland Compositor, Qt MQTT, Qt HTTP Server; <https://doc.qt.io/qt-6/licensing.html>). The `PySide6_Addons` wheel is installed whole. **Open:** list which of these modules' libraries sit in the bundle; the app does not use them. A measure in your power: remove unused Qt modules from the installers (a change of packaging contents, to decide).
 * Source archives, Qt 6.11.3 (<https://download.qt.io/official_releases/qt/6.11/6.11.3/>): `qtbase` 48 MB (`.tar.xz`), `qtwebengine` 554 MB (`.tar.xz`), the whole `single` archive 973 MB. The 6.11 folder also lists CVE patches for several modules. The bundled version is 6.11.2, so the matching archive is in `6.11.2/`. **Open:** my plan to attach the exact archives to each release (the largest is under GitHub's 2 GiB limit per file; I did not verify that limit from GitHub's page).
+
+## 10. NASA SVS images of the 3D View: VERIFIED
+
+Used: `gui/assets/mission_view/earth_day_4k.jpg`, `earth_day_2k.jpg` (from
+SVS 2915, Blue Marble) and `stars_4k.jpg`, `stars_2k.jpg` (from SVS 4851,
+Deep Star Maps 2020), in the repository, the wheel and the installers.
+
+* Source: <https://svs.gsfc.nasa.gov/help/>, read 2026-11-10: "All of our content is in the public domain (unless otherwise noted), meaning that it is free to download, use, and redistribute for whatever purposes you see fit. For more information, see NASA's media usage guidelines." (quotation)
+* The pages of the two visualizations (<https://svs.gsfc.nasa.gov/2915>, <https://svs.gsfc.nasa.gov/4851>; their API records `/api/2915`, `/api/4851`, read 2026-11-10) note no exception. The only exception the help page names is licensed music in some videos; these are still images.
+* Credits asked: "NASA Goddard Space Flight Center Scientific Visualization Studio"; Blue Marble: "The Blue Marble data is courtesy of Reto Stockli (NASA/GSFC)"; the star map names its catalogues (Hipparcos, Tycho-2, UCAC3, Gaia DR2). All are in `NASA_IMAGES.txt` beside the images and in `THIRD_PARTY_NOTICES`.
+* **What the project does:** ships resized JPEG copies made by `scripts/prepare_mission_view_textures.py` from originals checked by SHA-256 (`docs/THIRD_PARTY_ASSETS.md`); does not use the NASA insignia; does not suggest NASA endorsement.

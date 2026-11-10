@@ -41,7 +41,7 @@ from pathlib import Path
 PLOT_PAGE = "spacemissionstudio-plot-"
 COMPARE_PAGE = "sms-compare-"
 MODEL_VIEW_PAGE = "spacemissionstudio_model_view_"
-MISSION_VIEW_PAGE = "spacemissionstudio_mission_view_"
+MISSION_VIEW_PAGE = "spacemissionstudio_mission_view_"  # no longer made (the 3D View loads its page from the package); kept so leftovers are removed
 ICONS = "spacemissionstudio-icons-"
 KINDS = (PLOT_PAGE, COMPARE_PAGE, MODEL_VIEW_PAGE, MISSION_VIEW_PAGE, ICONS)
 

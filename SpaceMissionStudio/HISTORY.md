@@ -17359,3 +17359,75 @@ their ISC notice, because they are what the export writes.
 header and the About text, `tests/gui/test_licences_dialog.py` the window,
 `tests/test_dependencies.py` the `.deb` copyright file; the licence gate
 passes on the rebuilt wheel (7 components, 0 failures).
+
+## The 3D View as a renderer (2026-11-10)
+
+The owner asked for the 3D View to become a renderer, as close as
+possible to a dedicated mission visualizer, and later to show a run live.
+This is the first part: the renderer, after the run. Branch
+`feature/3d-renderer`.
+
+**Why not plotly.js any more.** It draws charts: no textures, no light
+from the Sun's direction, no camera inside the scene, and a moving model
+had to be re-sent every frame. three.js 0.187.0 (MIT) runs in the same
+web view, with WebGL 2 in software rendering (checked offscreen).
+
+**The page** (`gui/assets/mission_view/`) is static in the package: the
+three.js bundle (one classic script; ES modules do not load from
+`file://`), `mission_view.html` and `mission_view.js`. Python sends the
+theme's style (`theme/mission_view_style.py`) and the scene as data. It
+draws:
+
+- the Earth with NASA's Blue Marble, turning with the Earth rotation
+  angle, lit by the Sun, with an atmosphere rim (a ring facing the camera:
+  a shell around the Earth cost 20 ms a frame in software rendering);
+- NASA's star map in J2000, the Sun's glow, the Moon;
+- each spacecraft's model, shaded with normals from `engine/scene3d.py`
+  (30 degree crease), with path, trail, body axes, arrows to the Sun, to
+  nadir and along the velocity, fields of view and plumes;
+- the ground stations, each with a line of sight to a spacecraft above
+  its own minimum elevation, and the ground track;
+- labels and a panel with the UTC time, the speed, the altitude and
+  speed of the followed spacecraft.
+
+**Views:** Whole orbit (from the Sun's side), Follow (true size),
+Earth-fixed, and from a spacecraft along a body axis (just outside the
+model) or an instrument (with its field of view).
+
+**Precision:** positions are kilometres in double precision; every
+frame they are taken relative to the camera's focus (a floating origin)
+before the GPU's single precision, with a logarithmic depth buffer, so a
+1 m spacecraft at 7,000 km and the Moon at 400,000 km share one view.
+
+**Checked by eye** (screenshots): seen from the Sun at
+2030-01-01T09:27Z the disc is centred near 38 degrees east, 23 degrees
+south (Mozambique Channel), the sub-solar point; Africa is not mirrored;
+looking at Orion with north up, Betelgeuse is upper left and Rigel lower
+right, as on the sky.
+
+**Measured** at 1296 x 720 pixels in software rendering (SwiftShader):
+67 ms a frame in full quality, 40 ms in reduced quality (27 ms
+following a spacecraft). The page switches to reduced quality by itself
+when the median frame takes over 50 ms. The first run shown holds the
+GUI thread 0.12 s (Qt WebEngine starts); later ones about 5 ms, since the
+scene and its 0.5 MB of JSON are built in the `SceneBuilder` thread.
+
+**Assets:** `scripts/build_three_bundle.py` (pinned lock file, byte for
+byte reproducible) and `scripts/prepare_mission_view_textures.py`
+(SHA-256-checked NASA originals); provenance and licences in
+`docs/THIRD_PARTY_ASSETS.md`, `docs/legal/DATA_TERMS.md` item 10, the
+licence gate and `THIRD_PARTY_NOTICES` (regenerated from the wheel).
+4.4 MB in all.
+
+**Tests:**
+
+- `tests/test_scene3d.py` (14, 6 new): the Moon against Meeus's example
+  47.a, normals, the ground track and a station's elevation, altitude
+  above WGS-84, the scene's new arrays, the equipment;
+- `tests/gui/test_mission_view.py` (15, 9 new), by the page's state:
+  textures, the time in ISO 8601 with Z, the floating origin, the
+  Earth-fixed and instrument views, the Show menu, the line of sight,
+  reduced quality, a theme change without reloading.
+
+Three earlier GUI tests changed with the behaviour
+(`docs/ui/TEST_CHANGES.md`). No simulation result changed.

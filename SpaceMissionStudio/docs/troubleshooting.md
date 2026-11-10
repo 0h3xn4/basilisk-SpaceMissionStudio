@@ -70,12 +70,14 @@ more libraries on minimal Linux systems. On Debian or Ubuntu:
 sudo apt-get install libnss3 libatk-bridge2.0-0 libgbm1
 ```
 
-### The 3D model view says "WebGL is not supported", or stays blank
+### A 3D view says WebGL is not supported or could not start, or stays blank
 
-The 3D model editor draws with WebGL. The app already lets Chromium use
-software rendering where there is no usable GPU (a virtual machine, a
-remote desktop). If you set `QTWEBENGINE_CHROMIUM_FLAGS` yourself, the
-app keeps exactly yours: add `--ignore-gpu-blocklist` to them. The model
+The 3D model editor and Results › 3D View draw with WebGL. The app
+already lets Chromium use software rendering where there is no usable
+GPU (a virtual machine, a remote desktop). If you set
+`QTWEBENGINE_CHROMIUM_FLAGS` yourself, the app keeps exactly yours: add
+`--ignore-gpu-blocklist --enable-unsafe-swiftshader
+--disable-domain-blocking-for-3d-apis` to them. The model
 still works without the view: the mass properties and facets are shown
 in the tabs below it.
 

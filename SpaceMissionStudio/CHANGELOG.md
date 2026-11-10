@@ -39,6 +39,13 @@ fixes bugs.
   No copyright is claimed in the app's own code, which an AI model wrote:
   the files name the licensor (0h3xn4) instead of a copyright holder.
 
+- **Results › 3D View is drawn by three.js, not plotly.js.** The Earth
+  shows NASA's Blue Marble instead of Basilisk's albedo map (so the view
+  no longer reads Basilisk's support data); Follow keeps the Earth and the
+  paths in view behind the spacecraft; **Paths** moved into the **Show**
+  menu. The playback, the slider, the speeds, the shared time cursor and
+  the empty state work as before.
+
 ### Removed
 
 - **Vizard is gone.** SpaceMissionStudio no longer writes Vizard playback
@@ -72,6 +79,23 @@ fixes bugs.
   never imported any of them.
 
 ### Added
+
+- **Results › 3D View renders the run.** The Earth with NASA's Blue
+  Marble, turning and lit by the Sun, with its atmosphere's rim, under
+  NASA's star map (J2000); the Moon; each spacecraft's 3D model, shaded,
+  with its path, trail, body axes, arrows to the Sun, to nadir and along
+  the velocity, its instruments' fields of view and its thrusters'
+  plumes; the ground stations with a line of sight to each spacecraft
+  above their minimum elevation; the ground track; labels; and an
+  overlay with the time (ISO 8601 UTC), the playback speed and the
+  followed spacecraft's altitude [km] and speed [km/s]. **View** offers
+  Whole orbit, Follow (true size), Earth-fixed and the view from a
+  spacecraft along a body axis or an instrument, with its field of view
+  (`[` and `]` step through them; Home or a double-click resets).
+  **Show** switches each part on or off (remembered) and **Reduced
+  quality**, which the view also chooses by itself when frames take over
+  50 ms (software rendering). Everything is bundled: three.js 0.187.0
+  (MIT) and NASA's images (public domain), 4.4 MB; nothing is fetched.
 
 - **Independence and no warranty, stated.** The READMEs and the user
   manual now say that SpaceMissionStudio is an independent personal

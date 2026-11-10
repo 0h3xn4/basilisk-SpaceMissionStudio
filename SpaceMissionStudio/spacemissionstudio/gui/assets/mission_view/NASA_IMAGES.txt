@@ -1,0 +1,30 @@
+NASA images in this folder
+==========================
+
+earth_day_4k.jpg, earth_day_2k.jpg
+  From "Blue Marble - A Seamless Image Mosaic of the Earth", NASA Goddard
+  Space Flight Center Scientific Visualization Studio, visualization 2915
+  (https://svs.gsfc.nasa.gov/2915), files bluemarble-west-4096.png and
+  bluemarble-east-4096.png, joined and resized.
+  Credit: NASA Goddard Space Flight Center Scientific Visualization Studio.
+  The Blue Marble data is courtesy of Reto Stockli (NASA/GSFC).
+
+stars_4k.jpg, stars_2k.jpg
+  From "Deep Star Maps 2020", NASA Goddard Space Flight Center Scientific
+  Visualization Studio, visualization 4851 (https://svs.gsfc.nasa.gov/4851),
+  file starmap_2020_4k.exr, tone-mapped to sRGB.
+  Credit: NASA/Goddard Space Flight Center Scientific Visualization Studio.
+  Star data: Hipparcos and Tycho-2 (ESA), UCAC3 (U.S. Naval Observatory),
+  Gaia DR2 (ESA/Gaia/DPAC).
+
+Terms: "All of our content is in the public domain (unless otherwise
+noted), meaning that it is free to download, use, and redistribute for
+whatever purposes you see fit." (https://svs.gsfc.nasa.gov/help/, read
+2026-11-10; NASA's media usage guidelines,
+https://www.nasa.gov/nasa-brand-center/images-and-media/). Neither page
+notes an exception for these files. The NASA insignia is not used.
+NASA does not endorse SpaceMissionStudio.
+
+How the files were made: scripts/prepare_mission_view_textures.py in the
+SpaceMissionStudio sources (the SHA-256 of each original and of each file
+here are in docs/THIRD_PARTY_ASSETS.md).

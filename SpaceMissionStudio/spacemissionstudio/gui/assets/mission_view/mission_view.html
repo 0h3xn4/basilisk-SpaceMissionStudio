@@ -1,0 +1,21 @@
+<!doctype html>
+<!-- SpaceMissionStudio, Results › 3D View. SPDX-License-Identifier: EUPL-1.2.
+     The page of gui/mission_view_widget.py: three.js (three.bundle.min.js,
+     MIT, THREE_LICENSE.txt) and the view's own script (mission_view.js).
+     Its look comes from the app's theme (MV.setStyle). -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>mv:loading</title>
+<style id="theme"></style>
+</head>
+<body>
+<div id="view"></div>
+<div id="hud"><span id="hud-time"></span><span id="live">LIVE</span>
+<span id="hud-craft" class="muted"></span></div>
+<div id="labels"></div>
+<script>window.MV_ERRORS = []; addEventListener('error', function (e) { MV_ERRORS.push(e.message + ' (' + e.filename + ':' + e.lineno + ')'); });</script>
+<script src="three.bundle.min.js"></script>
+<script src="mission_view.js"></script>
+</body>
+</html>

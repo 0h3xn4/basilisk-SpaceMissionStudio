@@ -15,6 +15,9 @@ recorded here and in `docs/DECISIONS.md`.
 | Inter | 4.1 | SIL Open Font License 1.1 | `gui/assets/fonts/inter/Inter-{Regular,Medium,SemiBold}.ttf`, `OFL.txt` | <https://github.com/rsms/inter/releases/tag/v4.1> (`Inter-4.1.zip`, `extras/ttf/`) |
 | JetBrains Mono | 2.304 | SIL Open Font License 1.1 | `gui/assets/fonts/jetbrains-mono/JetBrainsMono-{Regular,Medium}.ttf`, `OFL.txt` | <https://github.com/JetBrains/JetBrainsMono/releases/tag/v2.304> (`JetBrainsMono-2.304.zip`, `fonts/ttf/`) |
 | Lucide icons | 1.52.0 (`lucide-static`) | ISC; the icons derived from Feather also MIT (both texts in `LICENSE`) | 45 SVGs in `gui/assets/icons/lucide/`, `LICENSE` | npm `lucide-static@1.52.0` (`package/icons/`) |
+| three.js (with its `OrbitControls`) | 0.187.0 | MIT (`THREE_LICENSE.txt`, the package's `LICENSE`) | `gui/assets/mission_view/three.bundle.min.js`, `THREE_LICENSE.txt` | npm `three@0.187.0`, bundled by esbuild 0.25.10 (`scripts/build_three_bundle.py`) |
+| NASA Blue Marble (SVS 2915) | 2004 release | public domain (NASA SVS; credit in `NASA_IMAGES.txt`) | `gui/assets/mission_view/earth_day_4k.jpg`, `earth_day_2k.jpg` | <https://svs.gsfc.nasa.gov/2915>: `bluemarble-west-4096.png`, `bluemarble-east-4096.png` (`scripts/prepare_mission_view_textures.py`) |
+| NASA Deep Star Maps 2020 (SVS 4851) | 2020 release | public domain (NASA SVS; credit in `NASA_IMAGES.txt`) | `gui/assets/mission_view/stars_4k.jpg`, `stars_2k.jpg`, `NASA_IMAGES.txt` | <https://svs.gsfc.nasa.gov/4851>: `starmap_2020_4k.exr` (same script) |
 
 - **Unmodified.** The font files are the release's own TTFs (the one
   change to a licence text: a trailing space on line 21 of JetBrains Mono's
@@ -41,6 +44,24 @@ recorded here and in `docs/DECISIONS.md`.
   Feather was not checked.
 - **Removed in 1.1.0:** IBM Plex Sans and Mono (`.woff`, SIL OFL 1.1) and
   the app's 23 hand-drawn SVG glyphs.
+- **The 3D View's page (added after 2.6.0, `gui/assets/mission_view/`):**
+  three.js is one classic script built from the pinned npm packages
+  (`scripts/three_bundle/package-lock.json` holds npm's SHA-512 of every
+  tarball; `npm ci --ignore-scripts`; esbuild `--bundle --minify
+  --format=iife --global-name=THREE --legal-comments=eof`, so three.js's
+  licence comment stays at the end of the bundle). `python
+  scripts/build_three_bundle.py --check` rebuilds it and compares: the
+  same bytes (checked 2026-11-10). A page opened from a `file://` URL
+  cannot load ES modules, hence one script. The NASA images are resized
+  copies: Blue Marble's two 4096 x 4096 halves (west: -180 to 0 degrees,
+  east: 0 to 180 degrees, checked by eye) joined to 8192 x 4096 and
+  resized to 4096 x 2048 (JPEG quality 88) and 2048 x 1024 (quality 85);
+  the star map's half-float linear values clipped to [0, 1], encoded with
+  the sRGB curve, 4096 x 2048 and (2 x 2 averaged) 2048 x 1024, JPEG
+  quality 85, in NASA's orientation (right ascension 0 h in the middle,
+  increasing to the left). Pillow 13.0.0 and OpenEXR 3.5.3 made them;
+  neither is a dependency of the app. The page's own `mission_view.html`
+  and `mission_view.js` are the app's code (EUPL-1.2). 4.4 MB in all.
 
 ### Checksums (SHA-256)
 
@@ -51,6 +72,15 @@ Archives as downloaded:
 | `Inter-4.1.zip` | `9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e` |
 | `JetBrainsMono-2.304.zip` | `6f6376c6ed2960ea8a963cd7387ec9d76e3f629125bc33d1fdcd7eb7012f7bbf` |
 | `lucide-static-1.52.0.tgz` | `4d2aa079171e4eba4c704844b8b0c9edb6e4cfb2fb8bd86f7b14353994f04a87` (npm integrity `sha512-0zZYihAze4ZmUCcyNa9OkWYqn/Y5f9AdTh02AZIxMtP5ravcTTfoSIAnUPBH6ZvKxt+ZW28JB0ldzLRyD82fcw==`, checked) |
+
+| `three-0.187.0.tgz` | npm integrity `sha512-Qiu7R+Cmh8CstZsY1uJOSWnVlfo7ZtNLV7mF8Jltk3LB3AtDu9cRZlcnRKkAk8Y4z6KKw35z7Y7Urd7jWY8etA==` (in `scripts/three_bundle/package-lock.json`, checked by `npm ci`) |
+| `bluemarble-west-4096.png` (SVS 2915) | `c9fab796a66645bf03537522d9c152bd8af9ef97081de177b6fee2cd25a945d7` |
+| `bluemarble-east-4096.png` (SVS 2915) | `374c94c0d5060044c28fec4c72348cd15f5c06e039fc7a876cc241a0bd80798a` |
+| `starmap_2020_4k.exr` (SVS 4851) | `69b841cd048c2ef35543eb1c5819b322530e78aa4b0cab97ec1de3ef56a4ddcd` |
+
+The NASA originals were downloaded on 2026-11-10 from
+`https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/` and
+`https://svs.gsfc.nasa.gov/vis/a000000/a004800/a004851/`.
 
 Files in the package:
 
@@ -63,13 +93,19 @@ Files in the package:
 | `fonts/jetbrains-mono/JetBrainsMono-Regular.ttf` | `a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f` |
 | `fonts/jetbrains-mono/JetBrainsMono-Medium.ttf` | `31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d` |
 | `fonts/jetbrains-mono/OFL.txt` | `60d55f23c6ce05a81099a762cb67ca2c9b6ea251c7912720998b4c89ebfd4faa` (the release's text with one trailing space removed, for the repository's whitespace check) |
+| `mission_view/three.bundle.min.js` (769,928 bytes) | `cbe5b681be63dee0b83dda9946b5992c95be4372fddd8904789956d527a2ba4c` |
+| `mission_view/THREE_LICENSE.txt` | `8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc` |
+| `mission_view/earth_day_4k.jpg` (1,066,107 bytes) | `32f859e19f9ad25cd9fbca17350fd73766a6985c95c5c7fef4378324af4527b8` |
+| `mission_view/earth_day_2k.jpg` (259,363 bytes) | `7d5d8192d45944e0f196e21c80008de0853fa31b25a148fa8986cf236bb05c14` |
+| `mission_view/stars_4k.jpg` (1,969,330 bytes) | `84a3c7f1c3e3bc1c599bf3ba79b64713c752d69f26fecd1bbd6075d295038b44` |
+| `mission_view/stars_2k.jpg` (439,343 bytes) | `27ec5f012197a30cb34a8a68fadb71ba8e8cd175925c51eac36bcb5dc74a6da7` |
 
 ## Used from installed packages (not copied)
 
 | Package | Version range (`gui` extra) | Version verified | Licence | Used for |
 |---|---|---|---|---|
-| PySide6 (Qt for Python) | `>=6.6` | 6.11.2 (Qt 6.11.2) | LGPL-3.0 (Qt and PySide6, as installed from PyPI) | Widgets, `QtSvg` (icon rendering), Qt WebEngine (plots, the 3D model view) |
-| plotly | `>=5.0` | 7.1.0 | MIT | Figures and the 3D model view; `plotly.min.js` loaded from `plotly/package_data/` by local file URL |
+| PySide6 (Qt for Python) | `>=6.6` | 6.11.2 (Qt 6.11.2) | LGPL-3.0 (Qt and PySide6, as installed from PyPI) | Widgets, `QtSvg` (icon rendering), Qt WebEngine (plots, the 3D model view, Results › 3D View) |
+| plotly | `>=5.0` | 7.1.0 | MIT | Figures and the 3D model view; `plotly.min.js` loaded from `plotly/package_data/` by local file URL (Results › 3D View no longer uses it) |
 | PyYAML | `>=6.0` (a core dependency) | 6.0.3 | MIT | Project configuration files (`config/files.py`, transparency plan Phase 3b); it came with `bsk[all]` before it was declared |
 
 No new run-time dependency came with the new look (1.1.0) or the new
@@ -77,7 +113,7 @@ interface (1.3.0): the fonts and icons are files, not packages. Nor with
 the 3D model's analyses and the IDM-CIC import (2.1.0 to 2.5.0): the
 IDM-CIC reader uses Python's own `zipfile` and `xml.etree`, and no CNES
 software is bundled. Nor with the JSON page's code editor (2.5.0): it is
-Qt's own text editor (`QPlainTextEdit`), not a bundled web editor. `plotly.min.js` is not copied into the
+Qt's own text editor (`QPlainTextEdit`), not a bundled web editor. Nor with the 3D View's renderer: three.js is a bundled file built by a script, not a run-time package, and nothing is fetched from npm or NASA at run time. `plotly.min.js` is not copied into the
 package (it already ships with plotly; a copy would add 4.8 MB).
 
 ## In the installers (the bundled Python)

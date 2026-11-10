@@ -94,6 +94,25 @@ License: ISC and MIT
  The full texts, and the list of icons derived from Feather, are in the
  LICENSE file next to the icons.
 
+Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/spacemissionstudio/gui/assets/mission_view/three.bundle.min.js
+       opt/spacemissionstudio/python/lib/python3.14/site-packages/spacemissionstudio/gui/assets/mission_view/THREE_LICENSE.txt
+Copyright: 2010-2026, three.js authors
+License: MIT
+ three.js 0.187.0 with its OrbitControls, bundled by esbuild. The full
+ text is in the THREE_LICENSE.txt file next to the bundle.
+
+Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/spacemissionstudio/gui/assets/mission_view/*.jpg
+       opt/spacemissionstudio/python/lib/python3.14/site-packages/spacemissionstudio/gui/assets/mission_view/NASA_IMAGES.txt
+Copyright: none (NASA public domain)
+ NASA Goddard Space Flight Center Scientific Visualization Studio; Blue
+ Marble data courtesy of Reto Stockli (NASA/GSFC); star data Hipparcos,
+ Tycho-2, UCAC3, Gaia DR2 (ESA/Gaia/DPAC)
+License: public-domain
+ NASA's Scientific Visualization Studio: "All of our content is in the
+ public domain (unless otherwise noted)" (https://svs.gsfc.nasa.gov/help/).
+ The sources and credits are in the NASA_IMAGES.txt file next to the
+ images.
+
 License: ISC
  Permission to use, copy, modify, and/or distribute this software for any
  purpose with or without fee is hereby granted, provided that the above

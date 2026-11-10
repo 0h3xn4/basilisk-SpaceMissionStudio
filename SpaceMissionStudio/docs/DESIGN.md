@@ -167,6 +167,17 @@ The 3D view's body axes use x red, y green, z blue
 (`palettes.AXIS_COLOURS`): an identity convention for geometry, not a
 status.
 
+**Results › 3D View** takes its whole look as data from
+`theme/mission_view_style.py` (its page under `gui/assets/mission_view/`
+holds no colour, font or size). What it depicts keeps the same colour in
+both themes (`palettes.py`: black space, the Sun, the atmosphere's rim,
+the nadir and velocity arrows, stations and their line of sight; each
+spacecraft takes the categorical palette in order); fields of view are
+the accent and plumes `status.caution`, as in the 3D model view. Its
+overlays (the time panel and the labels) are floating panels on
+`bg.raised` with `text.primary`, 8 px radius, JetBrains Mono for the
+time, and restyle with the theme.
+
 **Plots** take the Plotly template from the tokens
 (`theme/plotly_template.py`): Inter, transparent backgrounds over
 `bg.surface`, gridlines in `border.subtle`, axis text in

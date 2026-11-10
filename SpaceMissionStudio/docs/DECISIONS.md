@@ -52,6 +52,78 @@ The owner: "I don't want any trace of vizard left in spacemissionstudio".
   retired** with a one-line note, not deleted. Why: their numbers stay
   taken, so references elsewhere still resolve.
 
+## The 3D View as a renderer: three.js (2026-11-10)
+
+The owner's request: the 3D View must become a renderer, as close as
+possible to a dedicated mission visualizer, and later also show a run
+live. This entry supersedes "plotly.js, not a new 3D library" of the
+2026-11-09 entry below.
+
+- **three.js 0.187.0 (MIT), bundled, not plotly.js:** plotly.js draws
+  charts; it has no textures, no lights from a direction, no camera
+  inside the scene and no per-frame control of objects, and moving a
+  model meant re-sending its vertices every frame. three.js is the
+  common permissive WebGL library, runs in the same Qt WebEngine view
+  (WebGL 2 with software rendering, checked), and is one 770 KB file.
+  Why: the smallest library that does the job; no Qt 3D (its Quick 3D
+  part is GPL, and it would be a second rendering stack).
+- **One classic script, built by a checked-in script:** a page opened
+  from `file://` cannot load ES modules (Chromium's rule for file
+  origins), so three.js and its `OrbitControls` are bundled by esbuild
+  into one script from a pinned `package-lock.json`
+  (`scripts/build_three_bundle.py`, reproducible byte for byte). Why: no
+  npm or Node at run time or install time.
+- **NASA's images, resized, in the package:** Blue Marble (SVS 2915) for
+  the Earth, Deep Star Maps 2020 (SVS 4851) for the sky, 4096 x 2048 and
+  2048 x 1024 JPEGs (4.4 MB with three.js), public domain with NASA's
+  credit (`scripts/prepare_mission_view_textures.py`,
+  `docs/THIRD_PARTY_ASSETS.md`). Why: offline, redistributable, and the
+  sources are the reference images of their kind. No Moon texture and no
+  night lights: not needed for a first version, and one image fewer to
+  clear.
+- **The page is static in the package** (`gui/assets/mission_view/`),
+  not written to a temporary folder; Python sends the theme's style and
+  the scene as data (`MV.setStyle`, `MV.load`). Why: the page's code is
+  a reviewable `.js` file, and a theme change restyles without reloading
+  textures. The page holds no colour, font or size of its own: they come
+  from `theme/mission_view_style.py`.
+- **Floating origin:** every frame, positions (kilometres, double
+  precision in JavaScript) are taken relative to the camera's focus
+  before they reach the GPU's single precision, with a logarithmic depth
+  buffer. Why: a 1 m spacecraft 7,000 km from the Earth's centre and the
+  Moon at 400,000 km in one view, without jitter or depth fighting.
+- **The geometry is computed in Python** (`engine/scene3d.py`: normals
+  with a 30 degree crease, the Moon, the ground track, each station's line
+  of sight above its own minimum elevation, the altitude), off the GUI
+  thread, and tested there. Why: the same numbers in tests and view, and
+  the page only draws.
+- **Space is black and the depicted colours are the same in both
+  themes;** the overlays (time panel, labels) take the theme's raised
+  surface and text. Why: they are things, not interface; the overlays are
+  interface.
+- **Reduced quality, chosen by the page:** when the median of five
+  frames takes over 50 ms (under 20 frames a second), the page switches
+  to 2k textures, no atmosphere rim, no antialiasing and one pixel per
+  screen pixel, and the **Show** menu shows it ticked. Measured at
+  1296 x 720 in software rendering: 67 ms full, 40 ms reduced. Why: the
+  view stays usable on machines without a graphics card; the user can
+  switch it back.
+- **Live playback is a later step:** the page's arrays grow and its frame
+  logic reads their length, so samples can be appended
+  (`MV.append`) without a new design.
+
+- **Software WebGL where no driver can start it:** the web views add
+  Chromium's `--enable-unsafe-swiftshader`. The Windows CI machines (and
+  some virtual machines and remote desktops) could not create a WebGL
+  context at all, so the 3D View drew nothing. With the flag Chromium
+  falls back to SwiftShader; "unsafe" concerns untrusted web content,
+  and the views load only the app's own files (`webengine_setup`). If
+  WebGL still cannot start, the page says so in the view instead of
+  failing on every frame. `--disable-domain-blocking-for-3d-apis` too:
+  after a lost context Chromium blocked WebGL for the shared `file://`
+  origin until the app restarted. A quality switch keeps the renderer
+  (a second context failed on software GL).
+
 ## Landing page at start-up (2026-11-10)
 
 The owner's request: the app starts on a landing page, not on the last

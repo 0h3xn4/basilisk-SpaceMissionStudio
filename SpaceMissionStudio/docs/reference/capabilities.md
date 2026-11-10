@@ -335,10 +335,14 @@ propellant depletes.
 
 ### 3D view
 
-**Results › 3D View** shows a run in 3D inside the app: the central
-body, paths, spacecraft models turned by their attitude, ground stations
-and the Sun, played back with the shared time cursor, or one spacecraft
-followed at its true size with its body axes.
+**Results › 3D View** renders a run
+in 3D inside the app: the Earth (NASA's Blue Marble, turning, lit by
+the Sun) under NASA's star map, the Moon, paths, trails and ground
+tracks, spacecraft models turned by their attitude with their fields of
+view and thruster plumes, ground stations with their line of sight,
+played back with the shared time cursor; seen from the whole orbit, a
+spacecraft followed at its true size, the Earth's frame, or a
+spacecraft's axis or instrument.
 
 ### Reusable starting points
 
