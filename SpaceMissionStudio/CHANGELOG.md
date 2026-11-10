@@ -10,6 +10,21 @@ fixes bugs.
 
 ## Unreleased
 
+### Changed
+
+- **New licence: EUPL-1.2.** From this release SpaceMissionStudio is
+  licensed under the European Union Public Licence v. 1.2
+  ([`LICENSE`](LICENSE), German text [`LICENSE.de`](LICENSE.de)).
+  Releases 1.0.0 to 2.6.0 were published under the ISC licence and stay
+  under it. The EUPL covers SpaceMissionStudio's own work only: Basilisk,
+  which it uses, keeps its ISC licence and its own copyright holders. Every
+  source file now names its licence (`SPDX-License-Identifier: EUPL-1.2`);
+  the package metadata says `License-Expression: EUPL-1.2`; **Settings >
+  About** states the licence, and **Third-Party Licences...** shows the
+  licence texts and the notices of everything the package contains. The
+  flight-software export is unchanged: the C project it writes still
+  carries the notice it carried before.
+
 ### Added
 
 - **A licence check for every package.** `packaging/legal/licences.py` lists

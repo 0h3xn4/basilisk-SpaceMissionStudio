@@ -34,7 +34,8 @@ Facts the plan got wrong or missed, found while building M1:
 
 | Licence | Components | What redistribution needs | How the package meets it |
 |---|---|---|---|
-| ISC | the app (until M2), Basilisk, Lucide | copyright notice and permission notice in all copies | `LICENSE`; Basilisk's text inside the FSW zip and in the notices |
+| EUPL-1.2 | the app (from the release after 2.6.0) | the licence text and the notices with every copy; "Licensed under the EUPL" after the copyright notice | `LICENSE`, `LICENSE.de` in every package; the header of every source file |
+| ISC | the app up to 2.6.0, Basilisk, Lucide | copyright notice and permission notice in all copies | `LICENSE`; Basilisk's text inside the FSW zip and in the notices |
 | MIT, BSD-2/3, 0BSD, Zlib | most Python packages, libffi, expat, XZ, zlib, zstd | keep the notice (BSD: also in documentation for binaries) | texts in each `.dist-info` and in `licenses/`; all in `THIRD_PARTY_NOTICES` |
 | Apache-2.0 | OpenSSL 3, requests, tornado, packaging (dual) | licence copy; keep NOTICE files | `licenses/LICENSE.openssl-3.txt`; dist-info texts |
 | MPL-2.0 | certifi, tqdm | licence copy; source of the MPL files available | the sources are on PyPI (sdist); texts shipped |
@@ -61,12 +62,38 @@ The Windows list is not read yet: python-build-standalone's Windows build links 
 other file names. The first Windows installer build runs the gate in `warn` mode and prints the files no component owns.
 Each becomes an entry in `components.json`, after which the Windows gate can fail like the Linux one.
 
-## EUPL compatibility (M2 will complete this)
+## EUPL compatibility (M2)
 
-Appendix of the EUPL-1.2 (read 2026-11-09 from the licence text): GPL v2 and v3, AGPL v3, OSL, EPL v1.0, CeCILL,
-MPL v2, LGPL v2.1 and v3, CC BY-SA 3.0 (non-software), EUPL v1.1 and v1.2, LiLiQ. ISC, MIT, BSD, Apache-2.0, PSF-2.0, OFL are not listed;
-they are notice-only licences. The record of the combination, component by component, is the M2 deliverable and
-needs a lawyer's reading.
+My reading, component by component; **not legal advice**, for a lawyer to confirm.
+The EUPL applies to SpaceMissionStudio's own work (the Work and Derivative
+Works, EUPL Article 1). The other components are separate works that the
+packages carry beside it, each under its own licence; none of their code is
+copied into the app's files (M2 scan).
+
+| Licence family | Components | In the EUPL-1.2 Appendix? | Reading |
+|---|---|---|---|
+| LGPL-3.0 | Qt, PySide6, shiboken6 | yes (LGPL v3) | used as separate, replaceable shared libraries; the LGPL obligations above apply to them |
+| MPL-2.0 | certifi, tqdm (part) | yes (MPL v2) | separate packages, unchanged |
+| ISC, MIT, BSD-2/3, 0BSD, Zlib, bzip2, TCL, MIT-CMU, PSF-2.0 and related, Apache-2.0 | Basilisk, CPython and its libraries, most Python packages, Lucide | no | notice-only licences; they ask for their notices to travel, which `THIRD_PARTY_NOTICES` does; nothing in them restricts the licence of a separate work beside them |
+| OFL-1.1 | Inter, JetBrains Mono | no | fonts shipped unchanged with their licence; OFL forbids selling the fonts alone, which the project does not do |
+| GPL-only Qt modules | possibly inside PySide6_Addons | yes (GPL v3) | not used by the app; whether they are in the installer is open (D9) |
+| Data terms | NAIF, WMM, CelesTrak and others | not licences | `DATA_TERMS.md`; the ITU file is restricted (D1) |
+
+Basilisk's ISC condition (its notices in all copies) is met by the
+unchanged `LICENSE` inside the flight-software source zip, Basilisk's own
+`.dist-info` in the installers, and `THIRD_PARTY_NOTICES`.
+
+## Proposals waiting for approval
+
+* **P1: the generated C project's notice.** The flight-software export
+  writes C files whose header (`fsw_export/templates/_isc_c.txt` and the
+  templates) still names the AVS Lab and ISC, and a README that says the
+  generated files carry "the same ISC licence". This is generated output, so
+  I did not change it. Options: (a) leave it (the user who generates the
+  project owns its use); (b) name the app's licensor and EUPL-1.2 for the
+  template code; (c) state no licence for generated code and let the user
+  choose. A lawyer should advise; (b) or (c) changes the export's output and
+  its golden files.
 
 ## Decisions waiting for you
 

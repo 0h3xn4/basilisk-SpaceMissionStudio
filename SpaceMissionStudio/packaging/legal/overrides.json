@@ -1,10 +1,6 @@
 {
   "_comment": "Python distributions whose own metadata does not state a usable licence, or where the project chooses one side of an OR. Each entry: the SPDX expression, the evidence (what was read, when), optionally extra_licence_files (patterns relative to the tree root). Keyed by the normalised name, or name==version.",
   "distributions": {
-    "spacemissionstudio": {
-      "licence": "ISC",
-      "evidence": "pyproject.toml: license = { text = \"ISC\" }; the file LICENSE (replaced by EUPL-1.2 in milestone M2)"
-    },
     "charset-normalizer": {
       "licence": "MIT",
       "evidence": "METADATA field License: MIT; licenses/LICENSE, read 2026-11-09"

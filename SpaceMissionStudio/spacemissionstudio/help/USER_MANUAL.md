@@ -231,7 +231,9 @@ A few things to notice right away:
     scenario's change history, the command line's too; empty: your user
     name), **Vizard** (the Vizard program **Launch Vizard** starts: **Browse...**
     to choose it, **Clear** to have it looked for again), **Layout** (the rail as icons only, the **Inspector** and **Problems** panels, **Reset Layout**),
-    **Keyboard** (every shortcut) and **About**.
+    **Keyboard** (every shortcut) and **About** (the version and the
+    licence; **Third-Party Licences...** shows the EUPL-1.2 text and the
+    licences of everything the package contains).
   * **Help**, at the bottom: this manual (`F1`). The rail's last button
     shows the areas as icons only, or with their names.
 
@@ -1666,6 +1668,10 @@ doesn't validate.
 **You want to know SpaceMissionStudio's version** (e.g. to report a problem).
 **Settings > About** shows it; in a terminal,
 `spacemissionstudio --version` prints it with the Basilisk and Python versions.
+
+**You want to know the licence.** SpaceMissionStudio is licensed under the
+EUPL-1.2 from the release after 2.6.0 (earlier releases: ISC); Basilisk keeps its own ISC
+licence. **Settings > About > Third-Party Licences...** shows the texts.
 
 ## 12. A short glossary
 

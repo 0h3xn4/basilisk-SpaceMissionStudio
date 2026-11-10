@@ -9,7 +9,11 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.14",
 ]
-license = { text = "ISC" }
+# EUPL-1.2 from the release after 2.6.0; 1.0.0 to 2.6.0 were ISC. An SPDX
+# expression (PEP 639): no licence classifier, which PEP 639 does not allow
+# beside it. THIRD_PARTY_NOTICES is generated (packaging/legal/README.md).
+license = "EUPL-1.2"
+license-files = ["LICENSE", "LICENSE.de", "THIRD_PARTY_NOTICES"]
 authors = [
     { name = "SpaceMissionStudio contributors" },
 ]
@@ -59,13 +63,8 @@ gui = [
 spacemissionstudio = "spacemissionstudio.cli:main"
 
 [build-system]
-requires = ["setuptools>=70.1.0"]
+requires = ["setuptools>=77.0.3"]  # PEP 639 licence fields
 build-backend = "setuptools.build_meta"
-
-# Both files go into the wheel's .dist-info/licenses/. THIRD_PARTY_NOTICES is
-# generated from the wheel by packaging/legal/licences.py (packaging/legal/README.md).
-[tool.setuptools]
-license-files = ["LICENSE", "THIRD_PARTY_NOTICES"]
 
 [tool.setuptools.packages.find]
 include = ["spacemissionstudio*"]

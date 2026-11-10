@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 #
-#  ISC License
+#  SpaceMissionStudio
 #
-#  Copyright (c) 2026, Autonomous Vehicle Systems Lab, University of Colorado at Boulder
+#  Copyright (c) 2026 0h3xn4 (https://github.com/0h3xn4)
 #
-#  Permission to use, copy, modify, and/or distribute this software for any
-#  purpose with or without fee is hereby granted, provided that the above
-#  copyright notice and this permission notice appear in all copies.
+#  Licensed under the EUPL
 #
-#  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-#  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-#  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-#  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-#  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-#  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-#  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#  SPDX-License-Identifier: EUPL-1.2
+#
+#  The European Union Public Licence v. 1.2 is in the files LICENSE
+#  (English) and LICENSE.de (German) of the SpaceMissionStudio folder and
+#  of every package. Third-party components, each under its own licence,
+#  are listed in THIRD_PARTY_NOTICES.
+#
+#
+#
 #
 #
 # Builds the Debian package spacemissionstudio_<version>_amd64.deb. It is
@@ -75,6 +75,9 @@ bundled_python="$staging$install_dir/python/bin/python3"
 # where Debian users look for a package's licence files.
 install -D -m 644 "$staging$install_dir/python/THIRD_PARTY_NOTICES.txt" \
     "$staging/usr/share/doc/spacemissionstudio/THIRD_PARTY_NOTICES.txt"
+# The app's own licence, in English and German (the copyright file points here).
+install -m 644 "$script_dir/../LICENSE" "$staging/usr/share/doc/spacemissionstudio/LICENSE"
+install -m 644 "$script_dir/../LICENSE.de" "$staging/usr/share/doc/spacemissionstudio/LICENSE.de"
 
 # The menu icon (gui/icons.py draws it; no bitmap in the repository),
 # rendered now so it is a package file.

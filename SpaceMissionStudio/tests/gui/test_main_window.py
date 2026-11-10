@@ -1,3 +1,19 @@
+#
+#  SpaceMissionStudio
+#
+#  Copyright (c) 2026 0h3xn4 (https://github.com/0h3xn4)
+#
+#  Licensed under the EUPL
+#
+#  SPDX-License-Identifier: EUPL-1.2
+#
+#  The European Union Public Licence v. 1.2 is in the files LICENSE
+#  (English) and LICENSE.de (German) of the SpaceMissionStudio folder and
+#  of every package. Third-party components, each under its own licence,
+#  are listed in THIRD_PARTY_NOTICES.
+#
+#
+#
 """Tests for gui.main_window.MainWindow -- the full File/Run workflow,
 with QFileDialog/QMessageBox monkeypatched so nothing blocks on a real
 modal dialog. The "Run" test below genuinely exercises the no-Basilisk
@@ -1909,6 +1925,7 @@ def test_about_dialog_shows_version_and_basilisk_status(window, monkeypatch):
     shown_text = calls[0][2]
     assert spacemissionstudio.__version__ in shown_text
     assert "Basilisk" in shown_text
+    assert "Licensed under the EUPL" in shown_text and "ISC" in shown_text  # legal milestone M2
 
 
 # -- autosave / crash recovery (design-philosophy roadmap item M4) ----------

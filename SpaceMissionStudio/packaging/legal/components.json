@@ -465,10 +465,10 @@
     {
       "name": "SpaceMissionStudio build records",
       "version": "generated",
-      "licence": "ISC",
+      "licence": "EUPL-1.2",
       "holder": "SpaceMissionStudio",
       "type": "data",
-      "licence_basis": "written by packaging/bundle_python.py into the bundle; same licence as the app (changes with it in M2)",
+      "licence_basis": "written by packaging/bundle_python.py into the bundle; the app's own licence",
       "match": [
         "SPACEMISSIONSTUDIO_RUNTIME.json",
         "SPACEMISSIONSTUDIO_SBOM.cdx.json",

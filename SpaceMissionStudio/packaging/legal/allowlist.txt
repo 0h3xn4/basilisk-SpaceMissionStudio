@@ -3,6 +3,9 @@
 # first: put the date and the reason in a comment, and record the decision in
 # docs/DECISIONS.md. The gate (licences.py check) fails on any other id.
 
+# The app's own licence (from the release after 2.6.0)
+EUPL-1.2
+
 # Permissive
 ISC
 MIT

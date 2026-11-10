@@ -1,3 +1,19 @@
+#
+#  SpaceMissionStudio
+#
+#  Copyright (c) 2026 0h3xn4 (https://github.com/0h3xn4)
+#
+#  Licensed under the EUPL
+#
+#  SPDX-License-Identifier: EUPL-1.2
+#
+#  The European Union Public Licence v. 1.2 is in the files LICENSE
+#  (English) and LICENSE.de (German) of the SpaceMissionStudio folder and
+#  of every package. Third-party components, each under its own licence,
+#  are listed in THIRD_PARTY_NOTICES.
+#
+#
+#
 """Tests for engine.vizard._rtn_panel_label/_usable_label_width_px -- plain
 functions, no Basilisk import needed (engine.vizard's own Basilisk imports
 are all lazy, inside enable_vizard() -- see that module's docstring), so

@@ -1,18 +1,18 @@
-#  ISC License
+#  SpaceMissionStudio
 #
-#  Copyright (c) 2026, Autonomous Vehicle Systems Lab, University of Colorado at Boulder
+#  Copyright (c) 2026 0h3xn4 (https://github.com/0h3xn4)
 #
-#  Permission to use, copy, modify, and/or distribute this software for any
-#  purpose with or without fee is hereby granted, provided that the above
-#  copyright notice and this permission notice appear in all copies.
+#  Licensed under the EUPL
 #
-#  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-#  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-#  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-#  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-#  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-#  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-#  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#  SPDX-License-Identifier: EUPL-1.2
+#
+#  The European Union Public Licence v. 1.2 is in the files LICENSE
+#  (English) and LICENSE.de (German) of the SpaceMissionStudio folder and
+#  of every package. Third-party components, each under its own licence,
+#  are listed in THIRD_PARTY_NOTICES.
+#
+#
+#
 """Build the private Python that the .deb and the Windows setup program ship.
 
 Unpacks a pinned, relocatable CPython (python-build-standalone) into
@@ -259,7 +259,7 @@ def sbom(platform: str, manifest: dict, report: list[dict]) -> dict:
                           "name": "spacemissionstudio", "version": version,
                           "purl": f"pkg:pypi/spacemissionstudio@{version}",
                           "description": f"SpaceMissionStudio {version}, the private Python of the {platform} installer",
-                          "licenses": [{"expression": "ISC"}]},
+                          "licenses": [{"expression": "EUPL-1.2"}]},
         },
         "components": components,
     }

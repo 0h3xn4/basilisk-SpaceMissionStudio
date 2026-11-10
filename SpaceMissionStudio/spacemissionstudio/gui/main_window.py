@@ -1,19 +1,19 @@
 #
-#  ISC License
+#  SpaceMissionStudio
 #
-#  Copyright (c) 2026, Autonomous Vehicle Systems Lab, University of Colorado at Boulder
+#  Copyright (c) 2026 0h3xn4 (https://github.com/0h3xn4)
 #
-#  Permission to use, copy, modify, and/or distribute this software for any
-#  purpose with or without fee is hereby granted, provided that the above
-#  copyright notice and this permission notice appear in all copies.
+#  Licensed under the EUPL
 #
-#  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-#  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-#  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-#  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-#  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-#  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-#  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#  SPDX-License-Identifier: EUPL-1.2
+#
+#  The European Union Public Licence v. 1.2 is in the files LICENSE
+#  (English) and LICENSE.de (German) of the SpaceMissionStudio folder and
+#  of every package. Third-party components, each under its own licence,
+#  are listed in THIRD_PARTY_NOTICES.
+#
+#
+#
 #
 
 """MainWindow: the top-level PySide6 window. Wires
@@ -440,6 +440,7 @@ class MainWindow(QMainWindow):
         # rollbacks: a window of its own the status bar's entry opens.
         self.data_dialog = make_window(QDialog(self))
         self._manual_dialog = None  # Help > User Manual's window, once opened
+        self._licences_dialog = None  # Help > Third-Party Licences' window, once opened
         self._history_window = None  # File > Change History's window, once opened
         self.data_dialog.setWindowTitle("Reference data")
         self.data_dialog.resize(980, 460)  # [px]
@@ -772,6 +773,9 @@ class MainWindow(QMainWindow):
                                   tip="Find any command, area, page or object by typing part of its name.")
         self.about_action = add("help.about", "&About SpaceMissionStudio", self.on_about, category="Help",
                                 area="settings", tip="Shows the installed version and licensing information.")
+        self.licences_action = add("help.licences", "Third-Party &Licences...", self.on_licences, category="Help",
+                                   area="settings",
+                                   tip="Shows the app's licence (EUPL-1.2) and the licences of everything it bundles.")
 
         # The run mode beside Run, in the top bar and the Run area: its
         # menu holds the three modes.
@@ -1383,6 +1387,7 @@ class MainWindow(QMainWindow):
         import importlib.util
 
         import spacemissionstudio
+        from spacemissionstudio import legal
 
         basilisk_status = (
             "available" if importlib.util.find_spec("Basilisk") is not None
@@ -1393,8 +1398,17 @@ class MainWindow(QMainWindow):
             f"<b>SpaceMissionStudio</b> {spacemissionstudio.__version__}<br><br>"
             "A GUI-based mission-analysis application built on the Basilisk "
             "astrodynamics framework (AVS Lab, University of Colorado Boulder).<br><br>"
+            f"{legal.about_html()}<br><br>"
             f"Basilisk: {basilisk_status}",
         )
+
+    def on_licences(self) -> None:
+        """Help > Third-Party Licences: one window, kept when closed."""
+        from .licences_dialog import LicencesDialog
+
+        if self._licences_dialog is None:
+            self._licences_dialog = LicencesDialog(self)
+        show_window(self._licences_dialog)
 
     def _update_window_title(self) -> None:
         name = self._current_path.name if self._current_path else "untitled"
