@@ -34,7 +34,10 @@ What this script does, with nothing taken from outside the pins:
 3. bundles ``entry.js`` with esbuild (``--bundle --minify --format=iife
    --global-name=THREE --legal-comments=eof``: three.js's licence
    comment stays at the end of the bundle);
-4. writes ``three.bundle.min.js`` and three.js's own ``LICENSE`` as
+4. strips trailing spaces from every line and ends the bundle with one
+   newline, as the repository's pre-commit hooks require (the only
+   trailing spaces are inside three.js's GLSL shader sources);
+5. writes ``three.bundle.min.js`` and three.js's own ``LICENSE`` as
    ``THREE_LICENSE.txt`` into the assets folder, and prints the SHA-256
    of each (``docs/THIRD_PARTY_ASSETS.md`` records them).
 
@@ -89,7 +92,18 @@ def build(work: Path) -> tuple[Path, Path]:
                              text=True).stdout.strip()
     if version != ESBUILD_VERSION:
         raise SystemExit(f"esbuild is {version}, not {ESBUILD_VERSION}")
+    normalise_whitespace(out)
     return out, work / "node_modules" / "three" / "LICENSE"
+
+
+def normalise_whitespace(path: Path) -> None:
+    """Strips trailing spaces and tabs from every line and ends the file
+    with one newline, as the repository's pre-commit hooks require. The
+    only trailing whitespace in the bundle is inside three.js's GLSL
+    shader sources, where it means nothing."""
+    text = path.read_text(encoding="utf-8")
+    lines = [line.rstrip(" \t") for line in text.split("\n")]
+    path.write_text("\n".join(lines).rstrip("\n") + "\n", encoding="utf-8", newline="\n")
 
 
 def main(argv: list[str] | None = None) -> int:
