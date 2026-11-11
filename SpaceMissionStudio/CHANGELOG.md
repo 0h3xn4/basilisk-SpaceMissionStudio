@@ -77,21 +77,20 @@ without warranty.
 
 ### Removed
 
-- **Vizard is gone.** SpaceMissionStudio no longer writes Vizard playback
-  files, streams to a Vizard or starts one: **Settings > Vizard**, the
-  Vizard options on **Run > Run**, **Launch Vizard**, **Open in Vizard**
-  in Results, the spacecraft's **Vizard model** page, the 3D model's
-  **Show this model in Vizard**, the **Vizard playback** export and the
-  `run --vizard-*` options are removed. **Results › 3D View** shows a run
-  in 3D. Scenario files lose the spacecraft fields `vizard_model_path`,
-  `vizard_model_offset_m`, `vizard_model_rotation_deg` and
-  `vizard_model_scale` and the 3D model's `use_for_vizard`. Older files
-  still open: the fields are dropped as the file loads, and the run's
-  provenance lists each one (step "retired fields"). The schema version
-  stays 4, so files saved now still open in 2.6.0. No result changes.
-  A Vizard an earlier version downloaded can be deleted:
-  `~/.cache/SpaceMissionStudio/vizard`. A Vizard path chosen in Settings
-  is no longer read.
+- **The external 3D viewer support is gone.** SpaceMissionStudio no
+  longer writes playback files for an external 3D viewer, streams to one
+  or starts one: its settings page, its options on **Run > Run**, its
+  launch and open commands in Results, the spacecraft's viewer model
+  page, the 3D model's option to show it there, the playback export and
+  the `run` command's viewer options are removed. **Results › 3D View**
+  shows a run in 3D. Scenario files lose the spacecraft's four viewer
+  model fields and the 3D model's viewer flag. Older files still open:
+  the fields are dropped as the file loads, and the run's provenance
+  lists each one (step "retired fields"). The schema version stays 4, so
+  files saved now still open in 2.6.0. No result changes. A viewer an
+  earlier version downloaded, in the app's cache folder
+  (`~/.cache/SpaceMissionStudio/`), can be deleted; a viewer path chosen
+  in Settings is no longer read.
 - **The installers no longer carry ITU-R P.676-13's data file Part 1**
   (the gases' attenuation of the radio link, `link.atmospheric_loss:
   itu_r_p676`). ITU allows its reproduction only with written permission.
