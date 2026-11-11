@@ -14514,6 +14514,79 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Release 2.7.0 prepared (2026-11-10)
+
+A minor release: it adds features. Contents since 2.6.0: the legal
+groundwork (#241 the licence inventory, gate and notices; #242 the
+licence change to EUPL-1.2 and the provenance scan; #243 the owner's
+decisions; #245 the risk register, security policy, sign-off, signed
+provenance and the Windows licence gate), the 2.6.0 publication record
+and the repository's new name (#244), the start on Home with no scenario
+open (#246), the external viewer support removed (#247), and Results ›
+3D View as a renderer (#248) that can show a run live (#249, still open
+as a pull request when the release branch was made from it).
+
+Prepared by `docs/developer/releasing.md`: version 2.7.0 in
+`pyproject.toml`, `__init__.py` and the Inno Setup script; the
+CHANGELOG's Unreleased entries under 2.7.0 with an introduction, Who
+should update and Known limits; SRelD issue 33 (2.7.0 prepared, 2.6.0
+previous, K-05 and K-32 closed, K-13 refreshed, K-33 for the MSFC
+prediction not adopted, the Qt sources and the signed provenance among
+the delivered files); the SDP, SRS, ICD, CSD, SUM, both READMEs and
+`releasing.md` name 2.7.0, and `releasing.md` lists the release's
+eleven files. The space weather was refreshed first (the entry below).
+
+Compatibility checked with 2.6.0's own code (the tagged commit
+`dcbb95e09`, extracted with `git archive`): the 32 templates, saved by
+this code, open and validate in 2.6.0 with no message. The golden-output
+regression tests passed, so every template's outputs are as in 2.6.0.
+
+Checks: ruff clean; the compliance generators leave `compliance/docs`
+unchanged; `check_drds.py`, 16 documents, 0 problems; pre-commit on the
+branch's files passed.
+
+Full suite on Python 3.14 (a home holding only the reference data cache), on the release's code: 4826 passed, 1 skipped, in 16 min 21 s. The skipped test (`tests/test_fsw_vendored_sources.py`, the vendored sources against Basilisk's commit `611665f74`) needs that commit's objects, which this clone does not have, as CI's shallow checkouts do not.
+
+## Space weather refreshed for 2.7.0 (2026-11-10)
+
+`docs/developer/releasing.md` section 1, for the release. CelesTrak
+answered this time (it had reset or refused the connection for 2.0.0 to
+2.6.0, SRelD K-13).
+
+**CelesTrak `SW-All.txt`** downloaded from
+<https://celestrak.org/SpaceData/SW-All.txt> on 2026-11-10: updated
+2026-11-10 21:33:19 UTC, observations to 2026-11-09 (were 2026-10-24),
+CelesTrak's daily forecast to 2026-12-24 (2026-12-07), NOAA's monthly
+forecast 2027-01 to 2041-10 (unchanged span). As before, only CRLF line
+endings and one comment line's trailing spaces were changed (checked:
+the file without whitespace is identical to the download). Against the
+copy it replaces, CelesTrak revised the observed rows from 2026-09-17 on
+and NOAA the monthly rows from 2027-01 to 2031-09; the rest is
+identical.
+
+**What changes:** drag on dates from 2026-09-17 to 2026-12-24. Past
+CelesTrak's 45-day forecast a run takes NASA MSFC's prediction
+(`engine/spaceweather.py`), not the monthly rows, so no template (all
+start in 2030) changes: the golden-output tests of templates 01, 02, 03,
+05 and 21 passed with the new file alone (the tests still unchanged), and
+the full suite runs them all.
+
+**Tests:** `test_the_shipped_record_parses_as_published` and
+`test_the_last_observed_day_is_found_once` read the new raw lines (the
+updated line; the last observed day 2026-11-09, Ap 11, F10.7 128.8 sfu;
+the first forecast day 2026-11-10; NOAA's January 2030 value 76.6 sfu,
+was 76.7; the long-term Ap 12.83, unchanged), and the CSV test's
+forecast day is 2026-11-12 (2026-10-26 is now observed).
+
+**NASA MSFC: not refreshed.** <https://www.nasa.gov/solar-cycle-progression-and-forecast/>
+lists a November 2026 issue (`nov2026f10-prd.txt`, published files
+`wp-content/uploads/2026/11/`). It moves the 2030 values a little
+(January 2030 at the 50th percentile: F10.7 74.1 sfu and Ap 11.3, were
+74.2 and 11.5), so adopting it changes every template's drag and its
+golden outputs, and the shipped file's name, which the code and tests
+use. That is the owner's decision, not a release step taken in passing:
+2.7.0 keeps the October 2026 issue, said in its known limits.
+
 ## Vizard removed (2026-11-10)
 
 **What was found.** 2.6.0 stopped downloading Vizard, but the app still

@@ -8,7 +8,30 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 2.7.0 (2026-11-10)
+
+The 3D View becomes a real 3D renderer, and the app starts clean.
+SpaceMissionStudio now opens on **Home** with nothing open, instead of
+the last session's work. Every trace of the external viewer support is
+gone: its settings, run options, exports, command-line options and
+scenario fields; files saved by earlier versions still open, and the
+fields they no longer need are dropped and recorded. **Results › 3D View** is drawn
+by a real 3D renderer: the Earth textured and lit by the Sun under a
+star map, the Moon, each spacecraft's 3D model with its instruments'
+cones and thrusters' plumes, the ground stations with their line of
+sight, and several camera views, from the whole orbit to the view along
+an instrument. It can also show a run live while it computes, at full
+speed or paced to real time (1× to 1000×). Nothing the tool computes for
+an existing scenario changes: every template gives the same results as
+in 2.6.0.
+
+From this release SpaceMissionStudio is licensed under the EUPL-1.2
+(1.0.0 to 2.6.0 stay ISC). The Windows installer's licence check now
+covers the Windows layout and stops the build on any file without an
+owner or a licence text, as the Linux build does. SpaceMissionStudio is
+an independent personal project, not affiliated with or endorsed by the
+organisations its documentation names; it is free of charge and comes
+without warranty.
 
 ### Changed
 
@@ -45,6 +68,12 @@ fixes bugs.
   paths in view behind the spacecraft; **Paths** moved into the **Show**
   menu. The playback, the slider, the speeds, the shared time cursor and
   the empty state work as before.
+- **The bundled space weather is current again.** CelesTrak's file,
+  downloaded on 2026-11-10: observations to 2026-11-09 and CelesTrak's
+  daily forecast to 2026-12-24 (they ended on 2026-10-24 and 2026-12-07
+  in 2.0.0 to 2.6.0). Drag on dates from 2026-09-17 to 2026-12-24 changes,
+  as CelesTrak revised its recent values; runs after that use NASA MSFC's
+  prediction, as before, so no template's results change.
 
 ### Removed
 
@@ -147,6 +176,43 @@ fixes bugs.
   libraries inside it. `libtommath.dll`, used only by the removed Tcl/Tk,
   is left out too. Like the Linux build, the Windows build now stops if a
   file has no owner or a licence is unknown.
+
+### Who should update
+
+- **Everyone who looks at runs in 3D:** **Results › 3D View** is now a
+  renderer, and **Show in 3D View while running** on **Run › Run** shows
+  a run as it is computed.
+- **Anyone who wants a clean start:** the app opens on **Home** with no
+  scenario open; a scenario's earlier runs come back when you open it.
+- **Anyone who used the external viewer:** its support is removed (see
+  Removed). Your scenario files still open and give the same results.
+- **Anyone who redistributes SpaceMissionStudio:** 2.7.0 is under the
+  EUPL-1.2; every package carries the licence texts and the notices of
+  what it contains.
+- **Compatibility:** results and the scenario format's version (4) are
+  as in 2.6.0, and 2.6.0 opens the files 2.7.0 saves.
+- **The installers:** on Linux, `apt install
+  ./spacemissionstudio_2.7.0_amd64.deb` replaces 2.6.0; on Windows, run
+  the 2.7.0 setup over 2.6.0. Check each against `SHA256SUMS-linux` or
+  `SHA256SUMS-windows`, or its signed provenance with `gh attestation
+  verify <file> --repo 0h3xn4/basilisk_space-mission-studio`.
+
+### Known limits
+
+- **The 3D View without a graphics card is slow:** in software rendering
+  (SwiftShader, 1296 x 720 pixels) a frame takes 67 ms in full quality
+  (15 frames a second) and 40 ms in reduced quality, which the view
+  chooses by itself. With a graphics card it was not measured.
+- **Close up, the Earth is blurred:** its texture is about 10 km a pixel
+  at the equator. It is cloudless, with no night lights; the Moon has no
+  texture; there are no shadows on the spacecraft. The Earth turns
+  without precession (about 0.4 degrees off in 2030).
+- **No live view for SIL runs** or Monte Carlo batches.
+- **Live with a slow pace and a large dynamics step:** the spacecraft
+  moves in steps, one per sample.
+- **The bundled NASA MSFC prediction is October 2026's**; a newer issue
+  can be set in **MSFC prediction** on the Scenario area's
+  **Environment** page ([Limitations](docs/reference/limitations.md)).
 
 ## 2.6.0 (2026-11-09)
 
