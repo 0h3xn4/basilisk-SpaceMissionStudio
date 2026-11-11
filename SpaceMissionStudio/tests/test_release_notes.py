@@ -172,3 +172,23 @@ def test_the_bills_of_materials_are_listed_when_built(tmp_path):
     assert ("| Software bill of materials (CycloneDX 1.6) | `spacemissionstudio_2.0.0_amd64.cdx.json`, "
             "`spacemissionstudio-2.0.0-setup.cdx.json` | |") in notes
     assert "installed hash-checked" in notes
+
+
+def test_the_changelog_links_lead_to_the_release_tag(tmp_path):
+    """A relative link of the CHANGELOG leads nowhere on a release page:
+    each points at the file as the release's tag holds it, including one
+    that leaves the SpaceMissionStudio folder. Web addresses and anchors
+    stay as they are, and so do the closing links."""
+    changelog = _CHANGELOG.replace(
+        "- **A fix.**",
+        "- **A fix.** See [`LICENSE`](LICENSE), [limits](docs/reference/limitations.md), "
+        "[policy](../SECURITY.md), [site](https://example.invalid/x) and [below](#known-limits).")
+    _files(tmp_path)
+    notes = release_notes.render("2.0.0", tmp_path, "https://example.invalid/runs/7", changelog)
+    tag = f"{release_notes.REPOSITORY_URL}/blob/spacemissionstudio-v2.0.0"
+    assert f"[`LICENSE`]({tag}/SpaceMissionStudio/LICENSE)" in notes
+    assert f"[limits]({tag}/SpaceMissionStudio/docs/reference/limitations.md)" in notes
+    assert f"[policy]({tag}/SECURITY.md)" in notes
+    assert "[site](https://example.invalid/x)" in notes and "[below](#known-limits)" in notes
+    assert f"[`CHANGELOG.md`]({tag}/SpaceMissionStudio/CHANGELOG.md)" in notes
+    assert "/blob/develop/" not in notes

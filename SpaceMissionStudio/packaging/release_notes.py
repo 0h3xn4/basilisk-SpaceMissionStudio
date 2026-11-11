@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import posixpath
 import re
 import shutil
 import subprocess
@@ -135,6 +136,22 @@ def unwrap(text: str) -> str:
     return "\n".join(out)
 
 
+_RELATIVE_LINK = re.compile(r"\]\((?![a-z][a-z0-9+.-]*:|#|/)([^)\s]+)\)", re.IGNORECASE)
+
+
+def tag_url(version: str, path: str) -> str:
+    """The address of ``path`` (relative to the SpaceMissionStudio folder)
+    as the release's tag holds it."""
+    target = posixpath.normpath(posixpath.join("SpaceMissionStudio", path))
+    return f"{REPOSITORY_URL}/blob/spacemissionstudio-v{version}/{target}"
+
+
+def absolute_links(text: str, version: str) -> str:
+    """Points the CHANGELOG's relative links at the release's tag: on a
+    release page a relative link leads nowhere."""
+    return _RELATIVE_LINK.sub(lambda match: f"]({tag_url(version, match.group(1))})", text)
+
+
 def _size(n_bytes: int) -> str:
     """Decimal units, as download pages show them."""
     if n_bytes >= 1e9:
@@ -220,7 +237,7 @@ def space_weather_end(root: Path = ROOT) -> str:
 
 def render(version: str, files: Path, run_url: str, changelog: str, root: Path = ROOT) -> str:
     """The notes, as Markdown."""
-    section = changelog_section(changelog, version)
+    section = {key: absolute_links(text, version) for key, text in changelog_section(changelog, version).items()}
     paths = _release_files(files, version)
     sizes = {key: path.stat().st_size for key, path in paths.items()}
     hashes = {key: _sha256(paths[key]) for key in ("deb", "setup")}
@@ -342,9 +359,9 @@ def render(version: str, files: Path, run_url: str, changelog: str, root: Path =
         add(section["Known limits"])
     add("")
 
-    add(f"The full change list is in [`CHANGELOG.md`]({REPOSITORY_URL}/blob/develop/SpaceMissionStudio/CHANGELOG.md), "
+    add(f"The full change list is in [`CHANGELOG.md`]({tag_url(version, 'CHANGELOG.md')}), "
         f"and how the installers are built is in "
-        f"[`packaging/README.md`]({REPOSITORY_URL}/blob/develop/SpaceMissionStudio/packaging/README.md).")
+        f"[`packaging/README.md`]({tag_url(version, 'packaging/README.md')}).")
     return "\n".join(out) + "\n"
 
 
