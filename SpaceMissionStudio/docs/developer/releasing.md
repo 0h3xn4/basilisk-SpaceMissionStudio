@@ -390,6 +390,20 @@ code on the 32 templates as 2.7.0 saves them). The space weather was
 refreshed: CelesTrak answered for the first time since 1.3.0
 (observations to 2026-11-09). NASA MSFC's November 2026 prediction was
 not adopted, because it changes every template's drag (SRelD K-33).
+It was published on 2026-11-11 at 18:25 UTC, after a day of detours
+(SRelD issue 34). A first tag on #250's merge was deleted while its run
+was starting. The release was then published from the web, which made
+the tag on #251's merge, and was public without files; its run passed
+every test and built both installers but failed at pip-audit on a pillow
+advisory published that day (accepted in #252). The user deleted the
+tag (the release became a draft and kept its notes), tagged #252's
+merge `ae5525cb8`, the workflow attached the eleven files at 18:00
+([run 43067454786](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/43067454786)),
+and the draft was published after them. It had been public without
+files from 09:31 until the tag was deleted. Two lessons: tag only once, the commit
+the release pull request's last CI ran on; and since advisories appear
+daily, run the pip-audit step locally just before tagging, so a new
+advisory is handled before the tag rather than after.
 
 ---
 

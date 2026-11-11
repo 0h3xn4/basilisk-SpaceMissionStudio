@@ -1,9 +1,9 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 33, 2026-11-10. Remediation R14.
+Document: SMS-SRelD, issue 34, 2026-11-11. Remediation R14.
 
-**Status:** release **2.7.0**, prepared 2026-11-10: **Results › 3D View**
+**Status:** release **2.7.0**, published 2026-11-11 (18:25 UTC): **Results › 3D View**
 as a renderer (#248, SRS-F-16) that can show a run live while it is
 computed (#249, SRS-F-16), the start on Home with no scenario open
 (#246, SRS-O-02), the external viewer support removed (#247; SRS-I-08,
@@ -39,8 +39,45 @@ external viewer's fields): every template's outputs are as in 2.6.0, and
 them: all open and validate with no message). The bundled CelesTrak
 space weather was refreshed (observations to 2026-11-09; K-13); NASA
 MSFC's November 2026 prediction was not adopted (K-33). The release
-pull request is merged once CI is green; tagging and publishing are the
-user's (the environment cannot push tags).
+pull request (#250) was merged once CI was green, then #251 (the release
+notes' links lead to the tag; the 2.7.0 entry no longer names the
+removed viewer) and #252 (below); tagging and publishing were the user's
+(the environment cannot push tags).
+- A first tag, on `d3d2534e1` (#250's merge) at 07:19 UTC, was deleted
+  before its release run's Windows job fetched it (run 42978636332 failed
+  at checkout). The user then published the release from the web at
+  09:31 UTC with notes written for it, which made the tag on `96a2ec22f`
+  (#251's merge); the release was public without files. That run
+  ([42995929426](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/42995929426)) passed every test and
+  built, installed and ran both installers, but failed at pip-audit:
+  PYSEC-2026-4363 (CVE-2026-112902), a pillow 12.2.0 advisory found that
+  day, in the TIFF encoder, so it attached nothing. #252 accepted it with
+  its reason (K-25) and dated the CHANGELOG heading 2026-11-11. The user
+  deleted the tag, which turned the release into a draft that kept its
+  notes, and tagged again.
+- Tagged `spacemissionstudio-v2.7.0` (annotated, not signed, D-13) on
+  commit `ae5525cb8` (`ae5525cb8528c887697af4affb8669fb0aca0cef`), the
+  merge of #252 into `develop`, by the user, at 17:22 UTC. GitHub release
+  "Space Mission Studio 2.7.0", published by the user at 18:25:30 UTC,
+  after the files were attached, with the notes written for it
+  (<https://github.com/0h3xn4/basilisk_space-mission-studio/releases/tag/spacemissionstudio-v2.7.0>).
+- Its eleven files were built, installed, checked and attached by the
+  release workflow
+  ([run 43067454786](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/43067454786)) at 18:00, which kept
+  the release's notes. GitHub's SHA-256 digests: `.deb`
+  (`spacemissionstudio_2.7.0_amd64.deb`, 439 988 856 bytes)
+  `8992453f...1424`, setup program (`spacemissionstudio-2.7.0-setup.exe`,
+  385 855 125 bytes) `03711aed...3921`, wheel (8 754 116 bytes)
+  `fdb7a4cd...c7f0`, sdist (9 011 632 bytes) `92ca1133...61eb`, the
+  `.deb`'s bill of materials (`spacemissionstudio_2.7.0_amd64.cdx.json`,
+  35 346 bytes) `1bf39004...f449`, the setup program's
+  (`spacemissionstudio-2.7.0-setup.cdx.json`, 36 446 bytes)
+  `84891b5d...e138`, `SHA256SUMS-linux` `6ce7f48b...a6b4`,
+  `SHA256SUMS-windows` `132d578e...6245`, and the LGPL sources:
+  `qt-everywhere-src-6.11.2.tar.xz` (1 019 661 552 bytes)
+  `6dcfbca2...6f33`, `pyside-setup-everywhere-src-6.11.2.tar.xz`
+  (18 053 248 bytes) `cba47efb...fdf8`, `SHA256SUMS-sources`
+  `1301daba...e6f6`.
 
 **Previous release:** 2.6.0, published 2026-11-10 (06:51 UTC): the run in 3D inside
 the app in place of the Vizard download (#239, SRS-F-16), network use
@@ -636,7 +673,7 @@ Licences...** with the EUPL-1.2.
 | K-22 | Open (2026-10-21): on Windows CI a test worker crashed with "Windows fatal exception: access violation" in `tests/gui/test_template_wizard.py::test_wizard_is_sized_to_fit_its_own_busiest_page_not_a_flat_default[17_fuel_tank_depletion.json]` (PR #91, job 119157936897, commit `895ebcb96`); the other 3557 tests passed. The Python stack ends in pytest's call of the test, with no frame inside it, so the crash came in native code as the test returned, most likely when Python freed a Qt object whose C++ side Qt had already deleted. Seen once: the other seven whole-suite Windows runs of the same commit passed, and the file passed three times on Linux. The test and the wizard did not change in that PR. Cause not known | A crash of this kind could also end the app on Windows; none has been reported | PR #91 comment; HISTORY.md |
 | K-23 | Limitation (2026-10-22): some actions hold the window for longer than the 50 ms the UI overhaul aims at, measured on one Linux container: opening a template 156-463 ms, the first visit to a spacecraft page 456 ms and the spacecraft editor dialog 381 ms (the editor is built at once; re-measured 2026-10-26 with the page built a section at a time: 157-168 ms, against 403 ms for the code before the change in the same session; the dialog used on its own still builds every section), the end of a run 474 ms (the results, the events and the garbage collector's full collections). Re-measured 2026-10-26 after 1.3.0, every template opened in turn: 72-134 ms (median 94 ms), against 82-459 ms (median 111 ms) for the code before the change in the same session; a scenario loaded is checked once, and the titles for spacecraft messages are prepared after start-up in turns of up to 0.13 s, once per process. The end of a run, re-measured 2026-10-26 after 1.3.0 (template 23, the longest stall of a 2 ms heartbeat): the first run of a session 191-244 ms before plotly's figure classes were loaded in a worker after start-up, 27-38 ms after; later runs 31-52 ms before, 31-35 ms after. Most are shorter than before the overhaul on the same machine; opening template 23 a second time measured 222 against 175 ms, one run each | The window does not respond for that time | `docs/ui/BEFORE_AFTER.md`; `docs/DECISIONS.md` M9 |
 | K-24 | Limitation (2026-10-28): two Monte Carlo batches of the same scenario draw the same samples. Basilisk's Monte Carlo controller seeds Python's and NumPy's generators with the run number times 10 (`src/utilities/MonteCarlo/Controller.py`, `np.random.seed(simParams.index * 10)`) before a run's dispersions and model seeds are drawn, and disperses every model's seed itself, so `sim_settings.seed` does not change a batch. Not fixed from SpaceMissionStudio: the seeding is in Basilisk's controller, which this project does not change | Run k of every batch gets the same dispersed values; within a batch every run differs, as it should | Audit E5; `HISTORY.md` "Random seeds" |
-| K-25 | Limitation (2026-10-28): the installers ship pillow 12.2.0, which has 52 published advisories (pip-audit; 13 fixed in 12.3.0, 39 in 13.0.0). The qualified Basilisk, bsk 2.12.0, requires pillow <= 12.2.0, so no fixed version can be installed with it. Every advisory is about decoding a crafted image file; neither SpaceMissionStudio nor the Basilisk modules it uses decodes an image with pillow (searched: no Image.open, imread or imsave), and pillow is loaded only because Basilisk imports matplotlib. CI's pip-audit accepts exactly these 52 (`packaging/audit-exceptions.txt`) and fails on any other | None found in what the app does; a script block that opened an image with pillow would be exposed | `packaging/audit-exceptions.txt`; HISTORY.md "Dependency security" |
+| K-25 | Limitation (2026-10-28): the installers ship pillow 12.2.0, which has 52 published advisories (pip-audit; 13 fixed in 12.3.0, 39 in 13.0.0). The qualified Basilisk, bsk 2.12.0, requires pillow <= 12.2.0, so no fixed version can be installed with it. Every advisory is about decoding a crafted image file; neither SpaceMissionStudio nor the Basilisk modules it uses decodes an image with pillow (searched: no Image.open, imread or imsave), and pillow is loaded only because Basilisk imports matplotlib. CI's pip-audit accepts exactly these (`packaging/audit-exceptions.txt`) and fails on any other. 2026-11-11: 65 accepted. One, PYSEC-2026-4363 (CVE-2026-112902, fixed in 13.0.0), is about encoding instead: the TIFF encoder can leak process memory into a compressed TIFF written from crafted metadata; neither writes a TIFF, or any image, with pillow (the plots are saved as PNG or SVG by plotly.js); it stopped the 2.7.0 release run and was accepted in #252 | None found in what the app does; a script block that opened an image with pillow would be exposed | `packaging/audit-exceptions.txt`; HISTORY.md "Dependency security" |
 | K-26 | Limitation (2026-11-03): 1.3.1 and earlier do not open a scenario file saved by 2.0.0. They refuse any key they do not know, and 2.0.0 saves fields added since, starting with `sim_settings.seed` (audit E5), which it always writes: 1.3.1's `load_scenario` refused all 31 templates as 2.0.0 saves them ("malformed scenario structure (SimSettings.__init__() got an unexpected keyword argument 'seed')"). 2.0.0 opens every 1.x file (its 31 templates as 1.3.1 saved them load) | A team updates together; a file saved by 2.0.0 and sent to a 1.x user does not open | `CHANGELOG.md` 2.0.0, Who should update |
 | K-27 | Limitation (2026-11-04): 2.0.0 does not open a scenario file saved by 2.1.0 that uses a field added since: a mount, model equipment, a stowed pose, a material or maturity, model analyses, face properties, a mass budget or launcher, or an IDM-CIC import (`source_id`, an import record of target `model`). It refuses unknown keys, naming the first ("spacecraft[0].sensors[0]: unexpected field 'mount', not one this version knows"; "spacecraft[0].model.parts[0]: unexpected field 'subsystem'..."). Every new field is written only when set, so a file that uses none opens: checked with 2.0.0's code on the 32 templates as 2.1.0 saves them (31 open; template 32, which uses mounts, is refused). 2.1.0 opens every 2.0.0 file | A file using the new fields, sent to a 2.0.0 user, does not open | `CHANGELOG.md` 2.1.0, Who should update |
 | K-28 | Limitation (2026-11-04): the IDM-CIC import is verified against hand calculations on a synthetic model (`tests/test_idm_import.py`), not against IDM-CIC's own mass, centre-of-gravity and inertia report, which no example model stores. Some conventions are assumed and reported in each import's summary (the extruded shapes' corner, sphere and torus centres, inward thicknesses, the tank's straight part). Unsupported shapes (STEP, Collada, pipes, labels, intersections, section planes) become point masses; a typed-in inertia, margins and maturity levels are reported, not applied. The IDM-CIC licence was not available to review; the reader uses the format's published description only | Mass properties of models with assumed or unsupported shapes are approximate, as their summary says | `docs/developer/idm-cic-integration.md` sections 12 and 14; `docs/reference/limitations.md` |
