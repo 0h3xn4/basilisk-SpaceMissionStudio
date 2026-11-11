@@ -8,7 +8,7 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## 2.7.0 (2026-11-10)
+## 2.7.0 (2026-11-11)
 
 The 3D View becomes a real 3D renderer, and the app starts clean.
 SpaceMissionStudio now opens on **Home** with nothing open, instead of
