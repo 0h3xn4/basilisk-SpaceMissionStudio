@@ -63,8 +63,8 @@ No project master schedule exists. Development is continuous and driven by
 the user's requests. Releases are made when the user decides, tagged, not
 signed (decision 11). The current release is 2.7.0, the 3D View as a
 renderer that can show a run live, a start on Home with nothing open,
-the external viewer support removed and the EUPL-1.2 (prepared
-2026-11-10); before it 2.6.0, the run in 3D inside the app, network use
+the external viewer support removed and the EUPL-1.2 (published
+2026-11-11); before it 2.6.0, the run in 3D inside the app, network use
 enforced and audited, and hash-checked installers with a bill of
 materials (published 2026-11-10), 2.5.0, the JSON page as a code editor
 and IDM-CIC thrusters on the 3D model (published 2026-11-08), 2.4.0, device axes from the IDM-CIC model's

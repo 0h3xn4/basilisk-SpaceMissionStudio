@@ -14514,6 +14514,31 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Release 2.7.0 published (2026-11-11)
+
+#250 was merged once CI was green, followed by #251: the release notes
+the workflow writes from the CHANGELOG had relative links, which lead
+nowhere on a release page, and the 2.7.0 entry named the removed viewer
+ten times, against the owner's wish for no trace of it. A first tag, on
+#250's merge, was deleted while its release run started (its Windows job
+failed at checkout). The user published the release from the web at
+09:31 UTC with notes written for it (prepared with the assistant), which
+made the tag on #251's merge. Its run passed every test on Linux and
+Windows and built, installed and ran both installers, but its pip-audit
+step failed: PYSEC-2026-4363, a pillow 12.2.0 advisory found that day.
+Unlike the 64 accepted before, it is about writing a compressed TIFF, not
+reading an image; neither the app nor the Basilisk helpers it calls write
+any image with pillow, so #252 accepted it with that reason and dated the
+CHANGELOG heading 2026-11-11. The user deleted the tag, which turned the
+release into a draft keeping its notes, and tagged #252's merge
+`ae5525cb8` at 17:22. The workflow
+([run 43067454786](https://github.com/0h3xn4/basilisk_space-mission-studio/actions/runs/43067454786))
+attached the eleven files at 18:00, the Qt and PySide6 source archives
+among them, and the user published the draft at 18:25, so the release
+was public without files only before the retag, not after. SRelD issue
+34, the SDP, H05 and `releasing.md` record the tag, the runs and the
+files' digests.
+
 ## Release 2.7.0 prepared (2026-11-10)
 
 A minor release: it adds features. Contents since 2.6.0: the legal
