@@ -2,10 +2,17 @@
 #
 # pillow 12.2.0: the qualified Basilisk, bsk 2.12.0, requires
 # pillow<=12.2.0 (its own metadata), so no fixed pillow can be installed
-# with it. Every advisory below is about decoding a crafted image file.
+# with it. Every advisory below but one is about decoding a crafted image
+# file.
 # Neither SpaceMissionStudio nor the Basilisk modules it uses decodes an
 # image with pillow (no Image.open, imread or imsave in either); pillow
 # is loaded only because Basilisk imports matplotlib for its plots.
+# The one, PYSEC-2026-4363 (CVE-2026-112902, found 2026-11-11), is about
+# encoding instead: pillow's libtiff encoder can leak process memory into
+# a compressed TIFF it writes from crafted metadata. Neither
+# SpaceMissionStudio nor those Basilisk modules writes a TIFF, or any
+# image, with pillow: the app's plots are drawn and saved (PNG, SVG) by
+# plotly.js in Qt WebEngine.
 # Remove these lines with the Basilisk upgrade that allows pillow >= 13.0.0;
 # tests/test_dependencies.py fails if pillow is moved and they are not.
 #
@@ -63,3 +70,4 @@ PYSEC-2026-4340  pillow==12.2.0  # fixed in 13.0.0
 PYSEC-2026-4341  pillow==12.2.0  # fixed in 13.0.0
 PYSEC-2026-4342  pillow==12.2.0  # fixed in 13.0.0
 PYSEC-2026-4343  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4363  pillow==12.2.0  # fixed in 13.0.0; TIFF encoder, not reached
