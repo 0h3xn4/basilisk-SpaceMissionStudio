@@ -17619,3 +17619,13 @@ are left out, the tag does not exist yet, the notes render). It only
 reads, and its summary names the commit with the commands to tag it.
 `tests/test_release_check.py` (7 tests) covers each refusal and the
 ready case; run on `develop` today it refuses, rightly: 2.7.0 is tagged.
+
+The cloud sessions the assistant works in cannot push tags (their git
+connection refuses them), so every release so far needed the owner at a
+terminal or the website. "SpaceMissionStudio tag release" closes that
+gap: started with the version, it calls the release check as a reusable
+workflow, stops on any failure, and otherwise tags the commit the check
+passed with the workflow's own token (contents: write) and starts the
+release workflow for the tag (actions: write), since a tag pushed with
+that token starts no workflow itself. The release still ends as a draft,
+published by a person after its files are attached.

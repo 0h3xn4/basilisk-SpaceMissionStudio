@@ -12,6 +12,8 @@
 #     does not exist yet, and the notes render
 #     (SpaceMissionStudio/packaging/release_check.py).
 # The summary names the commit and gives the commands to tag it.
+# "SpaceMissionStudio tag release" calls it first and tags only the commit
+# it passed (outputs sha and version).
 name: "SpaceMissionStudio release check"
 
 on:
@@ -22,6 +24,19 @@ on:
         required: true
         default: develop
         type: string
+  workflow_call:
+    inputs:
+      ref:
+        description: "Branch to check"
+        required: true
+        type: string
+    outputs:
+      sha:
+        description: "The commit checked (the one to tag)"
+        value: ${{ jobs.check.outputs.sha }}
+      version:
+        description: "The version its files state"
+        value: ${{ jobs.check.outputs.version }}
 
 permissions:
   contents: read
@@ -31,6 +46,9 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+      version: ${{ steps.commit.outputs.version }}
     defaults:
       run:
         working-directory: SpaceMissionStudio
@@ -43,7 +61,9 @@ jobs:
           python-version: "3.14"
       - name: The commit
         id: commit
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "version=$(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml)" >> "$GITHUB_OUTPUT"
       - name: CI passed on this commit
         id: ci
         continue-on-error: true

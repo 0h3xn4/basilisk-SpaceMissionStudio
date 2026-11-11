@@ -18,6 +18,10 @@ fixes bugs.
   version files and the CHANGELOG agree and are dated today, nothing is
   left under Unreleased, the tag is new and the notes render. It names
   the commit to tag. For maintainers; the app is not affected.
+- **Tagging from the Actions tab.** Actions > "SpaceMissionStudio tag
+  release" runs the same check, tags exactly the commit it passed and
+  starts the release build, so no terminal is needed (and the assistant
+  can start it when asked). Publishing the draft stays a person's step.
 
 ## 2.7.0 (2026-11-11)
 

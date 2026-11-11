@@ -149,6 +149,14 @@ what has been verified where.
   yet and the notes render (`packaging/release_check.py`, which also runs
   locally). Its summary names the commit and gives the two commands
   below with it filled in. Tag that commit, once.
+- Tag it, preferably with Actions > "SpaceMissionStudio tag release" >
+  Run workflow, giving the version (`.github/workflows/spacemissionstudio-tag-release.yml`;
+  the assistant can start it when asked to tag). It runs the release
+  check above and stops on any failure; otherwise it tags exactly the
+  commit the check passed and starts the release workflow for the tag
+  (a tag pushed with a workflow's token starts no workflow by itself).
+  If a tag ruleset (Settings > Rules > Rulesets) restricts creating
+  tags, GitHub Actions needs to be on its bypass list. Or tag by hand:
 - Tag the release commit (`develop` after the release pull request is
   merged) and push the tag:
 
