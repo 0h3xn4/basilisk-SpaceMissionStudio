@@ -8,6 +8,17 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+### Added
+
+- **A release check before the tag.** Actions > "SpaceMissionStudio
+  release check" checks the commit at `develop`'s head before it is
+  tagged: CI passed on it, no vulnerability that is not accepted, the
+  version files and the CHANGELOG agree and are dated today, nothing is
+  left under Unreleased, the tag is new and the notes render. It names
+  the commit to tag. For maintainers; the app is not affected.
+
 ## 2.7.0 (2026-11-11)
 
 The 3D View becomes a real 3D renderer, and the app starts clean.

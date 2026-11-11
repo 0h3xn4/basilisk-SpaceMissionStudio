@@ -17603,3 +17603,19 @@ replacing the live frames with the camera kept, the software renderer,
 a chosen quality kept); `tests/gui/test_live_run_3d.py` (3: the Run page
 controls remembered, a real run at 1000× shown live then replaced, Cancel
 of a run at 1×). No earlier test changed.
+
+## A release check before the tag (2026-11-11)
+
+2.7.0 took a day of detours: a tag on the wrong commit, deleted while its
+run started; a publication from the web before any file existed; and a
+pillow advisory published between the release pull request's CI and the
+tag, which stopped the release run. Each would have been caught before
+tagging. The "SpaceMissionStudio release check" workflow, run from the
+Actions tab on `develop`, now does that: CI's result for the commit at
+the branch's head, the pip-audit step with that day's advisories, and
+`packaging/release_check.py` (the version files agree, the CHANGELOG's
+newest section is the version and is dated today, no Unreleased entries
+are left out, the tag does not exist yet, the notes render). It only
+reads, and its summary names the commit with the commands to tag it.
+`tests/test_release_check.py` (7 tests) covers each refusal and the
+ready case; run on `develop` today it refuses, rightly: 2.7.0 is tagged.

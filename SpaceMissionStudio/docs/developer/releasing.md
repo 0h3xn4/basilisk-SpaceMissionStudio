@@ -139,6 +139,16 @@ what has been verified where.
 
 ## 6. Publish
 
+- Check the commit first: Actions > "SpaceMissionStudio release check" >
+  Run workflow, on `develop` (`.github/workflows/spacemissionstudio-release-check.yml`).
+  It changes nothing. It fails unless CI passed on the commit at
+  `develop`'s head, pip-audit finds no vulnerability that
+  `packaging/audit-exceptions.txt` does not accept (today's advisories),
+  the version files agree, the CHANGELOG's newest section is that version
+  dated today, no Unreleased entries are left out, the tag does not exist
+  yet and the notes render (`packaging/release_check.py`, which also runs
+  locally). Its summary names the commit and gives the two commands
+  below with it filled in. Tag that commit, once.
 - Tag the release commit (`develop` after the release pull request is
   merged) and push the tag:
 
