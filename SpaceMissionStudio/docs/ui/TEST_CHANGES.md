@@ -2086,6 +2086,7 @@ skipped or removed.
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `tests/gui/test_shell_reachability.py::test_the_menu_bar_is_gone_and_every_command_is_on_the_window` | renamed `test_the_menu_bar_holds_the_commands_and_every_command_is_on_the_window`; the window had no menu bar, or an empty one | the menu bar holds File, Edit, View, Go, Run, Tools, Help; no toolbar, and every command's action is on the window, as before | The menu bar is back by the owner's request; the shortcuts must still work with it hidden, so the window check stays |
+| `tests/gui/test_workspace.py::test_the_view_analyses_and_tools_commands` | the View commands' labels, in order | the same, with "Menu Bar" before "Reset Layout" | A new View command, View > Menu Bar |
 | `tests/gui/test_design_rules.py::test_the_shortcut_table_matches_the_registry` | unchanged | unchanged; `docs/DESIGN.md`'s table gained Edit > Settings... (`Ctrl+,`) | A new command with a shortcut |
 
 ## The orbit-type switch as tables (2026-11-12)
