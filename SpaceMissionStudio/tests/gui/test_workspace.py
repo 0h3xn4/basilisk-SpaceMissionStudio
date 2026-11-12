@@ -244,8 +244,8 @@ def test_the_view_analyses_and_tools_commands(window):
     Analyses and Tools commands open their pages; Tools > Reference Data
     opens the dialog."""
     view = [command.label for command in window.commands if command.category == "View"]
-    assert view == ["Inspector", "Explain", "Calculation", "Problems", "Reset Layout", "Navigation: Icons Only",
-                    "Theme: System", "Theme: Light", "Theme: Dark"]
+    assert view == ["Inspector", "Explain", "Calculation", "Problems", "Menu Bar", "Reset Layout",
+                    "Navigation: Icons Only", "Theme: System", "Theme: Light", "Theme: Dark"]
 
     def trigger(category, label):
         next(c for c in window.commands if c.category == category and c.label == label).action.trigger()

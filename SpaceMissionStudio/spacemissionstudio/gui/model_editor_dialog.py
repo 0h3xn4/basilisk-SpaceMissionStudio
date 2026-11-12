@@ -78,8 +78,9 @@ from .load_scenario_widget import TEMPLATES_DIR
 from .model_equipment_tabs import EquipmentTab, StowedTab
 from .model_property_tabs import BudgetLauncherTab, FacePropertiesTable, MaterialsTab, fill_material_combo
 from .model_view_widget import ModelViewWidget
-from .theme import set_role
+from .theme import SPACE, set_role
 from .theme.palettes import swatch_style
+from .value_sheet import ValueSheet, ValueTable
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, TabWidget, finish_form, make_window, show_window
 
 _RECOMPUTE_DELAY_MS = 150  # [ms] after the last edit
@@ -888,9 +889,7 @@ class ModelEditorDialog(QDialog):
         tabs.addTab(_scrolled(self._build_mass_tab()), "Mass properties")
         surfaces = QWidget()
         surfaces_layout = QVBoxLayout(surfaces)
-        self.surfaces_label = QLabel()
-        self.surfaces_label.setWordWrap(True)
-        self.surfaces_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.surfaces_label = SurfaceSummary()
         surfaces_layout.addWidget(self.surfaces_label)
         surfaces_layout.addStretch(1)
         tabs.addTab(_scrolled(surfaces), "Surfaces")
@@ -959,9 +958,7 @@ class ModelEditorDialog(QDialog):
         self.typed_group = typed_group
         layout.addWidget(typed_group, 1)
 
-        self.mass_summary = QLabel()
-        self.mass_summary.setWordWrap(True)
-        self.mass_summary.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.mass_summary = MassSummary()
         summary_group = QGroupBox("Result")
         summary_layout = QVBoxLayout(summary_group)
         summary_layout.addWidget(self.mass_summary)
@@ -1120,23 +1117,10 @@ class ModelEditorDialog(QDialog):
         self.derived = model3d.derive(self._model, self._base_dir, cache=self._cache)
         props = self.derived.mass_properties
         computed = self.derived.computed
-        lines = []
-        if props is not None:
-            lines += model3d.principal_summary(props)
-        else:
-            lines.append("No mass yet: give the parts a mass.")
-        if self._model.mass_properties_source != "computed" and computed.mass_kg > 0.0:
-            lines.append(f"(the parts give {computed.mass_kg:.6g} kg)")
-        self.mass_summary.setText("\n".join(lines))
-        if self.derived.faces:
-            areas = self.derived.projected_areas_m2()
-            total = sum(f.area_m2 for f in self.derived.faces)
-            seen = "\n".join(f"  seen from {axis}: {area:.4g} m^2" for axis, area in areas.items())
-            self.surfaces_label.setText(f"{len(self.derived.faces)} facets, {total:.4g} m^2 in all\n{seen}\n"
-                                        "Each facet takes its part's drag and reflection coefficients. Parts do not "
-                                        "shade each other in the simulation.")
-        else:
-            self.surfaces_label.setText("No facets: no part is in the surface model.")
+        parts_note = (f"The parts alone give {computed.mass_kg:.6g} kg."
+                      if self._model.mass_properties_source != "computed" and computed.mass_kg > 0.0 else "")
+        self.mass_summary.show_properties(props, parts_note)
+        self.surfaces_label.show_faces(self.derived)
         problems = self.derived.errors + self.derived.warnings
         configuration = self.stowed_tab.configuration()
         self.shown = self.derived if configuration == "deployed" else model3d.derive(
@@ -1194,3 +1178,95 @@ class ModelEditorDialog(QDialog):
             if answer != QMessageBox.StandardButton.Yes:
                 return
         self.accept()
+
+
+class MassSummary(QWidget):
+    """The mass properties, to be read: mass and centre of mass, the
+    inertia tensor as a matrix, and the principal axes as a table (each
+    with its moment, direction and the body axis it is nearest)."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(SPACE["lg"])
+        self.empty_label = set_role(QLabel("No mass yet: give the parts a mass."), tone="secondary")
+        layout.addWidget(self.empty_label)
+        self.mass_sheet = ValueSheet("Mass and centre of mass", note="From the body frame's origin B")
+        layout.addWidget(self.mass_sheet)
+        self.inertia_table = ValueTable("Inertia about the centre of mass [kg m²]", ["", "x", "y", "z"],
+                                        numeric=(1, 2, 3), note="Products in tensor form: Ixy = -∫ x y dm")
+        layout.addWidget(self.inertia_table)
+        self.axes_table = ValueTable("Principal axes", ["Axis", "Moment [kg m²]", "Direction (x, y, z)",
+                                                        "Nearest body axis", "Off it [°]"], numeric=(1, 2, 4))
+        layout.addWidget(self.axes_table)
+        self.parts_note = set_role(QLabel(), role="caption")
+        layout.addWidget(self.parts_note)
+        layout.addStretch(1)
+        self._lines: list[str] = []
+        self.show_properties(None, "")
+
+    def show_properties(self, props, parts_note: str = "") -> None:
+        shown = props is not None
+        for widget in (self.mass_sheet, self.inertia_table, self.axes_table):
+            widget.setVisible(shown)
+        self.empty_label.setVisible(not shown)
+        self.parts_note.setText(parts_note)
+        self.parts_note.setVisible(bool(parts_note))
+        if not shown:
+            self._lines = [self.empty_label.text()] + ([parts_note] if parts_note else [])
+            return
+        tidy = model3d.tidy(props)
+        com = tidy.center_of_mass_m
+        self.mass_sheet.set_rows([("Mass", f"{tidy.mass_kg:.6g}", "kg"),
+                                  ("Centre of mass x", f"{com[0]:.6g}", "m"),
+                                  ("Centre of mass y", f"{com[1]:.6g}", "m"),
+                                  ("Centre of mass z", f"{com[2]:.6g}", "m")])
+        i = tidy.inertia_kg_m2
+        self.inertia_table.set_rows([[axis, *(f"{i[row, column]:.6g}" for column in range(3))]
+                                     for row, axis in enumerate("xyz")])
+        self.axes_table.set_rows([[str(number), f"{axis.moment_kg_m2:.6g}",
+                                   "  ".join(f"{v:+.4f}" for v in axis.direction), axis.nearest_body_axis,
+                                   f"{axis.off_axis_deg:.1f}"]
+                                  for number, axis in enumerate(model3d.principal_axes(props), start=1)])
+        self._lines = model3d.principal_summary(props) + ([parts_note] if parts_note else [])
+
+    def text(self) -> str:
+        """The summary as the command line prints it."""
+        return "\n".join(self._lines)
+
+
+class SurfaceSummary(QWidget):
+    """The surface model: how many facets, their area, and the area seen
+    from each body axis."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(SPACE["lg"])
+        self.sheet = ValueSheet("Surface model", empty="No facets: no part is in the surface model.",
+                                note="Each facet takes its part's drag and reflection coefficients. Parts do not "
+                                     "shade each other in the simulation.")
+        layout.addWidget(self.sheet)
+        self.areas = ValueSheet("Area seen from each body axis")
+        layout.addWidget(self.areas)
+        layout.addStretch(1)
+
+    def show_faces(self, derived) -> None:
+        faces = derived.faces if derived is not None else []
+        if not faces:
+            self.sheet.set_rows([])
+            self.sheet.note_label.hide()
+            self.areas.hide()
+            return
+        self.sheet.note_label.show()
+        self.sheet.set_rows([("Number of facets", f"{len(faces)}", ""),
+                             ("Total area", f"{sum(f.area_m2 for f in faces):.4g}", "m²")])
+        self.areas.set_rows([(f"From {axis}", f"{area:.4g}", "m²")
+                             for axis, area in derived.projected_areas_m2().items()])
+        self.areas.show()
+
+    def text(self) -> str:
+        return "\n".join(part for part in (self.sheet.text(), self.areas.text() if self.areas.isVisibleTo(self)
+                                            else "") if part)

@@ -96,6 +96,18 @@ def best_layout(count: int, width: float, height: float) -> str:
     return min(fitting, key=score) if fitting else smallest_layout(count)
 
 
+def filled_grid(layout: str, count: int) -> tuple[int, int, int]:
+    """``(rows, columns, last_span)`` that show ``count`` plots in ``layout``
+    using the whole area: no empty column (fewer plots than columns use
+    fewer), no empty row, and a spare cell taken by the last plot, which
+    spans to the end of its row."""
+    rows, columns = LAYOUTS.get(layout, (1, 1))
+    count = max(1, count)
+    columns = min(columns, count)
+    rows = math.ceil(count / columns)  # past the layout's rows only if it was too small to hold them all
+    return rows, columns, rows * columns - count + 1
+
+
 def capacity(name: str) -> int:
     rows, columns = LAYOUTS[name]
     return rows * columns
@@ -130,10 +142,10 @@ def build_page(figure_json: list[str], layout: str, focused: int, linked: list[b
     in grid order); ``linked[i]`` links plot ``i``'s x axis with the
     others; ``plotly_src`` the local plotly.js URL; ``style`` extra CSS
     (fonts, margins)."""
-    rows, columns = LAYOUTS.get(layout, (1, 1))
+    rows, columns, last_span = filled_grid(layout, len(figure_json))
     cells = "".join(f'<div id="{div_id(i)}" class="cell{" focused" if i == focused else ""}"></div>'
                     for i in range(len(figure_json)))
-    css = f"<style>{grid_css(TOKENS, columns, rows, len(figure_json) > 1)}</style>"
+    css = f"<style>{grid_css(TOKENS, columns, rows, len(figure_json) > 1, last_span)}</style>"
     script = f"""<script>
 var FIGS = [{", ".join(figure_json)}];
 var LINKED = {json.dumps(list(linked))};
@@ -296,8 +308,8 @@ def render_script(figure_json: list[str | None], layout: str, focused: int, link
     the page already shows in that cell; ``empty`` instead shows that
     text, no plots. The page answers with a "drawn" message carrying
     ``generation``."""
-    rows, columns = LAYOUTS.get(layout, (1, 1))
-    state = (f'{{"css": {json.dumps(grid_css(TOKENS, columns, rows, len(figure_json) > 1))}, '
+    rows, columns, last_span = filled_grid(layout, len(figure_json))
+    state = (f'{{"css": {json.dumps(grid_css(TOKENS, columns, rows, len(figure_json) > 1, last_span))}, '
              f'"gridClass": {json.dumps("grid many" if len(figure_json) > 1 else "grid")}, '
              f'"focused": {int(focused)}, "linked": {json.dumps(list(linked))}, '
              f'"generation": {int(generation)}, "empty": {json.dumps(empty)}, '

@@ -250,7 +250,7 @@ A few things to notice right away:
     use allowed or refused: [Network use and offline mode](docs/reference/network.md)),
     **Change history** (**Author**: the name each save records in the
     scenario's change history, the command line's too; empty: your user
-    name), **Layout** (the rail as icons only, the **Inspector** and **Problems** panels, **Reset Layout**),
+    name), **Layout** (the menu bar, the rail as icons only, the **Inspector** and **Problems** panels, **Reset Layout**),
     **Keyboard** (every shortcut) and **About** (the version and the
     licence; **Third-Party Licences...** shows the EUPL-1.2 text and the
     licences of everything the package contains).
@@ -266,9 +266,35 @@ A few things to notice right away:
   number replaces the number only; the unit stays. An optional group
   (Station keeping, Power budget, Monte Carlo, ...) shows only its title
   while it is off; tick it to see and set its fields.
+* The **menu bar** at the top holds every command, by menu:
+  * **File**: New Scenario, Open..., **Open Recent** (the same recent
+    scenarios as Home), Save, Save As..., Change History..., Export Orbits
+    as CCSDS... and Quit.
+  * **Edit**: Undo, Redo and **Settings...** (`Ctrl+,`).
+  * **View**: the Inspector, Calculation and Problems panels, Explain, the
+    menu bar itself, the rail as icons only, the theme, Reset Layout and
+    the command palette.
+  * **Go**: the six areas (`Ctrl+1` to `Ctrl+6`) and the **Time Cursor**
+    moves of Results.
+  * **Run**: Run, Cancel Run, the run mode, Live plot, End of Life,
+    Budget, Design Checks and Open Monte Carlo Results....
+  * **Tools**: 3D Model..., Flight Software, Check a CCSDS File...,
+    Reference Data... and Check Reference Data.
+  * **Help**: this manual, Keyboard Shortcuts, Third-Party Licences... and
+    About.
+
+  A menu item shows its shortcut and is greyed out when its command is.
+  **View > Menu Bar** hides the menu bar (the window remembers it); every
+  shortcut and the command palette still work, and **Settings > Layout**
+  or the palette ("menu bar") shows it again.
 * Every command is also in the **command palette**: press `Ctrl+K`, or
   click the search field in the top bar, and type part of its name
-  ("save as", "budget", or a spacecraft's name). There is no menu bar.
+  ("save as", "budget", or a spacecraft's name).
+* **Drop-down lists** open below their field, at most 12 rows high with a
+  scroll bar. A list of 12 entries or more has a **Type to filter** field
+  at its top: just type while it is open and only the entries containing
+  what you typed stay; the first is selected, the arrow keys move, `Enter`
+  picks, `Esc` closes.
 * The **Inspector** panel on the right (`Ctrl+I`): the field you are in,
   its value, the range it accepts and its help (a button or tab shows
   nothing there). On a screen narrower than 1600 pixels a new window
@@ -1224,9 +1250,14 @@ it.
   Link group also has **Ground Station Access Timeline**: every
   station's passes over every spacecraft in one chart.
 * **Layout** -- how many plots the grid shows, from 1 x 1 to 3 x 2 (six
-  at most). Ticking more plots than fit picks a bigger layout by itself.
-  The layout and the plots shown are kept for each scenario and come
-  back after the next run.
+  at most). Ticking more plots than fit picks a bigger layout by itself,
+  and clearing a tick makes the grid smaller again, so the plots always
+  fill the area: one plot takes all of it, two share it, and three in a
+  2 x 2 grid let the third span the bottom row. The layout and the plots
+  shown are kept for each scenario and come back after the next run.
+* **The toolbar** above the plots (Layout, X-axis, Events, the exports,
+  Compare with) is one row on a wide window and wraps onto a second only
+  when the pane is narrow.
 * **Click a plot** to select it (a blue frame): **Save PNG...** and
   **Save SVG...** save the selected plot. A click also sets the time
   cursor. Zooming or panning one plot does the same to the others: their

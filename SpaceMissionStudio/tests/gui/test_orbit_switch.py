@@ -50,8 +50,9 @@ def answer(monkeypatch):
     state = {"choice": "convert"}
 
     def ask(_parent, old_label, new_label, current, converted, own, reason):
-        asked.append(dict(old=old_label, new=new_label, current=current, converted=converted, own=own,
-                          reason=reason))
+        describe = orbit_ic_widget.describe_orbit  # the orbits as the dialog's text gives them
+        asked.append(dict(old=old_label, new=new_label, current=describe(current), converted=describe(converted),
+                          own=describe(own), reason=reason))
         return state["choice"]
 
     monkeypatch.setattr(orbit_ic_widget, "ask_orbit_switch", ask)
@@ -106,7 +107,7 @@ def test_switching_to_a_tle_says_why_it_is_not_converted(widget, monkeypatch):
     monkeypatch.setattr(orbit_ic_widget, "ask_orbit_switch", lambda *a: asked.append(a) or "keep")
     widget.type_buttons["tle"].click()
     assert widget.to_dataclass().type == "tle"
-    assert asked[0][4] == "" and "nothing converts to a TLE" in asked[0][6]
+    assert asked[0][4] is None and "nothing converts to a TLE" in asked[0][6]
 
 
 def test_setting_the_type_in_code_never_asks(widget, monkeypatch):
@@ -125,8 +126,11 @@ def test_the_question_offers_convert_only_when_there_is_a_conversion(qtbot):
     sets its choice."""
     from spacemissionstudio.gui.orbit_ic_widget import OrbitSwitchDialog
 
-    with_conversion = OrbitSwitchDialog(None, "Classical elements", "Cartesian state", "a ...", "r ...", "r ...", "")
-    without = OrbitSwitchDialog(None, "Classical elements", "Two-Line Element (TLE)", "a ...", "", "no lines",
+    elements = OrbitIC(type="classical_elements", semi_major_axis_km=7000.0, eccentricity=0.001,
+                       inclination_deg=97.5, raan_deg=10.0, arg_periapsis_deg=0.0, true_anomaly_deg=0.0)
+    with_conversion = OrbitSwitchDialog(None, "Classical elements", "Cartesian state", elements, _CONVERTED,
+                                        _CONVERTED, "")
+    without = OrbitSwitchDialog(None, "Classical elements", "Two-Line Element (TLE)", elements, None, None,
                                 "nothing converts to a TLE")
     for dialog in (with_conversion, without):
         qtbot.addWidget(dialog)
@@ -134,3 +138,24 @@ def test_the_question_offers_convert_only_when_there_is_a_conversion(qtbot):
     with_conversion.convert_button.click()
     without.keep_button.click()
     assert (with_conversion.choice, without.choice) == ("convert", "keep")
+
+
+def test_the_question_shows_each_orbit_as_a_table_of_values(qtbot):
+    """Side by side, one value a row with its unit: the orbit now, after
+    converting, and the new page's own values; a refusal says why first."""
+    from spacemissionstudio.gui.orbit_ic_widget import OrbitSwitchDialog
+
+    elements = OrbitIC(type="classical_elements", semi_major_axis_km=6928.0, eccentricity=0.0,
+                       inclination_deg=97.59, raan_deg=259.42, arg_periapsis_deg=0.0, true_anomaly_deg=0.0)
+    dialog = OrbitSwitchDialog(None, "Classical elements", "Cartesian state", elements, _CONVERTED, None, "")
+    qtbot.addWidget(dialog)
+    assert dialog.current_sheet.rows[0] == ("Semi-major axis a", "6928.000", "km")
+    assert dialog.current_sheet.value("Inclination i") == "97.5900"
+    assert dialog.converted_sheet.rows[0] == ("Position x", "-1197.805", "km")
+    assert dialog.converted_sheet.rows[3] == ("Velocity vx", "1.092724", "km/s")
+    assert dialog.own_sheet.rows == [] and "no values yet" in dialog.own_sheet.text()
+    refused = OrbitSwitchDialog(None, "Classical elements", "Two-Line Element (TLE)", elements, None, None,
+                                "nothing converts to a TLE: a TLE holds SGP4 mean elements")
+    qtbot.addWidget(refused)
+    assert refused.intro_label.text().startswith("Nothing converts to a TLE: a TLE holds SGP4 mean elements.")
+    assert refused.keep_button.isDefault() and refused.converted_sheet.title_label.text() == "Not converted"

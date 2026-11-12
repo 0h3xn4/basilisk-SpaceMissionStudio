@@ -148,6 +148,44 @@ def test_ticking_plots_fills_the_grid_and_grows_the_layout(widget):
     assert widget.shown_plots() == ["sat-1.position_N", "sat-1.eclipse.illumination_factor"]
 
 
+def test_clearing_plots_shrinks_the_grid_so_the_plots_fill_it(widget):
+    """The owner (2026-11-12): after clearing plots, no empty cell is left;
+    the layout fits the plots that remain."""
+    from spacemissionstudio.gui import plot_page
+
+    widget.set_result(_result())
+    _tick(widget, "sat-1.velocity_N")
+    _tick(widget, "sat-1.eclipse.illumination_factor")
+    _tick(widget, "sat-1.eclipse.illumination_factor", on=False)
+    assert plot_page.capacity(widget.layout_combo.currentData()) == 2
+    _tick(widget, "sat-1.velocity_N", on=False)
+    assert widget.layout_combo.currentData() == "1x1"
+
+
+def test_the_page_grid_has_no_empty_cell():
+    """Fewer plots than columns use fewer columns, fewer than rows fewer
+    rows, and the last plot spans a spare cell."""
+    from spacemissionstudio.gui import plot_page
+    from spacemissionstudio.gui.theme import TOKENS
+    from spacemissionstudio.gui.theme.plotly_template import grid_css
+
+    assert plot_page.filled_grid("1x2", 1) == (1, 1, 1)
+    assert plot_page.filled_grid("2x3", 1) == (1, 1, 1)
+    assert plot_page.filled_grid("2x2", 3) == (2, 2, 2)
+    assert plot_page.filled_grid("3x2", 5) == (3, 2, 2)
+    assert plot_page.filled_grid("2x3", 6) == (2, 3, 1)
+    assert "grid-column: span 2" in grid_css(TOKENS, 2, 2, True, 2)
+    assert "span" not in grid_css(TOKENS, 2, 2, True, 1)
+
+
+def test_the_toolbar_is_one_row_when_the_pane_is_wide(widget, qtbot):
+    widget.set_result(_result())
+    widget.resize(1900, 700)
+    qtbot.waitUntil(lambda: widget.toolbar.height() <= widget.layout_combo.sizeHint().height() + 8)
+    widget.resize(700, 700)
+    qtbot.waitUntil(lambda: widget.toolbar.height() > widget.layout_combo.sizeHint().height() + 8)
+
+
 def test_a_smaller_layout_keeps_the_first_plots(widget):
     """Choosing 1 x 1 keeps the first plot and clears the others' ticks."""
     widget.set_result(_result())

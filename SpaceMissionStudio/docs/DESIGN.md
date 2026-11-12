@@ -330,8 +330,27 @@ bar and no toolbar:
   and the rail. The layout (docks, rail, the main splitters) is kept per
   scenario file, and for the window between sessions (`layout.ini`).
 - **Commands:** every command is in one registry (`gui/actions.py`):
-  the command palette, the area headers, the top bar, the shortcut list
-  and every tooltip ("Save (Ctrl+S)", then what it does) come from it.
+  the command palette, the menu bar, the area headers, the top bar, the
+  shortcut list and every tooltip ("Save (Ctrl+S)", then what it does)
+  come from it.
+- **Menu bar:** File, Edit, View, Go, Run, Tools and Help
+  (`gui/menu_bar.py`, `MENUS`), each item a registry command, so a menu
+  item, its shortcut and its buttons share one text and one enabled
+  state. Every command is in exactly one menu
+  (`tests/gui/test_menu_bar.py`). File > Open Recent reads the same list
+  as Home. View > Menu Bar hides it (kept with the layout); the
+  shortcuts and the palette work without it.
+- **Dialogs fit their text:** every dialog is at least as tall as its
+  layout needs at its width (`gui/theme/dialogs.py`, applied by the
+  application style), so a wrapped line or a button is never cut off,
+  whatever size the window manager gives it.
+- **Drop-down lists:** every combo box's list opens below the field,
+  12 rows high with a scroll bar, at least as wide as its longest entry,
+  with control-height rows, a hover mark and the current entry selected.
+  A list of 12 entries or more has a "Type to filter" field: typing
+  narrows the list, the arrows move in it, Enter picks
+  (`gui/theme/combo.py`, applied by the application style to every combo
+  box). Menus have 32 px rows.
 
 | Measure | Value | Where |
 |---|---|---|
@@ -395,6 +414,8 @@ popovers, tooltips) are `bg.raised` with a 1 px border instead.
 | Time cursor | `time_cursor.TimeCursor`, `ResultsWidget.cursor_actions` | One time shared by the plots, the timeline, the dashboard and the output |
 | Command | `actions.ActionRegistry.add(id, text, handler, category=, area=, shortcut=, tip=)` | Every command of the window: its palette entry, header and top-bar buttons, tooltip ("Save (Ctrl+S)") and shortcut row come from it |
 | Area | `shell.Shell.register(id, icon, label, content, order)`, `AreaPage.add_command(action)` | A top-level area of the navigation rail, hosting a screen, with its commands in its header |
+| Value sheet | `value_sheet.ValueSheet(title, rows=[(name, value, unit)], note=, empty=)` | Several values of one thing, to be read: one row each, the number right-aligned in tabular figures beside its unit, a title and a note (frame, source). Never a sentence of numbers |
+| Value table | `value_sheet.ValueTable(title, headers, rows, numeric=)` | A matrix (an inertia tensor) or a few rows with several columns (principal axes); a long or sortable list is a `DataTable` |
 | Elided label | `app_shell.ElidedLabel` | One line that ends in "..." rather than widening the window; the whole text is its tooltip |
 | Event table | `EventTimelineWidget.table`, a `DataTable` over `event_timeline_widget._EventRows` | Events, sortable; Ctrl+C copies the selection as TSV |
 
@@ -473,7 +494,8 @@ Commands with a **standard key** take the platform's own key for it
 The table gives them as Qt binds them without a desktop theme (the CI's
 offscreen platform). Qt's documentation gives Ctrl+Shift+Z for Redo on
 GNOME and KDE. A command is named by its palette category and its
-label (there are no menus).
+label, which is also its menu's name and item in the menu bar (the
+Time Cursor commands are under Go > Time Cursor).
 
 | Command | Keys | Standard key |
 |---|---|---|
@@ -484,6 +506,7 @@ label (there are no menus).
 | File > Quit | none | Quit |
 | Edit > Undo | Ctrl+Z | Undo |
 | Edit > Redo | Ctrl+Y | Redo |
+| Edit > Settings... | Ctrl+, | - |
 | Run > Run | Ctrl+R | - |
 | Run > Cancel Run | Esc | - |
 | Run > Clear Time Cursor | Alt+Backspace | - |

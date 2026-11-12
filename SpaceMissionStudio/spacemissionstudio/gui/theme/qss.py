@@ -367,14 +367,24 @@ QComboBox::down-arrow {{
     height: {px(SIZE['body'] + 1)};
 }}
 QComboBox::down-arrow:disabled {{ image: url({chevron_down_off}); }}
+QComboBox {{ combobox-popup: 0; }}
 QComboBox QAbstractItemView {{
     background-color: {t['bg.raised']};
     border: {px(BORDER)} solid {t['border.subtle']};
-    selection-background-color: {t['bg.hover']};
+    border-radius: {r_panel};
+    selection-background-color: {t['bg.selected']};
     selection-color: {t['text.primary']};
     outline: none;
     padding: {px(SPACE['xs'])};
 }}
+QComboBox QAbstractItemView::item {{
+    min-height: {px(control_h)};
+    padding: 0px {px(SPACE['md'])};
+    border-radius: {px(SPACE['xs'])};
+}}
+QComboBox QAbstractItemView::item:hover {{ background-color: {t['bg.hover']}; }}
+QComboBox QAbstractItemView::item:selected {{ background-color: {t['bg.selected']}; color: {t['text.primary']}; }}
+QComboBox QLineEdit#comboFilter {{ margin: {px(SPACE['xs'])}; }}
 QSpinBox::up-button, QSpinBox::down-button, QDoubleSpinBox::up-button, QDoubleSpinBox::down-button,
 QDateTimeEdit::up-button, QDateTimeEdit::down-button {{
     width: {px(SPACE['lg'] + 2)};
@@ -490,13 +500,14 @@ QMenuBar::item {{
 }}
 QMenuBar::item:selected {{ background-color: {t['bg.hover']}; }}
 QMenu {{
+    min-width: {px(200)};
     background-color: {t['bg.raised']};
     border: {px(BORDER)} solid {t['border.subtle']};
     border-radius: {r_panel};
     padding: {px(SPACE['xs'])};
 }}
 QMenu::item {{
-    padding: {px(SPACE['xs'] + 2)} {px(SPACE['xl'])} {px(SPACE['xs'] + 2)} {px(SPACE['sm'])};
+    padding: {px(SPACE['sm'])} {px(SPACE['xl'])} {px(SPACE['sm'])} {px(SPACE['md'])};
     border-radius: {px(SPACE['xs'])};
     background: transparent;
 }}

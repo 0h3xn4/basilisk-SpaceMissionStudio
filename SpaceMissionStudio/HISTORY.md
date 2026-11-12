@@ -17655,3 +17655,95 @@ The owner confirmed that private vulnerability reporting is switched on
 for the repository, so the "Report a vulnerability" link in `SECURITY.md`
 works. `docs/legal/RISK_REGISTER.md` marks R8's last open item done and
 crosses it off the owner's to-do list.
+
+## A menu bar, readable drop-down lists, optional reference files (2026-11-12)
+
+The owner, showing other programs' menu bars: "I am missing something like
+this in the tool". The UI overhaul's M2a (2026-10-21) had removed the menu
+bar for the navigation rail, the top bar and the command palette. It is
+back, beside them: `gui/menu_bar.py` lays out File, Edit, View, Go, Run,
+Tools and Help as lists of registry command ids, so each item is the
+command's own action (text, shortcut, enabled state shared with the
+buttons and the palette). File > Open Recent reads the recent list Home
+shows, on each opening, skipping files that have gone; a file's path is
+its action's data and one bound method of the window opens it (a lambda
+holding the window on a child's signal keeps it alive past close, the
+cause of an earlier exit segfault). Edit > Settings... (`Ctrl+,`) is new.
+View > Menu Bar hides the bar and the layout keeps the choice; Reset
+Layout shows it again. `tests/gui/test_menu_bar.py` checks every
+registered command is in exactly one menu, so a new command needs a
+place.
+
+Then: "the drop down menus are very cramped and tight and unintuitive to
+use, particularly if there are many entries". Measured: a combo box's
+list drew 24 px rows with Qt's menu-like delegate (the style sheet's row
+rules did not reach it), had no hover mark, and a 60-entry list opened
+over its field as tall as the screen, scrolling with two small arrows.
+`gui/theme/combo.py` fixes all 93 combo boxes in one place: `AppStyle`
+(Fusion underneath, set by `apply_theme`) prepares each combo box as Qt
+polishes it, with `QStyledItemDelegate` (32 px rows, padding, hover and
+selected marks from `qss.py`), 12 visible rows, the list below the field
+(`combobox-popup: 0`) with a scroll bar, as wide as its longest entry;
+from 12 entries a "Type to filter" field narrows the list as one types,
+the first match current, the arrows and Enter acting on the list. Menu
+rows grew from 28 to 32 px.
+
+And, showing the Reference data window's "R-REC-P.676-13-Part1.txt
+missing" in red: "why does this not work". It works: the ITU's server
+returned the 44 kB file (checked 2026-11-12), but the installers may not
+carry it (the ITU allows its reproduction only with permission), so it
+is fetched on request, as the Eros files are. Red "missing" and "3 of 19
+need attention" in the status bar on every new install said otherwise.
+`reference_data.NOT_DOWNLOADED` now marks an optional file not yet
+fetched, in grey, with a note saying what needs it and that Download...
+gets it, and `needs_attention` leaves it out of the counts. The
+reference-data guide said "the installers fetch it" for the ITU file;
+corrected.
+
+The owner then sent the orbit-type switch, two screenshots ("more ugly,
+broken examples to be fixed"): each paragraph cut after its first line
+and the buttons clipped. Offscreen it laid out whole; on the owner's
+desktop the window manager gave it another width, and Qt does not size a
+window by its wrapped labels' height for width. `gui/theme/dialogs.py`
+fixes it for every dialog: on show and on each width change, the
+dialog's minimum height becomes what its layout needs at that width.
+`AppStyle` moved to `gui/theme/style.py`, preparing combo boxes and
+dialogs as Qt polishes them.
+
+"Raw text is visually always like noise. make the information clear and
+understandable. that applies to everything in the tool," with the 3D
+model editor's mass summary as the example (mass, centre of mass, six
+inertia terms and three principal axes as lines of numbers).
+`gui/value_sheet.py` adds `ValueSheet` (name, value right-aligned in
+tabular figures, unit; a title and a note) and `ValueTable` (a matrix or
+a few rows). The mass summary became a sheet, the inertia a 3 x 3
+matrix and the principal axes a table with each axis's moment, direction
+and nearest body axis (`model3d.principal_axes`); the surface summary a
+sheet of facets, total area and the area seen from each axis. The
+orbit-type switch shows the orbit now, after converting and on the new
+page side by side, one value a row, and says why when nothing converts.
+A design rule in `CLAUDE.md` and `docs/DESIGN.md`: never a sentence of
+numbers. The rest of the app follows, screen by screen.
+
+The owner, on Results › Plots: after ticking plots and clearing some, a
+1 x 2 grid kept its empty half; "I want the layout to change accordingly,
+such that the full space is always used". Clearing a tick now picks
+`plot_page.best_layout` for the plots left when the grid has room to
+spare, and the page draws `plot_page.filled_grid`: no empty column or row,
+and the last plot spanning a spare cell (three plots in 2 x 2: the third
+takes the bottom row). Checked in the page: 3, 2, 1 plots fill 1253 x 493
+px each time, and 1 plot in a chosen 2 x 3 fills it too. Then the three
+rows above the plots ("too much unused empty space"): one toolbar of
+groups in a `FlowLayout`, one row at 1920 px, two at 1280 px (the single
+fixed row of before made the window too wide there, U-03).
+
+**A segfault when `tests/gui/test_help.py` ran alone** (as CI's docs job
+runs it), in 3 of 4 runs: the window was not freed when closed and
+dropped, so a later garbage collection, in the reference data reader's
+thread, tore it down. Two references held it: File > Open Recent's
+`triggered` connected to the window's bound method, and the recursive
+helper that built the menus, a closure cycle holding that method.
+`gui/menu_bar.py` now connects a weak method and fills the menus with a
+module function; `test_the_window_is_freed_as_soon_as_it_is_dropped`
+checks the window is freed by reference count with the collector off.
+`test_help.py` alone: 5 of 5 runs pass.

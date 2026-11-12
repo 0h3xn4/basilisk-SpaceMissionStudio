@@ -39,7 +39,9 @@ and the exported files.
 2. Or click one of the **Suggested** buttons: the series the scenario's
    description points at.
 3. Tick more plots to see them together (up to six); **Layout** sets the
-   grid. Zooming one zooms them all. The grid is kept for the scenario.
+   grid, and the plots always fill it: clear a tick and the grid shrinks,
+   and a spare cell is taken by the last plot. Zooming one zooms them all.
+   The grid is kept for the scenario.
 4. **X-axis** switches every plot between elapsed time, the calendar date
    and the orbit number. **Events** draws eclipses, passes and burns
    behind the lines.

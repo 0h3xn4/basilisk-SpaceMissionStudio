@@ -47,7 +47,9 @@ from ..engine import orbit_conversion, tle
 from ..engine.orbit_design import DEFAULT_LTAN_HOUR, raan_for_ltan_deg, sun_synchronous_inclination_deg
 from ..schema.scenario import ANOMALY_TYPES, ORBIT_IC_TYPES, OrbitIC
 from .feedback import report
+from .theme import SPACE, set_role
 from .value_mark_note import ValueMarkNote
+from .value_sheet import ValueSheet
 from . import units
 from .widgets import ComboBox, PreciseDoubleSpinBox, finish_form
 
@@ -201,9 +203,8 @@ class OrbitIcWidget(QWidget):
                                                  anomaly_type=self.anomaly_type_combo.currentData())
         except (orbit_conversion.OrbitConversionError, ValueError, TypeError) as exc:
             reason = str(exc)
-        choice = ask_orbit_switch(self, _TYPE_LABELS[old_type], _TYPE_LABELS[new_type], describe_orbit(current),
-                                  describe_orbit(converted) if converted is not None else "", describe_orbit(own),
-                                  reason)
+        choice = ask_orbit_switch(self, _TYPE_LABELS[old_type], _TYPE_LABELS[new_type], current, converted,
+                                  own if orbit_rows(own) else None, reason)
         if choice == "convert" and converted is not None:
             if new_type == "classical_elements":
                 self.anomaly_type_combo.setCurrentIndex(self.anomaly_type_combo.findData(converted.anomaly_type))
@@ -603,34 +604,86 @@ def describe_orbit(orbit: OrbitIC | None) -> str:
     return "\n".join(lines) if lines else "no TLE lines yet"
 
 
+def orbit_rows(orbit: OrbitIC | None) -> list[tuple[str, str, str]]:
+    """An orbit's values as ``(name, value, unit)`` rows, for a
+    :class:`ValueSheet`."""
+    if orbit is None:
+        return []
+    if orbit.type == "classical_elements":
+        mean = orbit.anomaly_type == "mean"
+        return [("Semi-major axis a", f"{orbit.semi_major_axis_km:.3f}", "km"),
+                ("Eccentricity e", f"{orbit.eccentricity:.6f}", ""),
+                ("Inclination i", f"{orbit.inclination_deg:.4f}", "°"),
+                ("RAAN Ω", f"{orbit.raan_deg:.4f}", "°"),
+                ("Argument of periapsis ω", f"{orbit.arg_periapsis_deg:.4f}", "°"),
+                ("Mean anomaly M" if mean else "True anomaly ν",
+                 f"{(orbit.mean_anomaly_deg if mean else orbit.true_anomaly_deg):.4f}", "°")]
+    if orbit.type == "cartesian":
+        rows = [(f"Position {axis}", f"{value:.3f}", "km") for axis, value in zip("xyz", orbit.position_km)]
+        rows += [(f"Velocity v{axis}", f"{value:.6f}", "km/s") for axis, value in zip("xyz", orbit.velocity_km_s)]
+        return rows
+    return [(f"Line {number}", line, "") for number, line in ((1, orbit.tle_line1), (2, orbit.tle_line2)) if line]
+
+
+_SHEET_NOTE = {"cartesian": "EME2000, at the scenario's epoch", "classical_elements": "Osculating, at the epoch"}
+
+
+def _sheet(title: str, orbit: OrbitIC | None, empty: str) -> ValueSheet:
+    note = _SHEET_NOTE.get(orbit.type, "") if orbit is not None else ""
+    return ValueSheet(title, orbit_rows(orbit), note=note, empty=empty)
+
+
 class OrbitSwitchDialog(QDialog):
     """What switching the orbit type does: convert the orbit (both sets of
-    values shown), or use the new page's own values, or cancel (U-14)."""
+    values shown side by side), or use the new page's own values, or cancel
+    (U-14)."""
 
-    def __init__(self, parent, old_label: str, new_label: str, current: str, converted: str, own: str,
-                 reason: str) -> None:
+    def __init__(self, parent, old_label: str, new_label: str, current: OrbitIC | None,
+                 converted: OrbitIC | None, own: OrbitIC | None, reason: str) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"Switch to {new_label}")
         self.choice = None
         layout = QVBoxLayout(self)
-        for text in (f"Now ({old_label}): {current}",
-                     f"Converted to {new_label}: {converted}" if converted else f"It is not converted: {reason}",
-                     f"The {new_label} page's own values: {own}"):
-            label = QLabel(text)
-            label.setWordWrap(True)
-            label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-            layout.addWidget(label)
+        layout.setContentsMargins(SPACE["xl"], SPACE["xl"], SPACE["xl"], SPACE["xl"])
+        layout.setSpacing(SPACE["lg"])
+        layout.addWidget(set_role(QLabel(f"Switch the orbit to {new_label}?"), role="section-title"))
+        if converted is not None:
+            intro = (f"Convert and switch keeps the same orbit, written as a {new_label.lower()}. "
+                     f"Use the page's values switches to what the {new_label} page holds now.")
+        else:
+            why = reason.strip().rstrip(".") or "the orbit cannot be converted"
+            intro = (f"{why[:1].upper()}{why[1:]}. Use the page's values switches to the {new_label} page as it "
+                     "is.")
+        self.intro_label = set_role(QLabel(intro), tone="secondary")
+        self.intro_label.setWordWrap(True)
+        layout.addWidget(self.intro_label)
+        sheets = QHBoxLayout()
+        sheets.setSpacing(SPACE["xl"])
+        self.current_sheet = _sheet(f"Now: {old_label}", current, "")
+        self.converted_sheet = _sheet("After converting" if converted is not None else "Not converted",
+                                      converted, "Nothing to convert to: see above.")
+        self.own_sheet = _sheet(f"The {new_label} page now", own, "Empty: no values yet.")
+        for sheet in (self.current_sheet, self.converted_sheet, self.own_sheet):
+            sheets.addWidget(sheet, 1, Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(sheets)
         buttons = QDialogButtonBox()
         self.convert_button = buttons.addButton("Convert and switch", QDialogButtonBox.ButtonRole.AcceptRole)
-        self.convert_button.setEnabled(bool(converted))
-        self.keep_button = buttons.addButton(f"Use the {new_label} page's values",
-                                             QDialogButtonBox.ButtonRole.ActionRole)
+        self.convert_button.setEnabled(converted is not None)
+        self.keep_button = buttons.addButton("Use the page's values", QDialogButtonBox.ButtonRole.ActionRole)
+        self.keep_button.setToolTip(f"Switch to the {new_label} page as it is, without converting.")
         buttons.addButton(QDialogButtonBox.StandardButton.Cancel)
         self.convert_button.clicked.connect(self._on_convert)
         self.keep_button.clicked.connect(self._on_keep)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
-        (self.convert_button if converted else self.keep_button).setDefault(True)
+        default = self.convert_button if converted is not None else self.keep_button
+        default.setDefault(True)
+        set_role(default, variant="primary")
+
+    def text(self) -> str:
+        """What the dialog says, as plain text."""
+        return "\n\n".join(part for part in (self.intro_label.text(), self.current_sheet.text(),
+                                                self.converted_sheet.text(), self.own_sheet.text()) if part)
 
     def _on_convert(self) -> None:
         self.choice = "convert"
@@ -641,8 +694,8 @@ class OrbitSwitchDialog(QDialog):
         self.accept()
 
 
-def ask_orbit_switch(parent, old_label: str, new_label: str, current: str, converted: str, own: str,
-                     reason: str):
+def ask_orbit_switch(parent, old_label: str, new_label: str, current: OrbitIC | None, converted: OrbitIC | None,
+                     own: OrbitIC | None, reason: str):
     """"convert", "keep" or None (cancelled), from :class:`OrbitSwitchDialog`."""
     dialog = OrbitSwitchDialog(parent, old_label, new_label, current, converted, own, reason)
     dialog.exec()

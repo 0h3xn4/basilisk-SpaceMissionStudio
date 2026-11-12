@@ -356,11 +356,13 @@ def test_every_row_is_reachable_in_the_shell(window, row):
     _ROWS[row](window)
 
 
-def test_the_menu_bar_is_gone_and_every_command_is_on_the_window(window):
-    """No menu bar and no toolbar: every command's action is the window's
-    own (so its shortcut works in every area), the views' own Time Cursor
-    moves aside, which work while Results has the focus."""
-    assert window.menuWidget() is None or not window.menuWidget().actions()
+def test_the_menu_bar_holds_the_commands_and_every_command_is_on_the_window(window):
+    """The menu bar's menus, and no toolbar: every command's action is the
+    window's own (so its shortcut works in every area, the menu bar hidden
+    too), the views' own Time Cursor moves aside, which work while Results
+    has the focus."""
+    assert [action.text().replace("&", "") for action in window.menuBar().actions()] == [
+        "File", "Edit", "View", "Go", "Run", "Tools", "Help"]
     _no_toolbars(window)
     for command in window.commands:
         if command.category == "Time Cursor":

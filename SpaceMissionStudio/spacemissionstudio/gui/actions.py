@@ -22,9 +22,10 @@ overhaul plan §5.1).
 A command is a :class:`QAction` with an id (``"file.save"``), a category
 for the command palette ("File", "Run", ...), the area of the navigation
 rail it belongs to, and old names the palette also finds it by. The
-command palette, the shortcut list and every tooltip are generated from
-here, so they cannot disagree. The window owns the actions, so their
-shortcuts work from every area, with no menu bar.
+command palette, the menu bar (gui.menu_bar), the shortcut list and every
+tooltip are generated from here, so they cannot disagree. The window owns
+the actions, so their shortcuts work from every area, whether the menu bar
+is shown or hidden.
 """
 
 from __future__ import annotations
@@ -129,7 +130,7 @@ class ActionRegistry:
         if handler is not None:
             (action.toggled if checkable else action.triggered).connect(handler)
         if on_window:
-            # On the window, so the shortcut works in every area with no menu bar.
+            # On the window, so the shortcut works in every area, the menu bar hidden too.
             owner.addAction(action)
         command = Command(command_id, action, category, area, tip, tuple(keywords))
         self._commands[command_id] = command

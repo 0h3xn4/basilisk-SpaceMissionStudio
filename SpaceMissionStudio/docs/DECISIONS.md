@@ -3183,3 +3183,55 @@ what is open. Not legal advice.
   are not in the repository); the CCSDS list (its terms are unread, D5);
   the wording in earlier commits (removing it rewrites history, the
   owner's call).
+
+## A menu bar again, and readable drop-down lists (2026-11-12)
+
+- **Decision:** the window has a menu bar (File, Edit, View, Go, Run,
+  Tools, Help) built from the action registry (`gui/menu_bar.py`), beside
+  the rail, the top bar and the command palette. **Why:** the owner asked
+  for one ("I am missing something like this"); M2a removed it
+  (2026-10-21) for the palette, which stays. Built from the registry, a
+  menu item cannot disagree with its shortcut or buttons, and a test
+  keeps every command in exactly one menu.
+- **Decision:** View > Menu Bar can hide it, kept with the window's
+  layout; Reset Layout shows it. **Why:** the shell without it was a
+  deliberate design; those who liked it keep it at no cost.
+- **Decision:** Edit > Settings... (`Ctrl+,`) is a new command. **Why:**
+  the place people look for settings in a menu bar, and the common key.
+- **Decision:** every combo box's list opens below the field
+  (`combobox-popup: 0`), 12 rows high with a scroll bar, rows drawn by
+  `QStyledItemDelegate` so the style sheet's row height, padding and
+  hover apply, and a "Type to filter" field from 12 entries
+  (`gui/theme/combo.py`, applied by the application style `AppStyle` as
+  Qt polishes each combo box). **Why:** the owner found the lists
+  "cramped and unintuitive, particularly with many entries"; measured,
+  a 60-entry list covered the screen over its field with 24 px rows and
+  arrow scrolling. One place fixes all 93 combo boxes, with no change to
+  their values or signals; an editable combo box with a completer was
+  not chosen, as it would let any text be typed.
+- **Decision:** an optional reference file fetched only on request (the
+  Eros files, ITU-R P.676-13) is "not downloaded" when absent, not
+  "missing", and does not count as needing attention. **Why:** every new
+  install showed three red "missing" files and "3 need attention" for
+  data nothing used.
+
+## Values as tables, and dialogs that fit their text (2026-11-12)
+
+- **Decision:** several values of one thing are shown as a
+  `ValueSheet` (name, value right-aligned in tabular figures, unit) or a
+  `ValueTable`, never as a sentence of numbers; a design rule in
+  `CLAUDE.md` and `docs/DESIGN.md`. **Why:** the owner: "raw text is
+  visually always like noise. make the information clear and
+  understandable. that applies to everything in the tool." First the 3D
+  model editor's mass and surface summaries and the orbit-type switch;
+  the rest by an audit of every screen, screen by screen.
+- **Decision:** the command line keeps its plain lines
+  (`model3d.principal_summary`); the editor's summary gives the same
+  text for copying. **Why:** a terminal has no table widget, and scripts
+  read those lines.
+- **Decision:** every `QDialog` gets a minimum height equal to what its
+  layout needs at its current width, on show and on each width change
+  (`gui/theme/dialogs.py`, from `AppStyle.polish`). **Why:** Qt does not
+  size a top-level window by its wrapped labels' height for width; the
+  orbit-type switch showed one line of each paragraph and clipped
+  buttons on the owner's desktop. One place fixes every dialog.
