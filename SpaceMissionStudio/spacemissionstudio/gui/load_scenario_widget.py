@@ -363,19 +363,30 @@ class TemplateCard(QFrame):
                 set_role(button, variant="ghost")
         buttons.addStretch(1)
         layout.addWidget(self.buttons_holder)
-        # Shown on the card under the pointer and the card picked; the room
-        # is kept, so the grid does not move.
-        policy = self.buttons_holder.sizePolicy()
-        policy.setRetainSizeWhenHidden(True)
-        self.buttons_holder.setSizePolicy(policy)
-        self.buttons_holder.setVisible(False)
+        # Shown on the card under the pointer and the card picked; their room
+        # is kept (and laid out), so the grid does not move.
+        for button in self._buttons():
+            policy = button.sizePolicy()
+            policy.setRetainSizeWhenHidden(True)
+            button.setSizePolicy(policy)
+        self._show_buttons(False)
+
+    def _buttons(self) -> list:
+        return [button for button in (self.open_button, self.customize_button) if button is not None]
+
+    def _show_buttons(self, shown: bool) -> None:
+        for button in self._buttons():
+            button.setVisible(shown)
+
+    def buttons_shown(self) -> bool:
+        return self.open_button.isVisibleTo(self)
 
     def enterEvent(self, event) -> None:
-        self.buttons_holder.setVisible(True)
+        self._show_buttons(True)
         super().enterEvent(event)
 
     def leaveEvent(self, event) -> None:
-        self.buttons_holder.setVisible(self.is_selected())
+        self._show_buttons(self.is_selected())
         super().leaveEvent(event)
 
     def text_for_filter(self) -> str:
@@ -383,7 +394,7 @@ class TemplateCard(QFrame):
 
     def set_selected(self, selected: bool) -> None:
         set_role(self, selected="true" if selected else None)
-        self.buttons_holder.setVisible(selected or self.underMouse())
+        self._show_buttons(selected or self.underMouse())
 
     def is_selected(self) -> bool:
         return self.property("selected") == "true"
@@ -838,6 +849,7 @@ class LoadScenarioWidget(QWidget):
             text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             fold = FoldSection(heading, text)
             self.details_sections.addWidget(fold)
+            fold.show()  # at once, not when Qt gets round to it
             self.folds.append(fold)
         self.open_template_button.setEnabled(card is not None)
         self.customize_template_button.setEnabled(card is not None and card.customize_button is not None)

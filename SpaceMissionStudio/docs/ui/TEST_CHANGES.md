@@ -2102,3 +2102,22 @@ and `tests/gui/test_readable_values.py` (4 tests).
 | `tests/gui/test_orbit_switch.py` (the `answer` fixture) | recorded the strings it was asked with | records `describe_orbit` of the orbits it is asked with, the same strings | The question now receives the orbits |
 | `tests/gui/test_orbit_switch.py::test_switching_to_a_tle_says_why_it_is_not_converted` | the converted orbit was `""` | it is `None` | No conversion is no orbit, not an empty text |
 | `tests/gui/test_orbit_switch.py::test_the_question_offers_convert_only_when_there_is_a_conversion` | the dialog made with strings ("a ...", "r ...") | made with an orbit of classical elements and the converted Cartesian state | The dialog's arguments are orbits |
+
+## Calm by default (2026-11-12)
+
+Home puts the Inspector, Calculation and Problems panels aside, card
+buttons show on the card picked or pointed at, a card's description
+folds, and the status bar shows only what needs attention. Tests that
+assumed the panels on Home or every status entry shown now leave Home, or
+turn on View > Status Bar: All Details, before they look; every check is
+kept. New tests are in `tests/gui/test_calm_home.py`.
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_panels.py::test_a_new_window_on_a_small_screen_starts_without_the_inspector` | checked the Inspector on Home | checks it in the Scenario area | Home puts the panels aside |
+| `test_panels.py::test_ctrl_i_shows_and_hides_the_inspector` | started on Home | starts in the Scenario area | the same |
+| `test_panels.py::test_a_keyboard_only_walk_of_the_shell` | the Problems table and every status entry in Home's Tab order | All Details on; the Problems table not in Home's Tab order | the same; the status entries are shown with All Details |
+| `test_load_scenario_widget.py::test_left_pane_content_fits_a_default_window_without_horizontal_scrolling` | the Inspector shown on Home | not shown on Home; the page still fits 1280 px | the same |
+| `test_shell_reachability.py` rows "Status bar items" and "Run › Check Reference Data" | the entry shown | shown with All Details | entries that need no attention are shown with All Details |
+| `test_home.py::test_a_selected_card_is_marked_and_the_details_follow` | "What to look at" in the description text | a folded part titled "What to look at" | the details fold the headed parts |
+| `test_workspace.py::test_the_view_analyses_and_tools_commands` | the View commands | the same with "Status Bar: All Details" | a new View command |

@@ -3235,3 +3235,20 @@ what is open. Not legal advice.
   size a top-level window by its wrapped labels' height for width; the
   orbit-type switch showed one line of each paragraph and clipped
   buttons on the owner's desktop. One place fixes every dialog.
+
+## Calm by default (2026-11-12)
+
+- **Decision:** Home shows Home: cards with title and kind (the orbit
+  and description in the details of the card picked, folded past the
+  summary), card buttons on the card picked or pointed at, the side
+  panels put aside and restored on leaving. **Why:** the owner: "a user
+  easily could get overwhelmed by the amount of information that is
+  dumped on them", with a screenshot of Home with every panel open.
+- **Decision:** the status bar shows the problem count and only the
+  entries that need attention; View > Status Bar: All Details, kept with
+  the layout, shows them all. **Why:** the same; versions, frames and an
+  "all OK" are reference, not news.
+- **Decision:** repeated per-spacecraft notes are grouped, the names in
+  the tooltip; the relative orbital elements are named by their effect.
+  **Why:** the owner's screenshots: one note fourteen times; "the units
+  make no sense here".

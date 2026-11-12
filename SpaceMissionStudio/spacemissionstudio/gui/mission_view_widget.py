@@ -251,6 +251,38 @@ class LiveSceneBuilder(QThread):
         self.built.emit(scene, payload)
 
 
+def grouped_notes(notes: list[str]) -> tuple[list[str], list[str]]:
+    """``(short, full)``: the scene's notes with the same message for
+    several spacecraft ("sat-1: no attitude in this run; ...") said once,
+    "14 spacecraft: no attitude in this run; ...", their names in ``full``
+    (the tooltip). Fourteen copies of one sentence read as noise (the owner,
+    2026-11-12)."""
+    groups: dict[str, list[str]] = {}
+    order: list[str] = []
+    for note in notes:
+        name, sep, message = note.partition(": ")
+        key = message if sep else note
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        if sep:
+            groups[key].append(name)
+    short, full = [], []
+    for message in order:
+        names = groups[message]
+        sentence = message[:1].upper() + message[1:]
+        if len(names) > 1:
+            short.append(f"{len(names)} spacecraft: {message}.")
+            full.append(f"{sentence}: {', '.join(names)}.")
+        elif names:
+            short.append(f"{names[0]}: {message}.")
+            full.append(f"{names[0]}: {message}.")
+        else:
+            short.append(message)
+            full.append(message)
+    return short, full
+
+
 class MissionViewWidget(QWidget):
     """Results › 3D View. :meth:`set_run` gives it a run; the view is built
     when the tab is shown."""
@@ -628,8 +660,9 @@ class MissionViewWidget(QWidget):
                     "to nadir and along the velocity.")
         else:
             text = "True size, from the spacecraft: " + self.view_combo.currentText().split(" ", 2)[-1] + "."
-        notes = [n for n in scene.notes if n]
-        self.scale_note.setText(" ".join([text] + notes))
+        short, full = grouped_notes([n for n in scene.notes if n])
+        self.scale_note.setText("\n".join([text] + short))
+        self.scale_note.setToolTip("\n".join(full))
 
     # -- the page ----------------------------------------------------------------
     def _ensure_view(self) -> None:

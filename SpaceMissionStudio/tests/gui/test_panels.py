@@ -300,6 +300,7 @@ def test_a_new_window_on_a_small_screen_starts_without_the_inspector(qtbot, monk
         window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
         qtbot.addWidget(window)
         window.show()
+        window.shell.show_area("scenario")  # Home puts the panels aside
         assert window.side_dock.isVisible() is shown
         assert not window.problems_dock.isVisible()
         window.side_dock.setVisible(not shown)
@@ -332,6 +333,7 @@ def test_ctrl_i_shows_and_hides_the_inspector(wide_screen, shown, qtbot):
     from PySide6.QtCore import Qt
 
     window = shown
+    window.shell.show_area("scenario")  # Home puts the panels aside
     assert window.side_dock.isVisible()
     qtbot.keyClick(window, Qt.Key.Key_I, Qt.KeyboardModifier.ControlModifier)
     assert not window.side_dock.isVisible()
@@ -443,6 +445,7 @@ def test_a_keyboard_only_walk_of_the_shell(shown, qtbot, monkeypatch):
     qtbot.keyClick(window, Qt.Key.Key_J, Qt.KeyboardModifier.ControlModifier)
     assert window.problems_dock.isVisible() and window.problems_dock.isAncestorOf(QApplication.focusWidget())
 
+    window.status_details_action.setChecked(True)  # every status-bar entry, to walk them all
     window.shell.show_area("home")
     start = rail.buttons["home"]
     start.setFocus()
@@ -459,6 +462,6 @@ def test_a_keyboard_only_walk_of_the_shell(shown, qtbot, monkeypatch):
     assert top_bar.save_button in seen and top_bar.run_button in seen and top_bar.search_button in seen
     assert rail.collapse_button in seen
     assert any(home.isAncestorOf(widget) for widget in seen)
-    assert window.problems_widget.table in seen
+    assert window.problems_widget.table not in seen  # Home puts the panels aside
     assert window.status_items.problems_button in seen and window.status_items.data_button in seen
     assert len(seen) == len(set(map(id, seen)))  # each stop once: nothing holds the focus

@@ -99,7 +99,7 @@ def test_left_pane_content_fits_a_default_window_without_horizontal_scrolling(wi
     window.show()
     qtbot.waitExposed(window)
     window.shell.show_area("home")
-    assert window.side_dock.isVisible()
+    assert not window.side_dock.isVisible()  # Home puts the panels aside, so its page has the width
     home = window.load_scenario_widget
     qtbot.waitUntil(lambda: home.grid.columns() > 0)
     assert window.width() == 1280  # [px]

@@ -49,9 +49,19 @@ from PySide6.QtWidgets import (
 from ..engine.roe import ROE_LABELS, min_radial_normal_separation, safe_formation
 from ..schema.scenario import SpacecraftConfig
 from .feedback import show_dialog_error
+from .theme import set_role
 from .widgets import ComboBox, PreciseDoubleSpinBox, finish_form
 
-_ROE_TITLES = ("a·δa [m]", "a·δλ [m]", "a·δex [m]", "a·δey [m]", "a·δix [m]", "a·δiy [m]")
+# Each element by what it does to the formation, its symbol after it: the
+# symbols alone ("a·δex [m]") said nothing to most readers (the owner,
+# 2026-11-12, "the units make no sense here").
+_ROE_TITLES = ("Drift (a·δa) [m]", "Along-track offset (a·δλ) [m]", "Ellipse x (a·δex) [m]",
+               "Ellipse y (a·δey) [m]", "Cross-track x (a·δix) [m]", "Cross-track y (a·δiy) [m]")
+_ROE_GROUPS = ((0, "Where the follower sits along the orbit"), (2, "Radial and along-track ellipse"),
+               (4, "Cross-track motion"))
+_ROE_NOTE = ("Relative orbital elements, each multiplied by the chief's semi-major axis a so that it reads "
+             "as a distance: roughly how far the follower moves that way. All 0: the follower sits on the "
+             "chief.")
 _ROE_TIPS = (
     "Relative semi-major axis times the chief's semi-major axis [m]. Not zero: the follower drifts along-track.",
     "Relative mean longitude [m]: the along-track offset of the follower's centre of motion, + ahead of the chief.",
@@ -164,8 +174,14 @@ class RoeFormationDialog(QDialog):
         roe_page = QWidget()
         roe_form = QFormLayout(roe_page)
         roe_form.setContentsMargins(0, 0, 0, 0)
+        self.roe_note = set_role(QLabel(_ROE_NOTE), tone="secondary")
+        self.roe_note.setWordWrap(True)
+        roe_form.addRow(self.roe_note)
         self.roe_spins: list[QDoubleSpinBox] = []
-        for label, title, tip in zip(ROE_LABELS, _ROE_TITLES, _ROE_TIPS):
+        headings = dict(_ROE_GROUPS)
+        for index, (label, title, tip) in enumerate(zip(ROE_LABELS, _ROE_TITLES, _ROE_TIPS)):
+            if index in headings:
+                roe_form.addRow(set_role(QLabel(headings[index]), role="heading"))
             box = _double_spin(-1.0e6, 1.0e6, 3, 10.0, 0.0)  # [m]
             box.setToolTip(tip)
             box.setObjectName(f"roe_{label}")
@@ -227,11 +243,10 @@ class RoeFormationDialog(QDialog):
     def _show_margin(self) -> None:
         roe_m = self.roe_m()
         margin = min_radial_normal_separation(roe_m, 1.0)  # [m] the ROE are already in metres
-        text = f"Closest radial/cross-track approach: {margin:.1f} m"
-        if margin <= 1.0e-3:
-            text += " (the orbits cross: not passively safe)"
+        text = f"Closest approach, radial and cross-track: {margin:.1f} m"
+        text += " — the paths cross: not passively safe." if margin <= 1.0e-3 else " — passively safe."
         if abs(roe_m[0]) > 0.0:
-            text += ". A nonzero a·δa makes the follower drift along-track until the law corrects it."
+            text += " A drift (a·δa) other than 0 makes the follower drift along-track until the control law corrects it."
         self.margin_label.setText(text)
 
     def _on_accept(self) -> None:

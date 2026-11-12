@@ -226,7 +226,8 @@ def test_a_selected_card_is_marked_and_the_details_follow(home):
     assert second.is_selected() and not first.is_selected()
     assert home.description_title.text() == second.name
     assert home.description_meta.text() == f"{second.type_label.text()}\n{second.orbit_label.text()}"
-    assert "What to look at" in home.description_label.text()
+    assert "What to look at" in [fold.button.text() for fold in home.folds]  # folded under the gist
+    assert not any(fold.is_open() for fold in home.folds)
     assert not home.details_empty.isVisible()
 
 
