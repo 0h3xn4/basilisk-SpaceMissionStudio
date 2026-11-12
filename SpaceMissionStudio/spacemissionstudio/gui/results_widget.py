@@ -188,7 +188,7 @@ from .flow_layout import FlowLayout
 from .plot_catalog import ACCESS_TIMELINE, PlotCatalog
 from .readout_panel import ReadoutPanel, value_at
 from .feedback import report
-from .theme import SERIES_COLORS, SIZE, TOKENS, WEB_FONT_STACK, on_change, set_role
+from .theme import SERIES_COLORS, SIZE, SPACE, TOKENS, WEB_FONT_STACK, on_change, set_role
 from .theme import plotly_template as pt
 from .widgets import ComboBox, make_window, show_window
 
@@ -567,7 +567,23 @@ class ResultsWidget(QWidget):
 
         layout = QVBoxLayout(self)
 
-        top_row = QHBoxLayout()
+        # One toolbar of groups that flow: on one line when the pane is wide
+        # enough, wrapping a whole group onto the next line when it is not.
+        # Three fixed rows left most of a wide window's width empty (the
+        # owner, 2026-11-12); one fixed row made the window too wide at
+        # 1280 px (docs/ux-audit.md U-03).
+        self.toolbar = QWidget()
+        toolbar_flow = FlowLayout(self.toolbar, spacing=SPACE["md"])
+
+        def group() -> QHBoxLayout:
+            holder = QWidget()
+            row = QHBoxLayout(holder)
+            row.setContentsMargins(0, 0, 0, 0)
+            row.setSpacing(SPACE["xs"])
+            toolbar_flow.addWidget(holder)
+            return row
+
+        top_row = group()
         top_row.addWidget(QLabel("Layout:"))
         self.layout_combo = ComboBox()
         for name in plot_page.LAYOUTS:
@@ -588,6 +604,7 @@ class ResultsWidget(QWidget):
         self.x_axis_combo.setAccessibleName("X-axis")
         self.x_axis_combo.currentIndexChanged.connect(self._redraw)
         top_row.addWidget(self.x_axis_combo)
+        top_row = group()
         self.events_label = QLabel("Events:")
         top_row.addWidget(self.events_label)
         self._event_buttons: dict = {}
@@ -600,8 +617,8 @@ class ResultsWidget(QWidget):
             button.toggled.connect(lambda on, k=kind: self._on_event_kind_toggled(k, on))
             top_row.addWidget(button)
             self._event_buttons[kind] = button
-        top_row.addStretch(1)
-        layout.addLayout(top_row)
+        self.compare_group = QWidget()  # placed in the toolbar below, with the comparison
+        layout.addWidget(self.toolbar)
 
         # One-click shortcuts to the series the scenario's own description
         # points at ("What to look at"), so nobody has to find
@@ -626,7 +643,7 @@ class ResultsWidget(QWidget):
         # are separate rows: one shared row squeezed the series box to a few
         # characters in the Results pane (a real regression, from a
         # screenshot).
-        button_row = QHBoxLayout()
+        button_row = group()
         self.export_button = QPushButton("Export CSV...")
         self.export_button.setToolTip("Export every series in this result as CSV files (SI units)")
         self.export_button.clicked.connect(self._on_export)
@@ -685,7 +702,6 @@ class ResultsWidget(QWidget):
         button_row.addWidget(self.export_cancel_button)
         self._export_worker: _ExportWorker | None = None
         self._export_ends: tuple = ()  # (on_done, on_failed, folder) of the export running
-        button_row.addStretch(1)
         # Run comparison (UX/UI guidelines): the same series from an earlier
         # run of this session, dashed, and the inputs that differ.
         self._runs: list = []  # gui.run_history.RunRecord, oldest first
@@ -702,16 +718,15 @@ class ResultsWidget(QWidget):
         self.diff_button = QPushButton("Input differences...")
         self.diff_button.setToolTip("Lists every scenario input that differs between the two runs.")
         self.diff_button.clicked.connect(self.show_input_differences)
-        layout.addLayout(button_row)
-        # On a row of its own, shown only once there is an earlier run: on
-        # the export row it made the pane, and so the window, too wide for
-        # 1280 px (docs/ux-audit.md U-03).
-        compare_row = QHBoxLayout()
+        # A group of its own, shown only once there is an earlier run; it
+        # wraps when the pane is narrow (docs/ux-audit.md U-03).
+        compare_row = QHBoxLayout(self.compare_group)
+        compare_row.setContentsMargins(0, 0, 0, 0)
+        compare_row.setSpacing(SPACE["xs"])
         for widget in (self.compare_label, self.compare_combo, self.diff_button):
-            widget.setVisible(False)
             compare_row.addWidget(widget)
-        compare_row.addStretch(1)
-        layout.addLayout(compare_row)
+        self.compare_group.setVisible(False)
+        toolbar_flow.addWidget(self.compare_group)
 
         # One line, always visible once a result exists, naming exactly what
         # produced it; blank for a hand-built result without provenance.
@@ -1037,6 +1052,11 @@ class ResultsWidget(QWidget):
             self._shown.remove(name)
             if self._focused >= index:
                 self._focused = max(self._focused - 1, 0)
+            if self._shown and plot_page.capacity(self._layout) > len(self._shown):
+                # Fewer plots: the grid fits them again, so the space is used (the owner, 2026-11-12).
+                self._layout = plot_page.best_layout(len(self._shown), self.web_view.width(),
+                                                     self.web_view.height())
+                self._set_layout_combo(self._layout)
         self._save_layout()
         self._redraw()
 
@@ -1549,8 +1569,10 @@ class ResultsWidget(QWidget):
         index = self.compare_combo.findData(chosen) if chosen is not None else 0
         self.compare_combo.setCurrentIndex(max(index, 0))
         self.compare_combo.blockSignals(False)
+        comparable = bool(others) and current is not None
+        self.compare_group.setVisible(comparable)
         for widget in (self.compare_label, self.compare_combo, self.diff_button):
-            widget.setVisible(bool(others) and current is not None)
+            widget.setVisible(comparable)
         self._update_provenance_label()
         if chosen is not None or self.compare_combo.currentData() is not None:
             self._redraw()  # the comparison drawn changed; with none before or after, the plots are as they were (M5a)

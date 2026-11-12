@@ -1250,9 +1250,14 @@ it.
   Link group also has **Ground Station Access Timeline**: every
   station's passes over every spacecraft in one chart.
 * **Layout** -- how many plots the grid shows, from 1 x 1 to 3 x 2 (six
-  at most). Ticking more plots than fit picks a bigger layout by itself.
-  The layout and the plots shown are kept for each scenario and come
-  back after the next run.
+  at most). Ticking more plots than fit picks a bigger layout by itself,
+  and clearing a tick makes the grid smaller again, so the plots always
+  fill the area: one plot takes all of it, two share it, and three in a
+  2 x 2 grid let the third span the bottom row. The layout and the plots
+  shown are kept for each scenario and come back after the next run.
+* **The toolbar** above the plots (Layout, X-axis, Events, the exports,
+  Compare with) is one row on a wide window and wraps onto a second only
+  when the pane is narrow.
 * **Click a plot** to select it (a blue frame): **Save PNG...** and
   **Save SVG...** save the selected plot. A click also sets the time
   cursor. Zooming or panning one plot does the same to the others: their

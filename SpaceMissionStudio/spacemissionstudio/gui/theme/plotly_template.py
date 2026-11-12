@@ -96,14 +96,17 @@ def page_css(t: dict[str, str]) -> str:
             f"code, pre {{ font-family: {WEB_MONO_STACK}; }}")
 
 
-def grid_css(t: dict[str, str], columns: int, rows: int, many: bool) -> str:
+def grid_css(t: dict[str, str], columns: int, rows: int, many: bool, last_span: int = 1) -> str:
     """The CSS of the plot grid page: cells in a grid with a 4 px gap, the
-    focused cell outlined in the accent when there are several."""
+    focused cell outlined in the accent when there are several; the last
+    cell spans ``last_span`` columns, so a spare cell is never left empty."""
     css = (f"html, body {{ margin: 0; height: 100%; overflow: hidden; background: {t['bg.surface']}; }}"
            f".grid {{ display: grid; height: 100%; box-sizing: border-box; padding: 2px; gap: 4px; "
            f"grid-template-columns: repeat({columns}, minmax(0, 1fr)); "
            f"grid-template-rows: repeat({rows}, minmax(0, 1fr)); }}"
            f".cell {{ min-width: 0; min-height: 0; border: 1px solid transparent; border-radius: 6px; }}")
+    if last_span > 1:
+        css += f".grid .cell:last-child {{ grid-column: span {int(last_span)}; }}"
     if many:
         css += (f".grid.many .cell {{ border-color: {t['border.subtle']}; }} "
                 f".grid.many .cell.focused {{ border-color: {t['accent']}; }}")

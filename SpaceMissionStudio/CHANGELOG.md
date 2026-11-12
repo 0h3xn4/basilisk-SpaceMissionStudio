@@ -50,6 +50,12 @@ fixes bugs.
   fill the screen over the field and scroll with two small arrows), at
   least as wide as its longest entry, with taller rows, a mark under the
   pointer and the current entry highlighted. Menu rows are taller too.
+- **The plots always fill their area.** Clearing a plot's tick shrinks
+  the grid (two plots side by side, then one full size) instead of
+  leaving an empty cell, and a spare cell is taken by the last plot,
+  which spans the row. The toolbar above the plots is one row on a wide
+  window (it was three, mostly empty) and wraps only when the pane is
+  narrow.
 - **Dialogs no longer cut off their text.** A dialog with wrapped text
   could show only the first line of each paragraph and clip its buttons
   (the orbit-type switch did); every dialog now grows to fit its text.

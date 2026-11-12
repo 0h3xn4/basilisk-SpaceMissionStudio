@@ -17717,3 +17717,15 @@ orbit-type switch shows the orbit now, after converting and on the new
 page side by side, one value a row, and says why when nothing converts.
 A design rule in `CLAUDE.md` and `docs/DESIGN.md`: never a sentence of
 numbers. The rest of the app follows, screen by screen.
+
+The owner, on Results › Plots: after ticking plots and clearing some, a
+1 x 2 grid kept its empty half; "I want the layout to change accordingly,
+such that the full space is always used". Clearing a tick now picks
+`plot_page.best_layout` for the plots left when the grid has room to
+spare, and the page draws `plot_page.filled_grid`: no empty column or row,
+and the last plot spanning a spare cell (three plots in 2 x 2: the third
+takes the bottom row). Checked in the page: 3, 2, 1 plots fill 1253 x 493
+px each time, and 1 plot in a chosen 2 x 3 fills it too. Then the three
+rows above the plots ("too much unused empty space"): one toolbar of
+groups in a `FlowLayout`, one row at 1920 px, two at 1280 px (the single
+fixed row of before made the window too wide there, U-03).
