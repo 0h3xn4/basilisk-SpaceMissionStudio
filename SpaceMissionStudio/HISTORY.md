@@ -17729,3 +17729,14 @@ px each time, and 1 plot in a chosen 2 x 3 fills it too. Then the three
 rows above the plots ("too much unused empty space"): one toolbar of
 groups in a `FlowLayout`, one row at 1920 px, two at 1280 px (the single
 fixed row of before made the window too wide there, U-03).
+
+**A segfault when `tests/gui/test_help.py` ran alone** (as CI's docs job
+runs it), in 3 of 4 runs: the window was not freed when closed and
+dropped, so a later garbage collection, in the reference data reader's
+thread, tore it down. Two references held it: File > Open Recent's
+`triggered` connected to the window's bound method, and the recursive
+helper that built the menus, a closure cycle holding that method.
+`gui/menu_bar.py` now connects a weak method and fills the menus with a
+module function; `test_the_window_is_freed_as_soon_as_it_is_dropped`
+checks the window is freed by reference count with the collector off.
+`test_help.py` alone: 5 of 5 runs pass.
