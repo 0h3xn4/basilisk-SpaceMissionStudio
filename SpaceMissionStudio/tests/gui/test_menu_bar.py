@@ -154,6 +154,31 @@ def test_open_recent_says_so_when_the_file_has_gone(window, tmp_path, reported):
     assert any("is missing" in message for message, _kind in reported)
 
 
+def test_the_window_is_freed_as_soon_as_it_is_dropped(qapp, monkeypatch):
+    """Nothing the menu bar connects keeps the window alive: freed by
+    reference count, with no garbage collection. A bound method on File >
+    Open Recent's signal did, and a later collection in a worker thread
+    tore the window down: a segfault (tests/gui/test_help.py run alone)."""
+    import gc
+    import weakref
+
+    from PySide6.QtWidgets import QMessageBox
+
+    from spacemissionstudio.gui.main_window import MainWindow
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
+    gc.collect()
+    gc.disable()
+    try:
+        window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+        ref = weakref.ref(window)
+        window.close()
+        del window
+        assert ref() is None
+    finally:
+        gc.enable()
+
+
 # -- drop-down lists -------------------------------------------------------------------
 
 @pytest.fixture

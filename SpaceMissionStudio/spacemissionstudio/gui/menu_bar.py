@@ -32,6 +32,7 @@ here.
 
 from __future__ import annotations
 
+import weakref
 from collections.abc import Callable, Sequence
 from typing import Union
 
@@ -94,28 +95,31 @@ def build_menu_bar(menu_bar: QMenuBar, registry: ActionRegistry,
     Recent (its path is the action's data, None for Clear the List). Returns
     each menu and submenu by its title without the ampersand."""
     menus: dict[str, QMenu] = {}
-
-    def fill(menu: QMenu, entries: Sequence[Entry]) -> None:
-        for entry in entries:
-            if entry == "-":
-                menu.addSeparator()
-            elif entry == RECENT:
-                RecentMenu.attach(menu, open_recent)
-            elif isinstance(entry, tuple):
-                title, children = entry
-                submenu = menu.addMenu(title)
-                submenu.setObjectName(f"menu.{title.replace('&', '').lower().replace(' ', '_')}")
-                menus[title.replace("&", "")] = submenu
-                fill(submenu, children)
-            else:
-                menu.addAction(registry.action(entry))
-
     for title, entries in MENUS:
         menu = menu_bar.addMenu(title)
         menu.setObjectName(f"menu.{title.replace('&', '').lower()}")
         menus[title.replace("&", "")] = menu
-        fill(menu, entries)
+        _fill(menu, entries, registry, open_recent, menus)
     return menus
+
+
+def _fill(menu: QMenu, entries: Sequence[Entry], registry: ActionRegistry, open_recent, menus: dict) -> None:
+    """A module function, not a closure: a nested function calling itself is
+    a reference cycle, which kept ``open_recent`` (and so the window) alive
+    until a garbage collection."""
+    for entry in entries:
+        if entry == "-":
+            menu.addSeparator()
+        elif entry == RECENT:
+            RecentMenu.attach(menu, open_recent)
+        elif isinstance(entry, tuple):
+            title, children = entry
+            submenu = menu.addMenu(title)
+            submenu.setObjectName(f"menu.{title.replace('&', '').lower().replace(' ', '_')}")
+            menus[title.replace("&", "")] = submenu
+            _fill(submenu, children, registry, open_recent, menus)
+        else:
+            menu.addAction(registry.action(entry))
 
 
 class RecentMenu:
@@ -128,7 +132,11 @@ class RecentMenu:
     @staticmethod
     def attach(menu: QMenu, open_recent: Callable[[object], object]) -> None:
         menu.aboutToShow.connect(lambda: RecentMenu.refresh(menu))
-        menu.triggered.connect(open_recent)
+        # Weakly: a bound method of the window on a child's signal kept the
+        # window alive after it closed, to be freed by a later collection in
+        # whatever thread ran it (a segfault, tests/gui/test_help.py alone).
+        target = weakref.WeakMethod(open_recent) if hasattr(open_recent, "__self__") else (lambda: open_recent)
+        menu.triggered.connect(lambda action: (target() or (lambda _action: None))(action))
         RecentMenu.refresh(menu)
 
     @staticmethod
