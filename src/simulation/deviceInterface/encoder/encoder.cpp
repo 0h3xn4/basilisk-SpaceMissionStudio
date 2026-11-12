@@ -17,14 +17,14 @@
 
  */
 #include "simulation/deviceInterface/encoder/encoder.h"
-#include <math.h>
 #include "architecture/utilities/macroDefinitions.h"
+#include <math.h>
 
 /*! This is the constructor for the module class.  It sets default variable
     values and initializes the various parts of the model */
 Encoder::Encoder()
 {
-    this->numRW = -1;       // set the number of reaction wheels to -1 to throw a warning if not set
+    this->numRW = -1; // set the number of reaction wheels to -1 to throw a warning if not set
     this->clicksPerRotation = -1;
 
     return;
@@ -36,27 +36,23 @@ Encoder::~Encoder()
     return;
 }
 
-
 /*! This method is used to reset the module.
 
  */
 void Encoder::Reset(uint64_t CurrentSimNanos)
 {
     // check if input message is linked
-    if (!this->rwSpeedInMsg.isLinked())
-    {
+    if (!this->rwSpeedInMsg.isLinked()) {
         bskLogger.bskError("encoder.rwSpeedInMsg is not linked.");
     }
 
     // if the number of clicks is not greater than 0, throw a warning message
-    if (this->clicksPerRotation <= 0)
-    {
+    if (this->clicksPerRotation <= 0) {
         bskLogger.bskError("encoder: number of clicks must be a positive integer.");
     }
 
     // if the number of reaction wheels is not greater than 0, throw a warning message
-    if (this->numRW <= 0)
-    {
+    if (this->numRW <= 0) {
         bskLogger.bskError("encoder: number of reaction wheels must be a positive integer. It may not have been set.");
     }
 
@@ -67,8 +63,7 @@ void Encoder::Reset(uint64_t CurrentSimNanos)
     this->rwSpeedConverted = this->rwSpeedOutMsg.zeroMsgPayload;
 
     // Loop through the RW to set some internal parameters to default
-    for (int i = 0; i < MAX_EFF_CNT; i++)
-    {
+    for (int i = 0; i < MAX_EFF_CNT; i++) {
         // set all reaction wheels signal to nominal
         this->rwSignalState[i] = SIGNAL_NOMINAL;
         // set the remaining clicks to zero
@@ -100,7 +95,7 @@ void Encoder::writeOutputMessages(uint64_t CurrentClock)
 }
 
 /*! This method applies an encoder to the reaction wheel speeds.
-*/
+ */
 void Encoder::encode(uint64_t CurrentSimNanos)
 {
     double timeStep;
@@ -115,18 +110,13 @@ void Encoder::encode(uint64_t CurrentSimNanos)
     timeStep = diffNanoToSec(CurrentSimNanos, this->prevTime);
 
     // at the beginning of the simulation, the encoder simply outputs the true RW speeds
-    if (timeStep == 0.0)
-    {
+    if (timeStep == 0.0) {
         this->rwSpeedConverted = this->rwSpeedInMsg();
-    }
-    else
-    {
+    } else {
         // loop through the RW
-        for (int i = 0; i < this->numRW; i++)
-        {
+        for (int i = 0; i < this->numRW; i++) {
             // check if encoder is operational
-            if (this->rwSignalState[i] == SIGNAL_NOMINAL)
-            {
+            if (this->rwSignalState[i] == SIGNAL_NOMINAL) {
                 // calculate the angle sweeped by the reaction wheel during the time step
                 angle = this->rwSpeedBuffer.wheelSpeeds[i] * timeStep;
 
@@ -140,8 +130,7 @@ void Encoder::encode(uint64_t CurrentSimNanos)
                 this->rwSpeedConverted.wheelSpeeds[i] = numberClicks / (clicksPerRadian * timeStep);
             }
             // check if encoder is off
-            else if (this->rwSignalState[i] == SIGNAL_OFF)
-            {
+            else if (this->rwSignalState[i] == SIGNAL_OFF) {
                 // set the outgoing reaction wheel speed to 0
                 this->rwSpeedConverted.wheelSpeeds[i] = 0.0;
 
@@ -158,7 +147,7 @@ void Encoder::encode(uint64_t CurrentSimNanos)
 }
 
 /*! This method runs the encoder module in the sim.
-*/
+ */
 void Encoder::UpdateState(uint64_t CurrentSimNanos)
 {
     this->readInputMessages();

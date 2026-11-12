@@ -19,18 +19,20 @@
 
 #include <functional>
 
-#include "gravityEffector.h"
+#include <Eigen/Geometry>
+
 #include "architecture/utilities/linearAlgebra.h"
 #include "architecture/utilities/macroDefinitions.h"
-
+#include "architecture/utilities/stateExtrapolation.h"
+#include "gravityEffector.h"
 
 GravBodyData::GravBodyData()
-    : gravityModel{std::make_shared<PointMassGravityModel>()},
-      localPlanet{std::invoke([]() {
-          SpicePlanetStateMsgPayload payload{};
-          m33SetIdentity(payload.J20002Pfix); // Initialize rotation matrix to identity
-          return payload;
-      })}
+    : gravityModel{ std::make_shared<PointMassGravityModel>() }
+    , localPlanet{ std::invoke([]() {
+        SpicePlanetStateMsgPayload payload{};
+        m33SetIdentity(payload.J20002Pfix); // Initialize rotation matrix to identity
+        return payload;
+    }) }
 {
 }
 
@@ -40,14 +42,12 @@ void GravBodyData::initBody(int64_t moduleID [[maybe_unused]])
     if (this->gravityModel) {
         this->gravityModel->bskLogger = &bskLogger;
         errorMessage = this->gravityModel->initializeParameters(*this);
-    }
-    else {
+    } else {
         errorMessage = "Gravity model is null";
     }
 
     if (errorMessage) {
-        std::string fullMsg =
-            "Error initializating body '" + this->planetName + "'. " + errorMessage.value();
+        std::string fullMsg = "Error initializating body '" + this->planetName + "'. " + errorMessage.value();
         this->bskLogger.bskError("%s", fullMsg.c_str());
     }
 }
@@ -55,26 +55,30 @@ void GravBodyData::initBody(int64_t moduleID [[maybe_unused]])
 Eigen::Vector3d GravBodyData::computeGravityInertial(Eigen::Vector3d r_I, uint64_t simTimeNanos)
 {
     double dt = diffNanoToSec(simTimeNanos, this->timeWritten);
-    Eigen::Matrix3d dcm_PfixN = c2DArray2EigenMatrix3d(this->localPlanet.J20002Pfix).transpose();
-    if (dcm_PfixN
-            .isZero()) { // Sanity check for connected messages that do not initialize J20002Pfix
-        dcm_PfixN = Eigen::Matrix3d::Identity();
+
+    // The message holds [PN], the rotation from the inertial to the planet-fixed frame. The orientation is advanced
+    // in its transpose [NP].
+    Eigen::Matrix3d dcm_NPfix = c2DArray2EigenMatrix3d(this->localPlanet.J20002Pfix).transpose();
+    if (dcm_NPfix.isZero()) { // Sanity check for connected messages that do not initialize J20002Pfix
+        dcm_NPfix = Eigen::Matrix3d::Identity();
     }
+    const Eigen::Matrix3d dcm_NPfix_dot = c2DArray2EigenMatrix3d(this->localPlanet.J20002Pfix_dot).transpose();
 
-    Eigen::Matrix3d dcm_PfixN_dot =
-        c2DArray2EigenMatrix3d(this->localPlanet.J20002Pfix_dot).transpose();
-    dcm_PfixN += dcm_PfixN_dot * dt;
+    // Advance the planet orientation by the time since the message was written as a rotation
+    // about the planet angular velocity, see advanceDcm().
+    const PlanetSpin spin = planetSpin(dcm_NPfix, dcm_NPfix_dot);
+    const Eigen::Matrix3d dcmAdvanced_NPfix = advanceDcm(dcm_NPfix, spin, dt);
+    const Eigen::Matrix3d dcmAdvanced_NPfix_dot = advanceDcmDot(spin, dcmAdvanced_NPfix, dcm_NPfix_dot);
 
-    // store the current planet orientation and rates
-    *this->J20002Pfix = dcm_PfixN;
-    *this->J20002Pfix_dot = dcm_PfixN_dot;
+    // store the current planet orientation and rates as [PN] and [PN_dot], as documented for the properties
+    *this->J20002Pfix = dcmAdvanced_NPfix.transpose();
+    *this->J20002Pfix_dot = dcmAdvanced_NPfix_dot.transpose();
 
     // Compute position in the body-fixed reference frame and compute the gravity
-    Eigen::Matrix3d dcm_NPfix = dcm_PfixN.transpose();
-    Eigen::Vector3d r_Pfix = dcm_NPfix * r_I;
+    Eigen::Vector3d r_Pfix = dcmAdvanced_NPfix.transpose() * r_I;
     Eigen::Vector3d grav_Pfix = this->gravityModel->computeField(r_Pfix);
 
-    return dcm_PfixN * grav_Pfix;
+    return dcmAdvanced_NPfix * grav_Pfix;
 }
 
 void GravBodyData::loadEphemeris()
@@ -82,8 +86,7 @@ void GravBodyData::loadEphemeris()
     if (this->planetBodyInMsg.isLinked()) {
         this->localPlanet = this->planetBodyInMsg();
         this->timeWritten = this->planetBodyInMsg.timeWritten();
-    }
-    else {
+    } else {
         // use default zero planet state information
         this->localPlanet = this->planetBodyInMsg.zeroMsgPayload;
         this->timeWritten = 0;
@@ -105,11 +108,10 @@ void GravBodyData::registerProperties(DynParamManager& statesIn)
     Eigen::MatrixXd muInit = Eigen::MatrixXd::Zero(1, 1);
     this->muPlanet = statesIn.createProperty(this->planetName + ".mu", muInit);
 
-    this->J20002Pfix = statesIn.createProperty(
-        this->planetName + ".J20002Pfix", c2DArray2EigenMatrix3d(this->localPlanet.J20002Pfix));
-    this->J20002Pfix_dot =
-        statesIn.createProperty(this->planetName + ".J20002Pfix_dot",
-                                c2DArray2EigenMatrix3d(this->localPlanet.J20002Pfix_dot));
+    this->J20002Pfix =
+        statesIn.createProperty(this->planetName + ".J20002Pfix", c2DArray2EigenMatrix3d(this->localPlanet.J20002Pfix));
+    this->J20002Pfix_dot = statesIn.createProperty(this->planetName + ".J20002Pfix_dot",
+                                                   c2DArray2EigenMatrix3d(this->localPlanet.J20002Pfix_dot));
 }
 
 void GravityEffector::Reset(uint64_t currentSimNanos [[maybe_unused]])
@@ -126,18 +128,16 @@ void GravityEffector::Reset(uint64_t currentSimNanos [[maybe_unused]])
         // is linked but only supplies position (leaving J20002Pfix zero) triggers
         // the same identity fallback at runtime; at reset time only message
         // linkage can be checked.
-        if (body->gravityModel && body->gravityModel->dependsOnOrientation() &&
-            !body->planetBodyInMsg.isLinked()) {
-            this->bskLogger.bskLog(
-                BSK_WARNING,
-                "Gravity body '%s' uses an orientation-dependent gravity model "
-                "(e.g. spherical-harmonic tesseral/sectoral terms of order >= 1, "
-                "or a polyhedral shape model), but no planet-orientation message "
-                "is connected to planetBodyInMsg. The body will be treated as "
-                "non-rotating, which produces spurious orbital drift. Connect a "
-                "planet ephemeris/orientation message, e.g. via "
-                "gravBodyFactory.createSpiceInterface().",
-                body->planetName.c_str());
+        if (body->gravityModel && body->gravityModel->dependsOnOrientation() && !body->planetBodyInMsg.isLinked()) {
+            this->bskLogger.bskLog(BSK_WARNING,
+                                   "Gravity body '%s' uses an orientation-dependent gravity model "
+                                   "(e.g. spherical-harmonic tesseral/sectoral terms of order >= 1, "
+                                   "or a polyhedral shape model), but no planet-orientation message "
+                                   "is connected to planetBodyInMsg. The body will be treated as "
+                                   "non-rotating, which produces spurious orbital drift. Connect a "
+                                   "planet ephemeris/orientation message, e.g. via "
+                                   "gravBodyFactory.createSpiceInterface().",
+                                   body->planetName.c_str());
         }
     }
 }
@@ -149,15 +149,15 @@ void GravityEffector::UpdateState(uint64_t currentSimNanos)
     for (auto&& body : this->gravBodies) {
         body->loadEphemeris();
 
-        if (!body->isCentralBody) continue;
+        if (!body->isCentralBody)
+            continue;
 
         if (this->centralBody) // A centralBody was already set
         {
             auto errorMessage = "Specified two central bodies at the same time";
             this->bskLogger.bskError("%s", errorMessage);
             throw std::invalid_argument(errorMessage);
-        }
-        else {
+        } else {
             this->centralBody = body;
         }
     }
@@ -168,8 +168,7 @@ void GravityEffector::UpdateState(uint64_t currentSimNanos)
 void GravityEffector::writeOutputMessages(uint64_t currentSimNanos)
 {
     if (this->centralBodyOutMsg.isLinked() && this->centralBody) {
-        this->centralBodyOutMsg.write(&this->centralBody->localPlanet, this->moduleID,
-                                      currentSimNanos);
+        this->centralBodyOutMsg.write(&this->centralBody->localPlanet, this->moduleID, currentSimNanos);
     }
 }
 
@@ -178,10 +177,8 @@ void GravityEffector::registerProperties(DynParamManager& statesIn)
     static const Eigen::Vector3d zeroVector3d = Eigen::Vector3d::Zero();
 
     this->gravProperty = statesIn.createProperty(this->vehicleGravityPropName, zeroVector3d);
-    this->inertialPositionProperty =
-        statesIn.createProperty(this->inertialPositionPropName, zeroVector3d);
-    this->inertialVelocityProperty =
-        statesIn.createProperty(this->inertialVelocityPropName, zeroVector3d);
+    this->inertialPositionProperty = statesIn.createProperty(this->inertialPositionPropName, zeroVector3d);
+    this->inertialVelocityProperty = statesIn.createProperty(this->inertialVelocityPropName, zeroVector3d);
 
     // register planet position and velocity state vectors as parameters in the
     // state engine
@@ -198,17 +195,16 @@ void GravityEffector::linkInStates(DynParamManager& statesIn)
 void GravityEffector::computeGravityField(Eigen::Vector3d r_cF_N, Eigen::Vector3d rDot_cF_N [[maybe_unused]])
 {
     uint64_t systemClock = (uint64_t)this->timeCorr->data()[0];
-    Eigen::Vector3d r_cN_N; // position of s/c CoM wrt N
-    Eigen::Vector3d r_CN_N; // inertial position of central body if there is one. Big C is
-                            // central body. Little c is CoM of s/c
+    Eigen::Vector3d r_cN_N;                           // position of s/c CoM wrt N
+    Eigen::Vector3d r_CN_N = Eigen::Vector3d::Zero(); // inertial position of central body if there is one. Big C is
+                                                      // central body. Little c is CoM of s/c
 
     if (this->centralBody) // If there is a central body
     {
         r_CN_N = getEulerSteppedGravBodyPosition(this->centralBody);
         r_cN_N = r_cF_N + r_CN_N; // shift s/c to be wrt inertial frame origin
                                   // if it isn't already
-    }
-    else {
+    } else {
         r_cN_N = r_cF_N;
     }
 
@@ -251,15 +247,13 @@ void GravityEffector::updateInertialPosAndVel(Eigen::Vector3d r_BF_N, Eigen::Vec
         *this->inertialPositionProperty = r_CN_N + r_BF_N;
         *this->inertialVelocityProperty =
             cArray2EigenVector3d(this->centralBody->localPlanet.VelocityVector) + rDot_BF_N;
-    }
-    else {
+    } else {
         *this->inertialPositionProperty = r_BF_N;
         *this->inertialVelocityProperty = rDot_BF_N;
     }
 }
 
-Eigen::Vector3d
-GravityEffector::getEulerSteppedGravBodyPosition(std::shared_ptr<GravBodyData> bodyData)
+Eigen::Vector3d GravityEffector::getEulerSteppedGravBodyPosition(std::shared_ptr<GravBodyData> bodyData)
 {
     uint64_t systemClock = (uint64_t)this->timeCorr->data()[0];
     double dt = diffNanoToSec(systemClock, bodyData->timeWritten);
@@ -270,16 +264,15 @@ GravityEffector::getEulerSteppedGravBodyPosition(std::shared_ptr<GravBodyData> b
 
 void GravityEffector::updateEnergyContributions(Eigen::Vector3d r_cF_N, double& orbPotEnergyContr)
 {
-    Eigen::Vector3d r_CN_N; // C is central body. position of C wrt N in N
-    Eigen::Vector3d r_cN_N; // position c wrt N in N
+    Eigen::Vector3d r_CN_N = Eigen::Vector3d::Zero(); // C is central body. position of C wrt N in N
+    Eigen::Vector3d r_cN_N;                           // position c wrt N in N
 
     if (this->centralBody) { // Evaluates true if there is a central body, false
                              // otherwise
         r_CN_N = getEulerSteppedGravBodyPosition(this->centralBody);
         r_cN_N = r_cF_N + r_CN_N; // shift s/c to be wrt inertial frame origin
                                   // if it isn't already
-    }
-    else {
+    } else {
         r_cN_N = r_cF_N;
     }
 
@@ -296,8 +289,7 @@ void GravityEffector::updateEnergyContributions(Eigen::Vector3d r_cF_N, double& 
             // relative potential energy solution
             orbPotEnergyContr += body->gravityModel->computePotentialEnergy(r_PN_N - r_CN_N);
         }
-        orbPotEnergyContr += body->gravityModel->computePotentialEnergy(
-            r_cP_N); // Potential w/in current planet field
+        orbPotEnergyContr += body->gravityModel->computePotentialEnergy(r_cP_N); // Potential w/in current planet field
     }
 }
 

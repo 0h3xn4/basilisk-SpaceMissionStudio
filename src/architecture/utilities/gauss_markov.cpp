@@ -17,10 +17,10 @@
 
  */
 
-#include <math.h>
-#include <limits>
 #include "gauss_markov.h"
 #include "linearAlgebra.h"
+#include <limits>
+#include <math.h>
 
 /*! The constructor initializes the random number generator used for the walks. */
 GaussMarkov::GaussMarkov()
@@ -52,7 +52,8 @@ GaussMarkov::GaussMarkov(uint64_t size, uint64_t newSeed)
     this->propagatedState.resize(stateCount);
 }
 
-void GaussMarkov::initializeRNG() {
+void GaussMarkov::initializeRNG()
+{
     //! - Set up standard normal distribution N(0,1) parameters for random number generation
     std::normal_distribution<double>::param_type updatePair(0.0, 1.0);
     this->rGen.seed(static_cast<std::minstd_rand::result_type>(this->RNGSeed));
@@ -60,8 +61,7 @@ void GaussMarkov::initializeRNG() {
     this->rNum.param(updatePair);
 }
 
-uint64_t
-GaussMarkov::deriveSecondarySeed(uint64_t baseSeed)
+uint64_t GaussMarkov::deriveSecondarySeed(uint64_t baseSeed)
 {
     constexpr uint64_t secondaryStreamDiscriminator = 0x9E3779B97F4A7C15ULL;
     // Keep the secondary seed representable by both 32-bit and 64-bit engine result types.
@@ -73,7 +73,9 @@ GaussMarkov::deriveSecondarySeed(uint64_t baseSeed)
     // Compare both possible primary states with a fixed-width engine so every platform
     // chooses the same secondary seed without changing the existing primary streams.
     using SeedComparisonGenerator = std::linear_congruential_engine<uint64_t,
-        std::minstd_rand::multiplier, std::minstd_rand::increment, std::minstd_rand::modulus>;
+                                                                    std::minstd_rand::multiplier,
+                                                                    std::minstd_rand::increment,
+                                                                    std::minstd_rand::modulus>;
     const SeedComparisonGenerator primaryGenerator32(normalizedBaseSeed);
     const SeedComparisonGenerator primaryGenerator64(baseSeed);
     SeedComparisonGenerator secondaryGenerator(candidateSeed);
@@ -85,9 +87,7 @@ GaussMarkov::deriveSecondarySeed(uint64_t baseSeed)
 }
 
 /*! The destructor is a placeholder for one that might do something*/
-GaussMarkov::~GaussMarkov()
-{
-}
+GaussMarkov::~GaussMarkov() {}
 
 /*! This method performs almost all of the work for the Gauss Markov random
     walk.  It uses the current random walk configuration, propagates the current
@@ -97,18 +97,16 @@ GaussMarkov::~GaussMarkov()
 void GaussMarkov::computeNextState()
 {
     //! - Check for consistent sizes
-    if((this->propMatrix.size() != this->noiseMatrix.size()) ||
-       ((uint64_t) this->propMatrix.size() != this->numStates*this->numStates))
-    {
+    if ((this->propMatrix.size() != this->noiseMatrix.size()) ||
+        ((uint64_t)this->propMatrix.size() != this->numStates * this->numStates)) {
         bskLogger.bskError("Matrix size mismatch in Gauss Markov model");
     }
-    if((uint64_t) this->stateBounds.size() != this->numStates)
-    {
+    if ((uint64_t)this->stateBounds.size() != this->numStates) {
         bskLogger.bskError("State bounds size mismatch in Gauss Markov model");
     }
 
     //! - Generate base random numbers
-    for(Eigen::Index i = 0; i < this->randomValues.size(); i++) {
+    for (Eigen::Index i = 0; i < this->randomValues.size(); i++) {
         this->randomValues[i] = this->rNum(rGen);
     }
 
@@ -122,9 +120,9 @@ void GaussMarkov::computeNextState()
     this->currentState = this->propagatedState + this->stateNoise;
 
     //! - Apply bounds if needed
-    for(Eigen::Index i = 0; i < this->stateBounds.size(); i++) {
-        if(this->stateBounds[i] > 0.0) {
-            if(fabs(this->currentState[i]) > this->stateBounds[i]) {
+    for (Eigen::Index i = 0; i < this->stateBounds.size(); i++) {
+        if (this->stateBounds[i] > 0.0) {
+            if (fabs(this->currentState[i]) > this->stateBounds[i]) {
                 this->currentState[i] = copysign(this->stateBounds[i], this->currentState[i]);
             }
         }

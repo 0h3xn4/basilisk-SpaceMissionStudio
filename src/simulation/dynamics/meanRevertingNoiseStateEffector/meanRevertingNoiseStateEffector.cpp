@@ -30,15 +30,15 @@ MeanRevertingNoiseStateEffector::MeanRevertingNoiseStateEffector()
     this->effProps.rEffPrime_CB_B.setZero();
     this->effProps.IEffPrimePntB_B.setZero();
 
-    this->nameOfState = "meanRevertingNoiseState"
-                        + std::to_string(MeanRevertingNoiseStateEffector::effectorID);
+    this->nameOfState = "meanRevertingNoiseState" + std::to_string(MeanRevertingNoiseStateEffector::effectorID);
     MeanRevertingNoiseStateEffector::effectorID++;
 }
 
 void MeanRevertingNoiseStateEffector::setStationaryStd(double sigmaStationary)
 {
     if (!std::isfinite(sigmaStationary) || sigmaStationary < 0.0) {
-        this->bskLogger.bskError("MeanRevertingNoiseStateEffector::setStationaryStd requires finite sigmaStationary >= 0.");
+        this->bskLogger.bskError(
+            "MeanRevertingNoiseStateEffector::setStationaryStd requires finite sigmaStationary >= 0.");
     }
     this->sigmaStationary = sigmaStationary;
 }
@@ -86,9 +86,7 @@ void MeanRevertingNoiseStateEffector::registerStates(DynParamManager& states)
     this->state->setState(state);
 }
 
-void MeanRevertingNoiseStateEffector::linkInStates(DynParamManager& states [[maybe_unused]])
-{
-}
+void MeanRevertingNoiseStateEffector::linkInStates(DynParamManager& states [[maybe_unused]]) {}
 
 void MeanRevertingNoiseStateEffector::computeDerivatives(double integTime [[maybe_unused]],
                                                          Eigen::Vector3d rDDot_BN_N [[maybe_unused]],
@@ -108,7 +106,8 @@ void MeanRevertingNoiseStateEffector::computeDerivatives(double integTime [[mayb
     // Taking square roots before division avoids overflow in 2/tau for small finite tau.
     diffusion(0, 0) = this->sigmaStationary * (std::sqrt(2.0) / std::sqrt(this->timeConstant));
     if (!derivative.allFinite() || !diffusion.allFinite()) {
-        this->bskLogger.bskError("MeanRevertingNoiseStateEffector: state and parameters produce non-finite drift or diffusion.");
+        this->bskLogger.bskError(
+            "MeanRevertingNoiseStateEffector: state and parameters produce non-finite drift or diffusion.");
     }
     this->state->setDerivative(derivative);
     this->state->setDiffusion(diffusion, 0);

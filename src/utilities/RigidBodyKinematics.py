@@ -16,7 +16,14 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
+"""Attitude conversions, composition, and kinematic rate maps.
 
+Angles are in radians and Euler parameters are scalar-first unit quaternions.
+Use bounded MRP sets and avoid the inherent singularities of each representation.
+The routines use ordinary double-precision formulas; arbitrary finite magnitudes
+and subnormal components are not guaranteed to produce accurate finite results.
+See :ref:`rbkNumericalLimits` for the common C, Python, Numba, and Rust limits.
+"""
 
 import math
 
@@ -48,15 +55,21 @@ def _safe_acos(value):
 
 
 def Picheck(x):
+    """Wrap an angle with any number of revolutions to the interval [-pi, pi].
+
+    :param x: Input angle in radians.
+    :return: Equivalent angle in radians. Exact half-turn remainders and zero
+        retain the input sign. Non-finite inputs return NaN.
     """
-        Picheck(x)
-        Makes sure that the angle x lies within +/- Pi.
-    """
-    if x > M_PI:
-        return x - 2 * M_PI
-    if x < -M_PI:
-        return x + 2 * M_PI
-    return x
+    if not math.isfinite(x):
+        return math.nan
+    two_pi = 2.0 * M_PI  # [rad]
+    wrapped = np.fmod(x, two_pi)
+    if wrapped > M_PI:
+        return wrapped - two_pi
+    if wrapped < -M_PI:
+        return wrapped + two_pi
+    return wrapped
 
 
 def C2EP(C):
@@ -108,184 +121,156 @@ def C2EP(C):
     return b
 
 
+def _c2euler(C, first_axis, second_axis, repeated):
+    """Extract Euler angles, setting the third angle to zero at a singularity.
+
+    The axis indices are zero-based. Recover the first angle after removing
+    the third rotation: the second-axis row is unaffected by the middle
+    rotation. This avoids independently extracting two ill-conditioned outer
+    angles near a singularity.
+    """
+    remaining_axis = 3 - first_axis - second_axis
+    parity = 1.0 if second_axis == (first_axis + 1) % 3 else -1.0
+    singularity_tolerance = 1e-14  # [-] sine or cosine of the middle angle
+    if repeated:
+        magnitude = math.hypot(C[first_axis, second_axis], C[first_axis, remaining_axis])
+        middle = math.atan2(magnitude, C[first_axis, first_axis])
+        last = (math.atan2(C[second_axis, first_axis], parity * C[remaining_axis, first_axis])
+                if magnitude > singularity_tolerance else 0.0)  # [rad]
+        sine = (parity * math.cos(last) * C[second_axis, remaining_axis]
+                - math.sin(last) * C[remaining_axis, remaining_axis])
+        cosine = (math.cos(last) * C[second_axis, second_axis]
+                  - parity * math.sin(last) * C[remaining_axis, second_axis])
+    else:
+        magnitude = math.hypot(C[second_axis, first_axis], C[first_axis, first_axis])
+        middle = math.atan2(parity * C[remaining_axis, first_axis], magnitude)
+        last = (math.atan2(-parity * C[second_axis, first_axis], C[first_axis, first_axis])
+                if magnitude > singularity_tolerance else 0.0)  # [rad]
+        sine = (parity * math.cos(last) * C[second_axis, remaining_axis]
+                + math.sin(last) * C[first_axis, remaining_axis])
+        cosine = (math.cos(last) * C[second_axis, second_axis]
+                  + parity * math.sin(last) * C[first_axis, second_axis])
+    return np.array([math.atan2(sine, cosine), middle, last])
+
+
 def C2Euler121(C):
-    """
-    C2Euler121
+    """Convert a DCM to the (1-2-1) Euler angle set.
 
-    	Q = C2Euler121(C) translates the 3x3 direction cosine matrix
-    	C into the corresponding (1-2-1) euler angle set.
+    :param C: A 3-by-3 direction cosine matrix.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    q0 = math.atan2(C[0, 1], -C[0, 2])
-    q1 = _safe_acos(C[0, 0])
-    q2 = math.atan2(C[1, 0], C[2, 0])
-    q = np.array([q0, q1, q2])
-
-    return q
+    return _c2euler(C, 0, 1, True)
 
 
 def C2Euler123(C):
-    """
-    C2Euler123
+    """Convert a DCM to the (1-2-3) Euler angle set.
 
-    	Q = C2Euler123(C) translates the 3x3 direction cosine matrix
-    	C into the corresponding (1-2-3) euler angle set.
+    :param C: A 3-by-3 direction cosine matrix.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    q0 = np.arctan2(-C[2, 1], C[2, 2])
-    q1 = _safe_asin(C[2, 0])
-    q2 = np.arctan2(-C[1, 0], C[0, 0])
-    q = np.array([q0, q1, q2])
-    return q
+    return _c2euler(C, 0, 1, False)
 
 
 def C2Euler131(C):
-    """
-    C2Euler131
+    """Convert a DCM to the (1-3-1) Euler angle set.
 
-    	Q = C2Euler131(C) translates the 3x3 direction cosine matrix
-    	C into the corresponding (1-3-1) euler angle set.
+    :param C: A 3-by-3 direction cosine matrix.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    q0 = math.atan2(C[0, 2], C[0, 1])
-    q1 = _safe_acos(C[0, 0])
-    q2 = math.atan2(C[2, 0], -C[1, 0])
-    q = np.array([q0, q1, q2])
-
-    return q
+    return _c2euler(C, 0, 2, True)
 
 
 def C2Euler132(C):
-    """
-    C2Euler132
+    """Convert a DCM to the (1-3-2) Euler angle set.
 
-    	Q = C2Euler132(C) translates the 3x3 direction cosine matrix
-    	C into the corresponding (1-3-2) euler angle set.
+    :param C: A 3-by-3 direction cosine matrix.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    q0 = math.atan2(C[1, 2], C[1, 1])
-    q1 = _safe_asin(-C[1, 0])
-    q2 = math.atan2(C[2, 0], C[0, 0])
-    q = np.array([q0, q1, q2])
-
-    return q
+    return _c2euler(C, 0, 2, False)
 
 
 def C2Euler212(C):
-    """
-    C2Euler212
+    """Convert a DCM to the (2-1-2) Euler angle set.
 
-    	Q = C2Euler212(C) translates the 3x3 direction cosine matrix
-    	C into the corresponding (2-1-2) euler angle set.
+    :param C: A 3-by-3 direction cosine matrix.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    q0 = math.atan2(C[1, 0], C[1, 2])
-    q1 = _safe_acos(C[1, 1])
-    q2 = math.atan2(C[0, 1], -C[2, 1])
-    q = np.array([q0, q1, q2])
-
-    return q
+    return _c2euler(C, 1, 0, True)
 
 
 def C2Euler213(C):
+    """Convert a DCM to the (2-1-3) Euler angle set.
+
+    :param C: A 3-by-3 direction cosine matrix.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    C2Euler213
-
-        Q = C2Euler213(C) translates the 3x3 direction cosine matrix
-    	C into the corresponding (2-1-3) euler angle set.
-    """
-
-    q0 = math.atan2(C[2, 0], C[2, 2])
-    q1 = _safe_asin(-C[2, 1])
-    q2 = math.atan2(C[0, 1], C[1, 1])
-    q = np.array([q0, q1, q2])
-
-    return q
+    return _c2euler(C, 1, 0, False)
 
 
 def C2Euler231(C):
-    """
-    C2Euler231
+    """Convert a DCM to the (2-3-1) Euler angle set.
 
-    	Q = C2Euler231(C) translates the 3x3 direction cosine matrix
-    	C into the corresponding (2-3-1) euler angle set.
+    :param C: A 3-by-3 direction cosine matrix.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-
-    q0 = math.atan2(-C[0, 2], C[0, 0])
-    q1 = _safe_asin(C[0, 1])
-    q2 = math.atan2(-C[2, 1], C[1, 1])
-    q = np.array([q0, q1, q2])
-    return q
+    return _c2euler(C, 1, 2, False)
 
 
 def C2Euler232(C):
-    """
-    C2Euler232
+    """Convert a DCM to the (2-3-2) Euler angle set.
 
-    	Q = C2Euler232(C) translates the 3x3 direction cosine matrix
-    	C into the corresponding (2-3-2) euler angle set.
+    :param C: A 3-by-3 direction cosine matrix.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-
-    q0 = math.atan2(C[1, 2], -C[1, 0])
-    q1 = _safe_acos(C[1, 1])
-    q2 = math.atan2(C[2, 1], C[0, 1])
-    q = np.array([q0, q1, q2])
-    return q
+    return _c2euler(C, 1, 2, True)
 
 
 def C2Euler312(C):
-    """
-    C2Euler312
+    """Convert a DCM to the (3-1-2) Euler angle set.
 
-    	Q = C2Euler312(C) translates the 3x3 direction cosine matrix
-    	C into the corresponding (3-1-2) euler angle set.
+    :param C: A 3-by-3 direction cosine matrix.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-
-    q0 = math.atan2(-C[1, 0], C[1, 1])
-    q1 = _safe_asin(C[1, 2])
-    q2 = math.atan2(-C[0, 2], C[2, 2])
-    q = np.array([q0, q1, q2])
-    return q
+    return _c2euler(C, 2, 0, False)
 
 
 def C2Euler313(C):
-    """
-    C2Euler313
+    """Convert a DCM to the (3-1-3) Euler angle set.
 
-    	Q = C2Euler313(C) translates the 3x3 direction cosine matrix
-    	C into the corresponding (3-1-3) euler angle set.
+    :param C: A 3-by-3 direction cosine matrix.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-
-    q0 = math.atan2(C[2, 0], -C[2, 1])
-    q1 = _safe_acos(C[2, 2])
-    q2 = math.atan2(C[0, 2], C[1, 2])
-    q = np.array([q0, q1, q2])
-    return q
+    return _c2euler(C, 2, 0, True)
 
 
 def C2Euler321(C):
-    """
-    C2Euler321
+    """Convert a DCM to the (3-2-1) Euler angle set.
 
-    	Q = C2Euler321(C) translates the 3x3 direction cosine matrix
-    	C into the corresponding (3-2-1) euler angle set.
+    :param C: A 3-by-3 direction cosine matrix.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-
-    q0 = math.atan2(C[0, 1], C[0, 0])
-    q1 = _safe_asin(-C[0, 2])
-    q2 = math.atan2(C[1, 2], C[2, 2])
-    q = np.array([q0, q1, q2])
-    return q
+    return _c2euler(C, 2, 1, False)
 
 
 def C2Euler323(C):
-    """
-    C2Euler323
+    """Convert a DCM to the (3-2-3) Euler angle set.
 
-    	Q = C2Euler323(C) translates the 3x3 direction cosine matrix
-    	C into the corresponding (3-2-3) euler angle set.
+    :param C: A 3-by-3 direction cosine matrix.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-
-    q0 = math.atan2(C[2, 1], C[2, 0])
-    q1 = _safe_acos(C[2, 2])
-    q2 = math.atan2(C[1, 2], -C[0, 2])
-    q = np.array([q0, q1, q2])
-    return q
+    return _c2euler(C, 2, 1, True)
 
 
 def C2Gibbs(C):
@@ -324,24 +309,15 @@ def C2MRP(C):
 
 
 def C2PRV(C):
-    """
-    C2PRV
+    """Convert a direction cosine matrix to a principal rotation vector.
 
-    	Q = C2PRV(C) translates the 3x3 direction cosine matrix
-    	C into the corresponding 3x1 principal rotation vector Q,
-    	where the first component of Q is the principal rotation angle
-    	phi (0<= phi <= Pi)
+    :param C: A 3-by-3 direction cosine matrix.
+    :return: A three-component rotation vector in radians. Its magnitude is
+        the rotation angle in the interval [0, pi], and its direction is the
+        rotation axis. The identity returns a zero vector.
     """
 
-    cp = (np.trace(C) - 1) / 2
-    p = _safe_acos(cp)
-    sp = p / 2. / np.sin(p)
-    q = np.array([
-        (C[1, 2] - C[2, 1]) * sp,
-        (C[2, 0] - C[0, 2]) * sp,
-        (C[0, 1] - C[1, 0]) * sp
-    ])
-    return q
+    return EP2PRV(C2EP(C))
 
 
 def addEP(b1, b2):
@@ -363,28 +339,16 @@ def addEP(b1, b2):
 
 
 def addEuler121(e1, e2):
+    """Compose successive (1-2-1) rotations, including singular attitudes.
+
+    :param e1: First Euler angle vector in radians.
+    :param e2: Second Euler angle vector in radians.
+    :return: Euler angles in radians for the composed rotation. At a singularity,
+        the third angle is zero and the first carries the combined rotation.
     """
-    addEuler121(E1,E2)
-
-    	Q = addEuler121(E1,E2) computes the overall (1-2-1) euler
-    	angle vector corresponding to two successive
-    	(1-2-1) rotations E1 and E2.
-    """
-
-    cp1 = math.cos(e1[1])
-    cp2 = math.cos(e2[1])
-    sp1 = math.sin(e1[1])
-    sp2 = math.sin(e2[1])
-    dum = e1[2] + e2[0]
-
-    q1 = _safe_acos(cp1 * cp2 - sp1 * sp2 * math.cos(dum))
-    cp3 = math.cos(q1)
-    q0 = Picheck(e1[0] + math.atan2(sp1 * sp2 * math.sin(dum), cp2 - cp3 * cp1))
-    q2 = Picheck(e2[2] + math.atan2(sp1 * sp2 * math.sin(dum), cp1 - cp3 * cp2))
-
-    q = np.array([q0, q1, q2])
-
-    return q
+    C1 = euler1212C(e1)
+    C2 = euler1212C(e2)
+    return C2Euler121(np.dot(C2, C1))
 
 
 def addEuler123(e1, e2):
@@ -403,27 +367,16 @@ def addEuler123(e1, e2):
 
 
 def addEuler131(e1, e2):
+    """Compose successive (1-3-1) rotations, including singular attitudes.
+
+    :param e1: First Euler angle vector in radians.
+    :param e2: Second Euler angle vector in radians.
+    :return: Euler angles in radians for the composed rotation. At a singularity,
+        the third angle is zero and the first carries the combined rotation.
     """
-    addEuler131(E1,E2)
-
-    	Q = addEuler131(E1,E2) computes the overall (1-3-1) euler
-    	angle vector corresponding to two successive
-    	(1-3-1) rotations E1 and E2.
-    """
-
-    cp1 = math.cos(e1[1])
-    cp2 = math.cos(e2[1])
-    sp1 = math.sin(e1[1])
-    sp2 = math.sin(e2[1])
-    dum = e1[2] + e2[0]
-
-    q1 = _safe_acos(cp1 * cp2 - sp1 * sp2 * math.cos(dum))
-    cp3 = math.cos(q1)
-    q0 = Picheck(e1[0] + math.atan2(sp1 * sp2 * math.sin(dum), cp2 - cp3 * cp1))
-    q2 = Picheck(e2[2] + math.atan2(sp1 * sp2 * math.sin(dum), cp1 - cp3 * cp2))
-
-    q = np.array([q0, q1, q2])
-    return q
+    C1 = euler1312C(e1)
+    C2 = euler1312C(e2)
+    return C2Euler131(np.dot(C2, C1))
 
 
 def addEuler132(e1, e2):
@@ -442,26 +395,16 @@ def addEuler132(e1, e2):
 
 
 def addEuler212(e1, e2):
+    """Compose successive (2-1-2) rotations, including singular attitudes.
+
+    :param e1: First Euler angle vector in radians.
+    :param e2: Second Euler angle vector in radians.
+    :return: Euler angles in radians for the composed rotation. At a singularity,
+        the third angle is zero and the first carries the combined rotation.
     """
-    addEuler212(E1,E2)
-
-    	Q = addEuler212(E1,E2) computes the overall (2-1-2) euler
-    	angle vector corresponding to two successive
-    	(2-1-2) rotations E1 and E2.
-    """
-
-    cp1 = math.cos(e1[1])
-    cp2 = math.cos(e2[1])
-    sp1 = math.sin(e1[1])
-    sp2 = math.sin(e2[1])
-    dum = e1[2] + e2[0]
-
-    q1 = _safe_acos(cp1 * cp2 - sp1 * sp2 * math.cos(dum))
-    cp3 = math.cos(q1)
-    q0 = Picheck(e1[0] + math.atan2(sp1 * sp2 * math.sin(dum), cp2 - cp3 * cp1))
-    q2 = Picheck(e2[2] + math.atan2(sp1 * sp2 * math.sin(dum), cp1 - cp3 * cp2))
-    q = np.array([q0, q1, q2])
-    return q
+    C1 = euler2122C(e1)
+    C2 = euler2122C(e2)
+    return C2Euler212(np.dot(C2, C1))
 
 
 def addEuler213(e1, e2):
@@ -495,26 +438,16 @@ def addEuler231(e1, e2):
 
 
 def addEuler232(e1, e2):
+    """Compose successive (2-3-2) rotations, including singular attitudes.
+
+    :param e1: First Euler angle vector in radians.
+    :param e2: Second Euler angle vector in radians.
+    :return: Euler angles in radians for the composed rotation. At a singularity,
+        the third angle is zero and the first carries the combined rotation.
     """
-    addEuler232(E1,E2)
-
-    	Q = addEuler232(E1,E2) computes the overall (2-3-2) euler
-    	angle vector corresponding to two successive
-    	(2-3-2) rotations E1 and E2.
-    """
-
-    cp1 = math.cos(e1[1])
-    cp2 = math.cos(e2[1])
-    sp1 = math.sin(e1[1])
-    sp2 = math.sin(e2[1])
-    dum = e1[2] + e2[0]
-
-    q1 = _safe_acos(cp1 * cp2 - sp1 * sp2 * math.cos(dum))
-    cp3 = math.cos(q1)
-    q0 = Picheck(e1[0] + math.atan2(sp1 * sp2 * math.sin(dum), cp2 - cp3 * cp1))
-    q2 = Picheck(e2[2] + math.atan2(sp1 * sp2 * math.sin(dum), cp1 - cp3 * cp2))
-    q = np.array([q0, q1, q2])
-    return q
+    C1 = euler2322C(e1)
+    C2 = euler2322C(e2)
+    return C2Euler232(np.dot(C2, C1))
 
 
 def addEuler312(e1, e2):
@@ -533,26 +466,16 @@ def addEuler312(e1, e2):
 
 
 def addEuler313(e1, e2):
+    """Compose successive (3-1-3) rotations, including singular attitudes.
+
+    :param e1: First Euler angle vector in radians.
+    :param e2: Second Euler angle vector in radians.
+    :return: Euler angles in radians for the composed rotation. At a singularity,
+        the third angle is zero and the first carries the combined rotation.
     """
-    addEuler313(E1,E2)
-
-    	Q = addEuler313(E1,E2) computes the overall (3-1-3) euler
-    	angle vector corresponding to two successive
-    	(3-1-3) rotations E1 and E2.
-    """
-
-    cp1 = math.cos(e1[1])
-    cp2 = math.cos(e2[1])
-    sp1 = math.sin(e1[1])
-    sp2 = math.sin(e2[1])
-    dum = e1[2] + e2[0]
-
-    q1 = _safe_acos(cp1 * cp2 - sp1 * sp2 * math.cos(dum))
-    cp3 = math.cos(q1)
-    q0 = Picheck(e1[0] + math.atan2(sp1 * sp2 * math.sin(dum), cp2 - cp3 * cp1))
-    q2 = Picheck(e2[2] + math.atan2(sp1 * sp2 * math.sin(dum), cp1 - cp3 * cp2))
-    q = np.array([q0, q1, q2])
-    return q
+    C1 = euler3132C(e1)
+    C2 = euler3132C(e2)
+    return C2Euler313(np.dot(C2, C1))
 
 
 def addEuler321(e1, e2):
@@ -571,105 +494,82 @@ def addEuler321(e1, e2):
 
 
 def addEuler323(e1, e2):
+    """Compose successive (3-2-3) rotations, including singular attitudes.
+
+    :param e1: First Euler angle vector in radians.
+    :param e2: Second Euler angle vector in radians.
+    :return: Euler angles in radians for the composed rotation. At a singularity,
+        the third angle is zero and the first carries the combined rotation.
     """
-    addEuler323(E1,E2)
-
-    	Q = addEuler323(E1,E2) computes the overall (3-2-3) euler
-    	angle vector corresponding to two successive
-    	(3-2-3) rotations E1 and E2.
-    """
-
-    cp1 = math.cos(e1[1])
-    cp2 = math.cos(e2[1])
-    sp1 = math.sin(e1[1])
-    sp2 = math.sin(e2[1])
-    dum = e1[2] + e2[0]
-
-    q1 = _safe_acos(cp1 * cp2 - sp1 * sp2 * math.cos(dum))
-    cp3 = math.cos(q1)
-    q0 = Picheck(e1[0] + math.atan2(sp1 * sp2 * math.sin(dum), cp2 - cp3 * cp1))
-    q2 = Picheck(e2[2] + math.atan2(sp1 * sp2 * math.sin(dum), cp1 - cp3 * cp2))
-    q = np.array([q0, q1, q2])
-    return q
+    C1 = euler3232C(e1)
+    C2 = euler3232C(e2)
+    return C2Euler323(np.dot(C2, C1))
 
 
 def addGibbs(q1, q2):
-    """
-    addGibbs(Q1,Q2)
+    """Return the Gibbs vector for successive rotations ``q1`` and ``q2``.
 
-    	Q = addGibbs(Q1,Q2) provides the gibbs vector
-    	which corresponds to performing to successive
-    	rotations Q1 and Q2.
+    :param q1: First dimensionless Gibbs vector as a list, tuple, or array.
+    :param q2: Second dimensionless Gibbs vector as a list, tuple, or array.
+    :return: A three-component, dimensionless Gibbs array.
     """
+    q1 = np.asarray(q1, dtype=np.float64)
+    q2 = np.asarray(q2, dtype=np.float64)
     result = (q1 + q2 + np.cross(q1, q2)) / (1 - np.dot(q1, q2))
     return result
 
 
+def _compose_mrp(q1, q2, sign):
+    """Compose MRPs through quaternions, returning the bounded MRP set."""
+    if q1[0] == -sign*q2[0] and q1[1] == -sign*q2[1] and q1[2] == -sign*q2[2]:
+        return np.zeros(3)
+    first = MRP2EP(q1)
+    second = MRP2EP(q2)
+    # Explicit components keep Numba compilation within a macOS worker's stack.
+    cross = np.array([first[2]*second[3] - first[3]*second[2],
+                      first[3]*second[1] - first[1]*second[3],
+                      first[1]*second[2] - first[2]*second[1]])
+    # Cancel the linear terms before adding the smaller cross product.
+    vector = (second[0]*first[1:] + sign*first[0]*second[1:]) + cross
+    scalar = first[0]*second[0] - sign*np.dot(first[1:], second[1:])
+    return EP2MRP(np.array([scalar, vector[0], vector[1], vector[2]]))
+
+
 def addMRP(q1, q2):
+    """Return the MRP set for successive rotations ``q1`` and ``q2``.
+
+    :param q1: First dimensionless MRP vector as a list, tuple, or array.
+    :param q2: Second dimensionless MRP vector as a list, tuple, or array.
+    :return: A three-component, dimensionless MRP array with norm at most one.
     """
-     addMRP(Q1,Q2)
 
-    	Q = addMRP(Q1,Q2) provides the MRP vector
-    	which corresponds to performing to successive
-    	rotations Q1 and Q2.
-    """
-
-    den = 1 + np.dot(q1, q1) * np.dot(q2, q2) - 2 * np.dot(q1, q2)
-
-    if np.abs(den) < 1e-5:
-        q2 = -q2/np.dot(q2,q2)
-        den = 1 + np.dot(q1, q1) * np.dot(q2, q2) - 2 * np.dot(q1, q2)
-    num = (1 - np.dot(q1, q1)) * q2 + (1 - np.dot(q2, q2)) * q1 + 2 * np.cross(q1, q2)
-
-    q = num / den
-
-    if np.dot(q,q) > 1:
-            q = - q/np.dot(q,q)
-
-    return q
+    return _compose_mrp(q1, q2, 1.0)
 
 
 def PRV2elem(r):
-    """
-    PRV2elem(R)
+    """Convert a rotation vector to its angle and unit axis.
 
-    	Q = PRV2elem(R) translates a prinicpal rotation vector R
-    	into the corresponding principal rotation element set Q.
+    :param r: Three-component principal rotation vector in radians.
+    :return: Four components: the angle in radians followed by the unit axis.
+        Only an exactly zero vector returns an all-zero element set.
     """
-    q0 = np.linalg.norm(r)
-    if q0 < 1e-12:
+    angle = math.hypot(r[0], math.hypot(r[1], r[2]))
+    if angle == 0.0:
         return np.zeros(4)
-    q1 = r[0] / q0
-    q2 = r[1] / q0
-    q3 = r[2] / q0
-    q = np.array([q0, q1, q2, q3])
-    return q
+    return np.array([angle, r[0] / angle, r[1] / angle, r[2] / angle])
 
 
 def addPRV(qq1, qq2):
+    """Compose two successive principal rotation vectors.
+
+    :param qq1: First rotation vector in radians.
+    :param qq2: Second rotation vector in radians.
+    :return: Composed rotation vector in radians. Opposite input vectors return
+        zero; otherwise the composed quaternion's angle branch is retained.
     """
-     addPRV(Q1,Q2)
-
-    	Q = addPRV(Q1,Q2) provides the principal rotation vector
-    	which corresponds to performing to successive
-    	prinicipal rotations Q1 and Q2.
-    """
-
-    q1 = PRV2elem(qq1)
-    q2 = PRV2elem(qq2)
-    cp1 = math.cos(q1[0] / 2.)
-    cp2 = math.cos(q2[0] / 2.)
-    sp1 = math.sin(q1[0] / 2.)
-    sp2 = math.sin(q2[0] / 2.)
-    e1 = q1[1:4]
-    e2 = q2[1:4]
-
-    p = 2. * _safe_acos(cp1 * cp2 - sp1 * sp2 * np.dot(e1, e2))
-    sp = math.sin(p / 2.)
-    e = (cp1 * sp2 * e2 + cp2 * sp1 * e1 + sp1 * sp2 * np.cross(e1, e2))
-    q = (p / sp) * e
-
-    return q
+    if qq1[0] == -qq2[0] and qq1[1] == -qq2[1] and qq1[2] == -qq2[2]:
+        return np.zeros(3)
+    return EP2PRV(addEP(PRV2EP(qq1), PRV2EP(qq2)))
 
 
 def BinvEP(q):
@@ -1060,16 +960,14 @@ def BinvEuler323(q):
 
 
 def BinvGibbs(q):
-    """
-    BinvGibbs(Q)
+    """Return the inverse Gibbs rate matrix.
 
-    	B = BinvGibbs(Q) returns the 3x3 matrix which relates
-    	the derivative of gibbs vector Q to the
-    	body angular velocity vector w.
-
-    		w = 2 [B(Q)]^(-1) dQ/dt
+    :param q: Three dimensionless Gibbs components as a list, tuple, or array.
+    :return: A dimensionless 3-by-3 matrix satisfying
+        ``omega = 2 * BinvGibbs(q) @ dq_dt``.
     """
 
+    q = np.asarray(q, dtype=np.float64)
     B = np.zeros((3, 3))
     B[0, 0] = 1
     B[0, 1] = q[2]
@@ -1086,16 +984,14 @@ def BinvGibbs(q):
 
 
 def BinvMRP(q):
-    """
-    BinvMRP(Q)
+    """Return the inverse MRP rate matrix.
 
-    	B = BinvMRP(Q) returns the 3x3 matrix which relates
-    	the derivative of MRP vector Q to the
-    	body angular velocity vector w.
-
-    		w = 4 [B(Q)]^(-1) dQ/dt
+    :param q: Three dimensionless MRP components as a list, tuple, or array.
+    :return: A dimensionless 3-by-3 matrix satisfying
+        ``omega = 4 * BinvMRP(q) @ dq_dt``.
     """
 
+    q = np.asarray(q, dtype=np.float64)
     s2 = np.dot(q, q)
     B = np.zeros((3, 3))
     B[0, 0] = 1 - s2 + 2 * q[0] * q[0]
@@ -1113,19 +1009,22 @@ def BinvMRP(q):
 
 
 def BinvPRV(q):
-    """
-    BinvPRV(Q)
+    """Map the rotation-vector derivative to angular velocity.
 
-    	B = BinvPRV(Q) returns the 3x3 matrix which relates
-    	the derivative of principal rotation vector Q to the
-    	body angular velocity vector w.
-
-    		w = [B(Q)]^(-1) dQ/dt
+    :param q: Principal rotation vector in radians as a list, tuple, or array.
+    :return: A 3-by-3 kinematic matrix, equal to identity at zero attitude.
+        Small-angle series avoid cancellation near zero.
     """
 
+    q = np.asarray(q, dtype=np.float64)
     p = la.norm(q)
-    c1 = (1 - math.cos(p)) / p / p
-    c2 = (p - math.sin(p)) / p / p / p
+    if p < 1e-2:  # [rad]
+        p2 = p * p
+        c1 = 0.5 - p2 / 24.0 + p2 * p2 / 720.0 - p2**3 / 40320.0
+        c2 = 1.0 / 6.0 - p2 / 120.0 + p2 * p2 / 5040.0 - p2**3 / 362880.0
+    else:
+        c1 = 2.0 * (math.sin(p / 2.0) / p)**2
+        c2 = (p - math.sin(p)) / p**3
 
     B = np.zeros((3, 3))
     B[0, 0] = 1 - c2 * (q[1] * q[1] + q[2] * q[2])
@@ -1542,16 +1441,14 @@ def BmatEuler323(q):
 
 
 def BmatGibbs(q):
-    """
-    BmatGibbs(Q)
+    """Return the Gibbs rate matrix satisfying ``dq_dt = B @ omega / 2``.
 
-    	B = BmatGibbs(Q) returns the 3x3 matrix which relates the
-    	body angular velocity vector w to the derivative of
-    	Gibbs vector Q.
-
-    		dQ/dt = 1/2 [B(Q)] w
+    :param q: Three dimensionless Gibbs components as a list, tuple, or array.
+    :return: A dimensionless 3-by-3 matrix evaluated in double precision,
+        including when the input array contains integers or single-precision values.
     """
 
+    q = np.asarray(q, dtype=np.float64)
     B = np.zeros((3, 3))
     B[0, 0] = 1 + q[0] * q[0]
     B[0, 1] = q[0] * q[1] - q[2]
@@ -1567,16 +1464,13 @@ def BmatGibbs(q):
 
 
 def BmatMRP(q):
-    """
-    BmatMRP(Q)
+    """Return the MRP rate matrix satisfying ``dq_dt = B @ omega / 4``.
 
-    	B = BmatMRP(Q) returns the 3x3 matrix which relates the
-    	body angular velocity vector w to the derivative of
-    	MRP vector Q.
-
-    		dQ/dt = 1/4 [B(Q)] w
+    :param q: Three dimensionless MRP components as a list, tuple, or array.
+    :return: A dimensionless 3-by-3 matrix.
     """
 
+    q = np.asarray(q, dtype=np.float64)
     B = np.zeros((3, 3))
     s2 = np.dot(q, q)
     B[0, 0] = 1 - s2 + 2 * q[0] * q[0]
@@ -1593,16 +1487,15 @@ def BmatMRP(q):
 
 
 def BdotmatMRP(q, dq):
-    """
-    BdotmatMRP(Q, dQ)
+    """Return the time derivative of the MRP rate matrix.
 
-    	B = BdotmatMRP(Q, dQ) returns the derivative of the 3x3 BmatMRP
-        matrix, which is used to calculate the second order derivative
-        of the MRP vector Q.
-
-    	(d^2Q)/(dt^2) = 1/4 ( [B(Q)] dw + [Bdot(Q,dQ)] w )
+    :param q: Three dimensionless MRP components as a list, tuple, or array.
+    :param dq: Three MRP time derivatives in inverse seconds.
+    :return: A 3-by-3 matrix in inverse seconds.
     """
 
+    q = np.asarray(q, dtype=np.float64)
+    dq = np.asarray(dq, dtype=np.float64)
     Bdot = np.zeros((3, 3))
     s = -2 * np.dot(q, dq)
     Bdot[0, 0] = s + 4 * (q[0] * dq[0])
@@ -1619,18 +1512,20 @@ def BdotmatMRP(q, dq):
 
 
 def BmatPRV(q):
-    """
-    BmatPRV(Q)
+    """Map angular velocity to the rotation-vector derivative.
 
-    	B = BmatPRV(Q) returns the 3x3 matrix which relates the
-    	body angular velocity vector w to the derivative of
-    	principal rotation vector Q.
-
-    		dQ/dt = [B(Q)] w
+    :param q: Principal rotation vector in radians as a list, tuple, or array.
+    :return: A 3-by-3 kinematic matrix, equal to identity at zero attitude.
+        Small-angle series avoid cancellation near zero.
     """
 
+    q = np.asarray(q, dtype=np.float64)
     p = np.linalg.norm(q)
-    c = 1 / p / p * (1 - p / 2 / math.tan(p / 2))
+    if p < 1e-2:  # [rad]
+        p2 = p * p
+        c = 1.0 / 12.0 + p2 / 720.0 + p2 * p2 / 30240.0 + p2**3 / 1209600.0
+    else:
+        c = (1.0 - p / 2.0 / math.tan(p / 2.0)) / p**2
     B = np.zeros((3, 3))
     B[0, 0] = 1 - c * (q[1] * q[1] + q[2] * q[2])
     B[0, 1] = -q[2] / 2 + c * (q[0] * q[1])
@@ -1656,6 +1551,7 @@ def dEP(q, w):
     	dQ/dt = 1/2 [B(Q)] w
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return .5 * np.dot(BmatEP(q), w)
 
 
@@ -1670,6 +1566,7 @@ def dEuler121(q, w):
     	dQ/dt =  [B(Q)] w
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return np.dot(BmatEuler121(q), w)
 
 
@@ -1684,6 +1581,7 @@ def dEuler123(q, w):
         dQ/dt =  [B(Q)] w
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return np.dot(BmatEuler123(q), w)
 
 
@@ -1698,6 +1596,7 @@ def dEuler131(q, w):
     	dQ/dt =  [B(Q)] w
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return np.dot(BmatEuler131(q), w)
 
 
@@ -1712,6 +1611,7 @@ def dEuler132(q, w):
     	dQ/dt =  [B(Q)] w
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return np.dot(BmatEuler132(q), w)
 
 
@@ -1726,6 +1626,7 @@ def dEuler212(q, w):
     	dQ/dt =  [B(Q)] w
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return np.dot(BmatEuler212(q), w)
 
 
@@ -1740,6 +1641,7 @@ def dEuler213(q, w):
     	dQ/dt =  [B(Q)] w
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return np.dot(BmatEuler213(q), w)
 
 
@@ -1754,6 +1656,7 @@ def dEuler231(q, w):
     	dQ/dt =  [B(Q)] w
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return np.dot(BmatEuler231(q), w)
 
 
@@ -1768,6 +1671,7 @@ def dEuler232(q, w):
     	dQ/dt =  [B(Q)] w
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return np.dot(BmatEuler232(q), w)
 
 
@@ -1782,6 +1686,7 @@ def dEuler312(q, w):
     	dQ/dt =  [B(Q)] w
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return np.dot(BmatEuler312(q), w)
 
 
@@ -1796,6 +1701,7 @@ def dEuler313(q, w):
     	dQ/dt =  [B(Q)] w
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return np.dot(BmatEuler313(q), w)
 
 
@@ -1810,6 +1716,7 @@ def dEuler321(q, w):
     	dQ/dt =  [B(Q)] w
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return np.dot(BmatEuler321(q), w)
 
 
@@ -1824,75 +1731,72 @@ def dEuler323(q, w):
     	dQ/dt =  [B(Q)] w
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return np.dot(BmatEuler323(q), w)
 
 
 def dGibbs(q, w):
-    """
-    dGibbs(Q,W)
+    """Map angular velocity to the Gibbs vector derivative.
 
-    	dq = dGibbs(Q,W) returns the gibbs derivative
-    	for a given gibbs vector Q and body
-    	angular velocity vector w.
-
-    	dQ/dt = 1/2 [B(Q)] w
+    :param q: Dimensionless Gibbs vector.
+    :param w: Body angular velocity in radians per second.
+    :return: Gibbs time derivative in inverse seconds.
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return .5 * np.dot(BmatGibbs(q), w)
 
 
 def dMRP(q, w):
-    """
-    dMRP(Q,W)
+    """Map angular velocity to the MRP time derivative.
 
-    	dq = dMRP(Q,W) returns the MRP derivative
-    	for a given MRP vector Q and body
-    	angular velocity vector w.
-
-    	dQ/dt = 1/4 [B(Q)] w
+    :param q: Dimensionless MRP vector.
+    :param w: Body angular velocity in radians per second.
+    :return: MRP time derivative in inverse seconds.
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return .25 * np.dot(BmatMRP(q), w)
 
 
 def dMRP2Omega(q, dq):
-    """
-    dMRP(Q,dQ)
+    """Recover angular velocity from the MRP time derivative.
 
-    	W = dMRP(Q,dQ) returns the angular rate
-    	for a given MRP set q MRP derivative dq.
-
-        W = 4 [B(Q)]^(-1) dQ
+    :param q: Dimensionless MRP vector.
+    :param dq: MRP time derivative in inverse seconds.
+    :return: Body angular velocity in radians per second.
     """
 
+    dq = np.asarray(dq, dtype=np.float64)
     return 4 * np.dot(BinvMRP(q), dq)
 
 
 def ddMRP(q, dq, w, dw):
-    """
-    dMRP(Q,dQ,W,dW)
+    """Map angular acceleration to the MRP second derivative.
 
-    	ddQ = ddMRP(Q,dQ,W,dW) returns the MRP second derivative
-    	for a given MRP vector q, MRP derivative dq, body
-    	angular velocity vector w and body angulat acceleration
-        vector dw.
-
-    	(d^2Q)/(dt^2) = 1/4 ( [B(Q)] dw + [Bdot(Q,dQ)] w )
+    :param q: Dimensionless MRP vector.
+    :param dq: MRP time derivative in inverse seconds.
+    :param w: Body angular velocity in radians per second.
+    :param dw: Body angular acceleration in radians per second squared.
+    :return: MRP second derivative in inverse seconds squared.
     """
 
+    w = np.asarray(w, dtype=np.float64)
+    dw = np.asarray(dw, dtype=np.float64)
     return .25 * ( np.dot(BmatMRP(q), dw) + np.dot(BdotmatMRP(q, dq), w) )
 
+
 def ddMRP2dOmega(q, dq, ddq):
-    """
-    ddMRP2dOmega(Q,dQ,ddQ)
+    """Recover angular acceleration from MRP derivatives.
 
-    	dW = ddMRP2dOmega(Q,dQ,ddQ) returns the body angular acceleration
-        dW given the MRP vector Q, the MRP derivative dQ and the MRP
-        second order derivative ddQ.
-
-    	dW/dt = 4 [B(Q)]^(-1) ( ddQ - [Bdot(Q,dQ)] [B(Q)]^(-1) dQ )
+    :param q: Dimensionless MRP vector.
+    :param dq: MRP time derivative in inverse seconds.
+    :param ddq: MRP second derivative in inverse seconds squared.
+    :return: Body angular acceleration in radians per second squared.
     """
 
+    dq = np.asarray(dq, dtype=np.float64)
+    ddq = np.asarray(ddq, dtype=np.float64)
     Binv = BinvMRP(q)
     Bdot = BdotmatMRP(q, dq)
 
@@ -1900,16 +1804,14 @@ def ddMRP2dOmega(q, dq, ddq):
 
 
 def dPRV(q, w):
-    """
-    dPRV(Q,W)
+    """Map angular velocity to the principal rotation vector derivative.
 
-    	dq = dPRV(Q,W) returns the PRV derivative
-    	for a given PRV vector Q and body
-    	angular velocity vector w.
-
-    	dQ/dt =  [B(Q)] w
+    :param q: Three-component principal rotation vector in radians.
+    :param w: Body angular velocity in radians per second.
+    :return: Rotation vector derivative in radians per second.
     """
 
+    w = np.asarray(w, dtype=np.float64)
     return np.dot(BmatPRV(q), w)
 
 
@@ -1931,13 +1833,13 @@ def elem2PRV(r):
 
 
 def gibbs2C(q):
-    """
-    gibbs2C
+    """Convert a Gibbs vector to a direction cosine matrix.
 
-    	C = gibbs2C(Q) returns the direction cosine
-    	matrix in terms of the 3x1 gibbs vector Q.
+    :param q: Three dimensionless Gibbs components as a list, tuple, or array.
+    :return: A 3-by-3 direction cosine matrix.
     """
 
+    q = np.asarray(q, dtype=np.float64)
     q1 = q[0]
     q2 = q[1]
     q3 = q[2]
@@ -1958,13 +1860,13 @@ def gibbs2C(q):
 
 
 def gibbs2EP(q1):
-    """
-    gibbs2EP(Q1)
+    """Convert a Gibbs vector to Euler parameters.
 
-    	Q = gibbs2EP(Q1) translates the gibbs vector Q1
-    	into the euler parameter vector Q.
+    :param q1: Three dimensionless Gibbs components as a list, tuple, or array.
+    :return: A unit quaternion with a positive scalar component first.
     """
 
+    q1 = np.asarray(q1, dtype=np.float64)
     qm = np.linalg.norm(q1)
     ps = np.sqrt(1 + qm * qm)
     q = np.array([
@@ -2109,25 +2011,27 @@ def gibbs2Euler323(q):
 
 
 def gibbs2MRP(q1):
-    """
-    gibbs2MRP(Q1)
+    """Convert a Gibbs vector to modified Rodrigues parameters.
 
-    	Q = gibbs2MRP(Q1) translates the gibbs vector Q1
-    	into the MRP vector Q.
+    :param q1: Three dimensionless Gibbs components as a list, tuple, or array.
+    :return: A three-component, dimensionless MRP array with norm at most one.
     """
 
+    q1 = np.asarray(q1, dtype=np.float64)
     return q1 / (1 + math.sqrt(1 + np.dot(q1, q1)))
 
 
 def gibbs2PRV(q):
-    """
-    gibbs2PRV(Q)
+    """Convert a Gibbs vector to a principal rotation vector.
 
-    	Q = gibbs2PRV(Q1) translates the gibbs vector Q1
-    	into the principal rotation vector Q.
+    :param q: A three-component, dimensionless Gibbs vector.
+    :return: A three-component rotation vector in radians. A zero Gibbs
+        vector returns a zero rotation vector.
     """
 
-    tp = np.linalg.norm(q)
+    tp = math.hypot(q[0], math.hypot(q[1], q[2]))
+    if tp == 0.0:
+        return np.zeros(3)
     p = 2 * math.atan(tp)
     q0 = q[0] / tp * p
     q1 = q[1] / tp * p
@@ -2137,13 +2041,13 @@ def gibbs2PRV(q):
 
 
 def MRP2C(q):
-    """
-    MRP2C
+    """Convert modified Rodrigues parameters to a direction cosine matrix.
 
-    	C = MRP2C(Q) returns the direction cosine
-    	matrix in terms of the 3x1 MRP vector Q.
+    :param q: Three dimensionless MRP components as a list, tuple, or array.
+    :return: A 3-by-3 direction cosine matrix.
     """
 
+    q = np.asarray(q, dtype=np.float64)
     q1 = q[0]
     q2 = q[1]
     q3 = q[2]
@@ -2166,12 +2070,13 @@ def MRP2C(q):
 
 
 def MRP2EP(q1):
-    """
-    MRP2EP(Q1)
+    """Convert modified Rodrigues parameters to Euler parameters.
 
-    	Q = MRP2EP(Q1) translates the MRP vector Q1
-    	into the euler parameter vector Q.
+    :param q1: Three dimensionless MRP components as a list, tuple, or array.
+    :return: A unit quaternion with its scalar component first. MRP norms greater
+        than one retain a negative quaternion scalar component.
     """
+    q1 = np.asarray(q1, dtype=np.float64)
     qm = np.linalg.norm(q1)
     ps = 1 + qm * qm
     q = np.array([
@@ -2316,25 +2221,29 @@ def MRP2Euler323(q):
 
 
 def MRP2Gibbs(q1):
-    """
-    MRP2Gibbs(Q1)
+    """Convert modified Rodrigues parameters to a Gibbs vector.
 
-    	Q = MRP2Gibbs(Q1) translates the MRP vector Q1
-    	into the gibbs vector Q.
+    :param q1: Three dimensionless MRP components as a list, tuple, or array.
+    :return: A three-component, dimensionless Gibbs vector.
+    :note: The conversion is singular when the MRP norm equals one.
     """
 
+    q1 = np.asarray(q1, dtype=np.float64)
     return 2 * q1 / (1 - np.dot(q1, q1))
 
 
 def MRP2PRV(q):
-    """
-    MRP2PRV(Q1)
+    """Convert modified Rodrigues parameters to a principal rotation vector.
 
-    	Q = MRP2PRV(Q1) translates the MRP vector Q1
-    	into the principal rotation vector Q.
+    :param q: A three-component, dimensionless MRP vector.
+    :return: A three-component rotation vector in radians. A zero MRP vector
+        returns a zero rotation vector. MRP norms greater than one retain
+        rotation angles greater than pi.
     """
 
-    tp = np.linalg.norm(q)
+    tp = math.hypot(q[0], math.hypot(q[1], q[2]))
+    if tp == 0.0:
+        return np.zeros(3)
     p = 4 * math.atan(tp)
     q0 = q[0] / tp * p
     q1 = q[1] / tp * p
@@ -2344,14 +2253,27 @@ def MRP2PRV(q):
     return q
 
 
+def MRPshadow(q):
+    """Return the shadow set of a nonzero MRP vector.
+
+    :param q: Three dimensionless MRP components as a list, tuple, or array.
+    :return: The three-component array ``-q / dot(q, q)``.
+    :note: The shadow of zero is singular and returns NaN components.
+    """
+    q = np.asarray(q, dtype=np.float64)
+    return -q / np.dot(q, q)
+
+
 def MRPswitch(q, s2):
-    """
-    MRPswitch
+    """Switch to the shadow MRP set when the input norm exceeds ``s2``.
 
-    	S = MRPswitch(Q,s2) checks to see if norm(Q) is larger than s2.
-    	If yes, then the MRP vector Q is mapped to its shadow set.
+    :param q: Three dimensionless MRP components as a list, tuple, or array.
+    :param s2: Dimensionless MRP norm threshold.
+    :return: A three-component MRP array, unchanged at or below the threshold.
     """
 
+    q = np.asarray(q, dtype=np.float64)
+    s2 = np.float64(s2)
     q2 = np.dot(q, q)
     if (q2 > s2 * s2):
         s = -q / q2
@@ -2377,11 +2299,11 @@ def PRV2C(q):
         Direction cosine (rotation) matrix.
     """
 
-    q = np.asarray(q, dtype=np.float64).reshape(3)
-    angle = np.linalg.norm(q)
+    # Numba requires contiguous storage when reshaping strided array views.
+    q = np.ascontiguousarray(np.asarray(q, dtype=np.float64)).reshape(3)
+    angle = math.hypot(q[0], math.hypot(q[1], q[2]))
 
-    if angle < 1e-8:
-        # No rotation -> identity matrix
+    if angle == 0.0:
         return np.eye(3)
 
     # Normalize principal axis
@@ -2390,7 +2312,7 @@ def PRV2C(q):
 
     cp = np.cos(angle)
     sp = np.sin(angle)
-    d1 = 1 - cp
+    d1 = 2.0 * math.sin(angle / 2.0)**2
 
     C = np.array([
         [q1*q1*d1 + cp,     q1*q2*d1 + q3*sp, q1*q3*d1 - q2*sp],
@@ -2402,11 +2324,11 @@ def PRV2C(q):
 
 
 def PRV2EP(qq1):
-    """"
-    PRV2EP(Q1)
+    """Convert a principal rotation vector to Euler parameters.
 
-    	Q = PRV2EP(Q1) translates the principal rotation vector Q1
-    	into the euler parameter vector Q.
+    :param qq1: Three-component rotation vector in radians.
+    :return: A unit quaternion with its scalar component first. Small nonzero
+        rotations retain their vector components.
     """
 
     q = np.zeros(4)
@@ -2607,26 +2529,16 @@ def subEP(b1, b2):
 
 
 def subEuler121(e, e1):
+    """Return the relative (1-2-1) rotation from ``e1`` to ``e``.
+
+    :param e: Final Euler angle vector in radians.
+    :param e1: Reference Euler angle vector in radians.
+    :return: Relative Euler angles in radians. At a singularity, the third
+        angle is zero and the first carries the combined rotation.
     """
-    subEuler121(E,E1)
-
-    	E2 = subEuler121(E,E1) computes the relative
-    	(1-2-1) euler angle vector from E1 to E.
-    """
-
-    cp = math.cos(e[1])
-    cp1 = math.cos(e1[1])
-    sp = math.sin(e[1])
-    sp1 = math.sin(e1[1])
-    dum = e[0] - e1[0]
-
-    e2 = np.zeros(3)
-    e2[1] = _safe_acos(cp1 * cp + sp1 * sp * math.cos(dum))
-    cp2 = math.cos(e2[1])
-    e2[0] = Picheck(-e1[2] + math.atan2(sp1 * sp * math.sin(dum), cp2 * cp1 - cp))
-    e2[2] = Picheck(e[2] - math.atan2(sp1 * sp * math.sin(dum), cp1 - cp * cp2))
-
-    return e2
+    C = euler1212C(e)
+    C1 = euler1212C(e1)
+    return C2Euler121(np.dot(C, C1.T))
 
 
 def subEuler123(e, e1):
@@ -2646,26 +2558,16 @@ def subEuler123(e, e1):
 
 
 def subEuler131(e, e1):
+    """Return the relative (1-3-1) rotation from ``e1`` to ``e``.
+
+    :param e: Final Euler angle vector in radians.
+    :param e1: Reference Euler angle vector in radians.
+    :return: Relative Euler angles in radians. At a singularity, the third
+        angle is zero and the first carries the combined rotation.
     """
-    subEuler131(E,E1)
-
-    	E2 = subEuler131(E,E1) computes the relative
-    	(1-3-1) euler angle vector from E1 to E.
-    """
-
-    cp = math.cos(e[1])
-    cp1 = math.cos(e1[1])
-    sp = math.sin(e[1])
-    sp1 = math.sin(e1[1])
-    dum = e[0] - e1[0]
-
-    e2 = np.zeros(3)
-    e2[1] = _safe_acos(cp1 * cp + sp1 * sp * math.cos(dum))
-    cp2 = math.cos(e2[1])
-    e2[0] = Picheck(-e1[2] + math.atan2(sp1 * sp * math.sin(dum), cp2 * cp1 - cp))
-    e2[2] = Picheck(e[2] - math.atan2(sp1 * sp * math.sin(dum), cp1 - cp * cp2))
-
-    return e2
+    C = euler1312C(e)
+    C1 = euler1312C(e1)
+    return C2Euler131(np.dot(C, C1.T))
 
 
 def subEuler132(e, e1):
@@ -2685,26 +2587,16 @@ def subEuler132(e, e1):
 
 
 def subEuler212(e, e1):
+    """Return the relative (2-1-2) rotation from ``e1`` to ``e``.
+
+    :param e: Final Euler angle vector in radians.
+    :param e1: Reference Euler angle vector in radians.
+    :return: Relative Euler angles in radians. At a singularity, the third
+        angle is zero and the first carries the combined rotation.
     """
-    subEuler212(E,E1)
-
-    	E2 = subEuler212(E,E1) computes the relative
-    	(2-1-2) euler angle vector from E1 to E.
-    """
-
-    cp = math.cos(e[1])
-    cp1 = math.cos(e1[1])
-    sp = math.sin(e[1])
-    sp1 = math.sin(e1[1])
-    dum = e[0] - e1[0]
-
-    e2 = np.zeros(3)
-    e2[1] = _safe_acos(cp1 * cp + sp1 * sp * math.cos(dum))
-    cp2 = math.cos(e2[1])
-    e2[0] = Picheck(-e1[2] + math.atan2(sp1 * sp * math.sin(dum), cp2 * cp1 - cp))
-    e2[2] = Picheck(e[2] - math.atan2(sp1 * sp * math.sin(dum), cp1 - cp * cp2))
-
-    return e2
+    C = euler2122C(e)
+    C1 = euler2122C(e1)
+    return C2Euler212(np.dot(C, C1.T))
 
 
 def subEuler213(e, e1):
@@ -2740,26 +2632,16 @@ def subEuler231(e, e1):
 
 
 def subEuler232(e, e1):
+    """Return the relative (2-3-2) rotation from ``e1`` to ``e``.
+
+    :param e: Final Euler angle vector in radians.
+    :param e1: Reference Euler angle vector in radians.
+    :return: Relative Euler angles in radians. At a singularity, the third
+        angle is zero and the first carries the combined rotation.
     """
-    subEuler232(E,E1)
-
-    	E2 = subEuler232(E,E1) computes the relative
-    	(2-3-2) euler angle vector from E1 to E.
-    """
-
-    cp = math.cos(e[1])
-    cp1 = math.cos(e1[1])
-    sp = math.sin(e[1])
-    sp1 = math.sin(e1[1])
-    dum = e[0] - e1[0]
-
-    e2 = np.zeros(3)
-    e2[1] = _safe_acos(cp1 * cp + sp1 * sp * math.cos(dum))
-    cp2 = math.cos(e2[1])
-    e2[0] = Picheck(-e1[2] + math.atan2(sp1 * sp * math.sin(dum), cp2 * cp1 - cp))
-    e2[2] = Picheck(e[2] - math.atan2(sp1 * sp * math.sin(dum), cp1 - cp * cp2))
-
-    return e2
+    C = euler2322C(e)
+    C1 = euler2322C(e1)
+    return C2Euler232(np.dot(C, C1.T))
 
 
 def subEuler312(e, e1):
@@ -2779,26 +2661,16 @@ def subEuler312(e, e1):
 
 
 def subEuler313(e, e1):
+    """Return the relative (3-1-3) rotation from ``e1`` to ``e``.
+
+    :param e: Final Euler angle vector in radians.
+    :param e1: Reference Euler angle vector in radians.
+    :return: Relative Euler angles in radians. At a singularity, the third
+        angle is zero and the first carries the combined rotation.
     """
-    subEuler313(E,E1)
-
-    	E2 = subEuler313(E,E1) computes the relative
-    	(3-1-3) euler angle vector from E1 to E.
-    """
-
-    cp = math.cos(e[1])
-    cp1 = math.cos(e1[1])
-    sp = math.sin(e[1])
-    sp1 = math.sin(e1[1])
-    dum = e[0] - e1[0]
-
-    e2 = np.zeros(3)
-    e2[1] = _safe_acos(cp1 * cp + sp1 * sp * math.cos(dum))
-    cp2 = math.cos(e2[1])
-    e2[0] = Picheck(-e1[2] + math.atan2(sp1 * sp * math.sin(dum), cp2 * cp1 - cp))
-    e2[2] = Picheck(e[2] - math.atan2(sp1 * sp * math.sin(dum), cp1 - cp * cp2))
-
-    return e2
+    C = euler3132C(e)
+    C1 = euler3132C(e1)
+    return C2Euler313(np.dot(C, C1.T))
 
 
 def subEuler321(e, e1):
@@ -2818,85 +2690,52 @@ def subEuler321(e, e1):
 
 
 def subEuler323(e, e1):
+    """Return the relative (3-2-3) rotation from ``e1`` to ``e``.
+
+    :param e: Final Euler angle vector in radians.
+    :param e1: Reference Euler angle vector in radians.
+    :return: Relative Euler angles in radians. At a singularity, the third
+        angle is zero and the first carries the combined rotation.
     """
-    subEuler323(E,E1)
-
-    	E2 = subEuler323(E,E1) computes the relative
-    	(3-2-3) euler angle vector from E1 to E.
-    """
-
-    cp = math.cos(e[1])
-    cp1 = math.cos(e1[1])
-    sp = math.sin(e[1])
-    sp1 = math.sin(e1[1])
-    dum = e[0] - e1[0]
-
-    e2 = np.zeros(3)
-    e2[1] = _safe_acos(cp1 * cp + sp1 * sp * math.cos(dum))
-    cp2 = math.cos(e2[1])
-    e2[0] = Picheck(-e1[2] + math.atan2(sp1 * sp * math.sin(dum), cp2 * cp1 - cp))
-    e2[2] = Picheck(e[2] - math.atan2(sp1 * sp * math.sin(dum), cp1 - cp * cp2))
-
-    return e2
+    C = euler3232C(e)
+    C1 = euler3232C(e1)
+    return C2Euler323(np.dot(C, C1.T))
 
 
 def subGibbs(q1, q2):
-    """
-    subGibbs(Q1,Q2)
+    """Return the relative Gibbs vector from ``q2`` to ``q1``.
 
-    	Q = subGibbs(Q1,Q2) provides the gibbs vector
-    	which corresponds to relative rotation from Q2
-    	to Q1.
+    :param q1: Final dimensionless Gibbs vector as a list, tuple, or array.
+    :param q2: Reference dimensionless Gibbs vector as a list, tuple, or array.
+    :return: A three-component, dimensionless Gibbs array.
     """
+    q1 = np.asarray(q1, dtype=np.float64)
+    q2 = np.asarray(q2, dtype=np.float64)
     return (q1 - q2 + np.cross(q1, q2)) / (1. + np.dot(q1, q2))
 
 
 def subMRP(q1, q2):
+    """Return the relative MRP set from ``q2`` to ``q1``.
+
+    :param q1: Final dimensionless MRP vector as a list, tuple, or array.
+    :param q2: Reference dimensionless MRP vector as a list, tuple, or array.
+    :return: A three-component, dimensionless MRP array with norm at most one.
     """
-    subMRP(Q1,Q2)
 
-    	Q = subMRP(Q1,Q2) provides the MRP vector
-    	which corresponds to relative rotation from Q2
-    	to Q1.
-    """
-
-    den = 1 + np.dot(q1, q1) * np.dot(q2, q2) + 2 * np.dot(q1, q2)
-    if den < 1e-5:
-        q2 = -q2/np.dot(q2,q2)
-        den = 1 + np.dot(q1, q1) * np.dot(q2, q2) + 2 * np.dot(q1, q2)
-    num = (1 - np.dot(q2, q2)) * q1 - (1 - np.dot(q1, q1)) * q2 + 2 * np.cross(q1, q2)
-
-    q = num / den
-    if np.dot(q,q) > 1:
-        q = -q/np.dot(q, q)
-
-    return q
+    return _compose_mrp(q1, q2, -1.0)
 
 
 def subPRV(q1, q2):
+    """Return the relative principal rotation vector from ``q2`` to ``q1``.
+
+    :param q1: Final rotation vector in radians.
+    :param q2: Reference rotation vector in radians.
+    :return: Relative rotation vector in radians. Equal input vectors return
+        zero; otherwise the relative quaternion's angle branch is retained.
     """
-    subPRV(Q1,Q2)
-
-    	Q = subPRV(Q1,Q2) provides the prinipal rotation vector
-    	which corresponds to relative principal rotation from Q2
-    	to Q1.
-    """
-
-    q1 = PRV2elem(q1)
-    q2 = PRV2elem(q2)
-    cp1 = math.cos(q1[0] / 2)
-    cp2 = math.cos(q2[0] / 2)
-    sp1 = math.sin(q1[0] / 2)
-    sp2 = math.sin(q2[0] / 2)
-    e1 = q1[1:4]
-    e2 = q2[1:4]
-
-    p = 2 * _safe_acos(cp1 * cp2 + sp1 * sp2 * np.dot(e1, e2))
-    sp = math.sin(p / 2)
-    e = (-cp1 * sp2 * e2 + cp2 * sp1 * e1 + sp1 * sp2 * np.cross(e1, e2)) / sp
-    q = p * e
-
-    return q
+    if q1[0] == q2[0] and q1[1] == q2[1] and q1[2] == q2[2]:
+        return np.zeros(3)
+    return EP2PRV(subEP(PRV2EP(q1), PRV2EP(q2)))
 
 
 def EP2C(q):
@@ -2926,250 +2765,140 @@ def EP2C(q):
     return C
 
 
+def _ep2euler_repeated(q, first_axis, second_axis):
+    """Preserve the repeated-axis quaternion angle branches away from singularities."""
+    remaining_axis = 3 - first_axis - second_axis
+    parity = 1.0 if second_axis == (first_axis + 1) % 3 else -1.0
+    sine_half = math.hypot(q[second_axis + 1], q[remaining_axis + 1])
+    cosine_half = math.hypot(q[0], q[first_axis + 1])
+    singularity_tolerance = 1e-14  # [-] sine of the middle angle near either endpoint
+    if 2.0 * min(sine_half, cosine_half) <= singularity_tolerance:
+        return _c2euler(EP2C(q), first_axis, second_axis, True)
+    difference = math.atan2(q[remaining_axis + 1], q[second_axis + 1])
+    total = math.atan2(q[first_axis + 1], q[0])
+    return np.array([total + parity * difference,
+                     2.0 * math.atan2(sine_half, cosine_half),
+                     total - parity * difference])
+
+
 def EP2Euler121(q):
+    """Convert Euler parameters to the (1-2-1) Euler angle set.
+
+    :param q: A four-component unit quaternion with its scalar component first.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-	EP2Euler121(Q)
-
-        E = EP2Euler121(Q) translates the euler parameter
-        vector Q into the corresponding (1-2-1) euler angle
-        vector E.
-	"""
-
-    t1 = math.atan2(q[3], q[2])
-    t2 = math.atan2(q[1], q[0])
-
-    e1 = t1 + t2
-    e2 = 2 * _safe_acos(math.sqrt(q[0] * q[0] + q[1] * q[1]))
-    e3 = t2 - t1
-
-    e = np.array([e1, e2, e3])
-    return e
+    return _ep2euler_repeated(q, 0, 1)
 
 
 def EP2Euler123(q):
+    """Convert Euler parameters to the (1-2-3) Euler angle set.
+
+    :param q: A four-component unit quaternion with its scalar component first.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-	EP2Euler123
-
-        Q = EP2Euler123(Q) translates the euler parameter vector
-        Q into the corresponding (1-2-3) euler angle set.
-	"""
-
-    q0 = q[0]
-    q1 = q[1]
-    q2 = q[2]
-    q3 = q[3]
-
-    e1 = math.atan2(-2 * (q2 * q3 - q0 * q1), q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3)
-    e2 = _safe_asin(2 * (q1 * q3 + q0 * q2))
-    e3 = math.atan2(-2 * (q1 * q2 - q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3)
-
-    e = np.array([e1, e2, e3])
-    return e
+    return C2Euler123(EP2C(q))
 
 
 def EP2Euler131(q):
+    """Convert Euler parameters to the (1-3-1) Euler angle set.
+
+    :param q: A four-component unit quaternion with its scalar component first.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-	EP2Euler131(Q)
-
-        E = EP2Euler131(Q) translates the euler parameter
-        vector Q into the corresponding (1-3-1) euler angle
-        vector E.
-	"""
-
-    t1 = math.atan2(q[2], q[3])
-    t2 = math.atan2(q[1], q[0])
-
-    e1 = t2 - t1
-    e2 = 2 * _safe_acos(math.sqrt(q[0] * q[0] + q[1] * q[1]))
-    e3 = t2 + t1
-
-    e = np.array([e1, e2, e3])
-    return e
+    return _ep2euler_repeated(q, 0, 2)
 
 
 def EP2Euler132(q):
+    """Convert Euler parameters to the (1-3-2) Euler angle set.
+
+    :param q: A four-component unit quaternion with its scalar component first.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    EP2Euler132
-
-    	E = EP2Euler132(Q) translates the euler parameter vector
-    	Q into the corresponding (1-3-2) euler angle set.
-
-    """
-    q0 = q[0]
-    q1 = q[1]
-    q2 = q[2]
-    q3 = q[3]
-
-    e1 = math.atan2(2 * (q2 * q3 + q0 * q1), q0 * q0 - q1 * q1 + q2 * q2 - q3 * q3)
-    e2 = _safe_asin(-2 * (q1 * q2 - q0 * q3))
-    e3 = math.atan2(2 * (q1 * q3 + q0 * q2), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3)
-
-    e = np.array([e1, e2, e3])
-    return e
+    return C2Euler132(EP2C(q))
 
 
 def EP2Euler212(q):
+    """Convert Euler parameters to the (2-1-2) Euler angle set.
+
+    :param q: A four-component unit quaternion with its scalar component first.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    EP2Euler212(Q)
-
-        E = EP2Euler212(Q) translates the euler parameter
-        vector Q into the corresponding (2-1-2) euler angle
-        vector E.
-    """
-
-    t1 = math.atan2(q[3], q[1])
-    t2 = math.atan2(q[2], q[0])
-
-    e1 = t2 - t1
-    e2 = 2 * _safe_acos(math.sqrt(q[0] * q[0] + q[2] * q[2]))
-    e3 = t2 + t1
-
-    e = np.array([e1, e2, e3])
-    return e
+    return _ep2euler_repeated(q, 1, 0)
 
 
 def EP2Euler213(q):
+    """Convert Euler parameters to the (2-1-3) Euler angle set.
+
+    :param q: A four-component unit quaternion with its scalar component first.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    EP2Euler213
-
-    	Q = EP2Euler213(Q) translates the euler parameter vector
-    	Q into the corresponding (2-1-3) euler angle set.
-    """
-
-    q0 = q[0]
-    q1 = q[1]
-    q2 = q[2]
-    q3 = q[3]
-
-    e1 = math.atan2(2 * (q1 * q3 + q0 * q2), q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3)
-    e2 = _safe_asin(-2 * (q2 * q3 - q0 * q1))
-    e3 = math.atan2(2 * (q1 * q2 + q0 * q3), q0 * q0 - q1 * q1 + q2 * q2 - q3 * q3)
-
-    e = np.array([e1, e2, e3])
-    return e
+    return C2Euler213(EP2C(q))
 
 
 def EP2Euler231(q):
+    """Convert Euler parameters to the (2-3-1) Euler angle set.
+
+    :param q: A four-component unit quaternion with its scalar component first.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    EP2Euler231
-
-    	E = EP2Euler231(Q) translates the euler parameter vector
-    	Q into the corresponding (2-3-1) euler angle set.
-    """
-
-    q0 = q[0]
-    q1 = q[1]
-    q2 = q[2]
-    q3 = q[3]
-
-    e1 = math.atan2(-2 * (q1 * q3 - q0 * q2), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3)
-    e2 = _safe_asin(2 * (q1 * q2 + q0 * q3))
-    e3 = math.atan2(-2 * (q2 * q3 - q0 * q1), q0 * q0 - q1 * q1 + q2 * q2 - q3 * q3)
-
-    e = np.array([e1, e2, e3])
-    return e
+    return C2Euler231(EP2C(q))
 
 
 def EP2Euler232(q):
+    """Convert Euler parameters to the (2-3-2) Euler angle set.
+
+    :param q: A four-component unit quaternion with its scalar component first.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    EP2Euler232(Q)
-
-    	E = EP2Euler232(Q) translates the euler parameter
-    	vector Q into the corresponding (2-3-2) euler angle
-    	vector E.
-    """
-
-    t1 = math.atan2(q[1], q[3])
-    t2 = math.atan2(q[2], q[0])
-
-    e1 = t1 + t2
-    e2 = 2 * _safe_acos(math.sqrt(q[0] * q[0] + q[2] * q[2]))
-    e3 = t2 - t1
-
-    e = np.array([e1, e2, e3])
-    return e
+    return _ep2euler_repeated(q, 1, 2)
 
 
 def EP2Euler312(q):
+    """Convert Euler parameters to the (3-1-2) Euler angle set.
+
+    :param q: A four-component unit quaternion with its scalar component first.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    EP2Euler312
-
-    	E = EP2Euler312(Q) translates the euler parameter vector
-    	Q into the corresponding (3-1-2) euler angle set.
-    """
-
-    q0 = q[0]
-    q1 = q[1]
-    q2 = q[2]
-    q3 = q[3]
-
-    e1 = math.atan2(-2 * (q1 * q2 - q0 * q3), q0 * q0 - q1 * q1 + q2 * q2 - q3 * q3)
-    e2 = _safe_asin(2 * (q2 * q3 + q0 * q1))
-    e3 = math.atan2(-2 * (q1 * q3 - q0 * q2), q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3)
-
-    e = np.array([e1, e2, e3])
-    return e
+    return C2Euler312(EP2C(q))
 
 
 def EP2Euler313(q):
+    """Convert Euler parameters to the (3-1-3) Euler angle set.
+
+    :param q: A four-component unit quaternion with its scalar component first.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    EP2Euler313(Q)
-
-    	E = EP2Euler313(Q) translates the euler parameter
-    	vector Q into the corresponding (3-1-3) euler angle
-    	vector E.
-    """
-
-    t1 = math.atan2(q[2], q[1])
-    t2 = math.atan2(q[3], q[0])
-
-    e1 = t1 + t2
-    e2 = 2 * _safe_acos(math.sqrt(q[0] * q[0] + q[3] * q[3]))
-    e3 = t2 - t1
-
-    e = np.array([e1, e2, e3])
-    return e
+    return _ep2euler_repeated(q, 2, 0)
 
 
 def EP2Euler321(q):
+    """Convert Euler parameters to the (3-2-1) Euler angle set.
+
+    :param q: A four-component unit quaternion with its scalar component first.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    EP2Euler321
-
-    	E = EP2Euler321(Q) translates the euler parameter vector
-    	Q into the corresponding (3-2-1) euler angle set.
-    """
-
-    q0 = q[0]
-    q1 = q[1]
-    q2 = q[2]
-    q3 = q[3]
-
-    e1 = math.atan2(2 * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3)
-    e2 = _safe_asin(-2 * (q1 * q3 - q0 * q2))
-    e3 = math.atan2(2 * (q2 * q3 + q0 * q1), q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3)
-
-    e = np.array([e1, e2, e3])
-    return e
+    return C2Euler321(EP2C(q))
 
 
 def EP2Euler323(q):
+    """Convert Euler parameters to the (3-2-3) Euler angle set.
+
+    :param q: A four-component unit quaternion with its scalar component first.
+    :return: Three Euler angles in radians. At a singularity, the third angle
+        is zero and the first angle carries the observable combined rotation.
     """
-    EP2Euler323(Q)
-
-    	E = EP2Euler323(Q) translates the euler parameter
-    	vector Q into the corresponding (3-2-3) euler angle
-    	vector E.
-    """
-
-    t1 = math.atan2(q[1], q[2])
-    t2 = math.atan2(q[3], q[0])
-
-    e1 = t2 - t1
-    e2 = 2 * _safe_acos(math.sqrt(q[0] * q[0] + q[3] * q[3]))
-    e3 = t2 + t1
-
-    e = np.array([e1, e2, e3])
-    return e
+    return _ep2euler_repeated(q, 2, 1)
 
 
 def EP2Gibbs(q):
@@ -3188,32 +2917,37 @@ def EP2Gibbs(q):
 
 
 def EP2MRP(q):
-    """
-    EP2MRP(Q1)
-        Q = EP2MRP(Q1) translates the euler parameter vector Q1
-        into the MRP vector Q.
+    """Convert Euler parameters to the MRP set with norm at most one.
+
+    :param q: Four-component unit quaternion, scalar component first. Lists,
+        tuples, and NumPy arrays are supported.
+    :return: Three dimensionless MRPs. Negative-scalar quaternions use the
+        shadow set; both identity quaternions return zero.
     """
 
-    if q[0] < 0:
-        q = -q
-
-    q1 = q[1] / (1 + q[0])
-    q2 = q[2] / (1 + q[0])
-    q3 = q[3] / (1 + q[0])
+    # Select the bounded MRP set without negating the input container.
+    denominator = 1.0 + q[0] if q[0] >= 0.0 else q[0] - 1.0
+    q1 = q[1] / denominator
+    q2 = q[2] / denominator
+    q3 = q[3] / denominator
 
     return np.array([q1, q2, q3])
 
 
 def EP2PRV(q):
-    """
-    EP2PRV(Q1)
+    """Convert Euler parameters to a principal rotation vector.
 
-    	Q = EP2PRV(Q1) translates the euler parameter vector Q1
-    	into the principal rotation vector Q.
+    :param q: A four-component unit quaternion with its scalar component first.
+    :return: A three-component rotation vector in radians. Both quaternion
+        representations of the identity return zero. Otherwise, a negative
+        scalar component retains a rotation angle greater than pi.
     """
 
-    p = 2 * _safe_acos(q[0])
-    sp = math.sin(p / 2)
+    sp = math.hypot(q[1], math.hypot(q[2], q[3]))
+    if sp == 0.0:
+        return np.zeros(3)
+    # The vector part preserves small rotations when the scalar rounds to one.
+    p = 2 * math.atan2(sp, q[0])
     q1 = q[1] / sp * p
     q2 = q[2] / sp * p
     q3 = q[3] / sp * p
@@ -4311,6 +4045,7 @@ def Mi(theta, i):
     else:
         print('Mi() error: incorrect axis', i, 'selected')
     return C
+
 
 def v3Tilde(vector):
     x1 = vector[0]

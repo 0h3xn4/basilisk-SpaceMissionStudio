@@ -71,16 +71,15 @@ void LambertSecondDV::readMessages()
     DesiredVelocityMsgPayload desiredVelocityInMsgBuffer = this->desiredVelocityInMsg();
 
     // lambert solution content
-    if (this->lambertSolutionSpecifier == 1){
+    if (this->lambertSolutionSpecifier == 1) {
         this->vExpected_N = cArray2EigenVector3d(lambertSolutionInMsgBuffer.v2_N);
         this->validLambert = lambertSolutionInMsgBuffer.valid;
-    }
-    else if (this->lambertSolutionSpecifier == 2){
+    } else if (this->lambertSolutionSpecifier == 2) {
         this->vExpected_N = cArray2EigenVector3d(lambertSolutionInMsgBuffer.v2Sol2_N);
         this->validLambert = lambertSolutionInMsgBuffer.validSol2;
     } else {
         bskLogger.bskError("lambertValidator: the parameter lambertSolutionSpecifier that specifies which "
-                         "Lambert solution should be used must be either 1 or 2.");
+                           "Lambert solution should be used must be either 1 or 2.");
     }
 
     // desired velocity
@@ -116,6 +115,7 @@ void LambertSecondDV::writeMessages(uint64_t currentSimNanos)
     this->dvBurnCmdOutMsg.write(&dvBurnCmdOutMsgBuffer, this->moduleID, currentSimNanos);
 }
 
-void LambertSecondDV::setLambertSolutionSpecifier(const double value){
+void LambertSecondDV::setLambertSolutionSpecifier(const double value)
+{
     this->lambertSolutionSpecifier = value;
 }

@@ -1,0 +1,1 @@
+- Conan builds using Ninja or Makefile generators now export ``compile_commands.json`` by default for clangd and other language servers. Xcode and Visual Studio do not support export. Setting ``exportCompileCommands=False`` disables export and removes an existing database from the selected build directory.

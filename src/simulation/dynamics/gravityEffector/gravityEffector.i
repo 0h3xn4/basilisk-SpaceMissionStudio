@@ -141,6 +141,20 @@ struct SpicePlanetStateMsg_C;
     def useSphericalHarmonicsGravityModel(self, file: str, maxDeg: int):
         """Makes the GravBodyData use Spherical Harmonics as its gravity model.
 
+        The reference radius and the gravitational parameter in the first row of the
+        file are loaded into ``spherHarm.radEquator`` and ``spherHarm.muBody``. When the
+        body is initialized, the field keeps the reference radius of the file, since the
+        normalized coefficients are only valid with it; ``radEquator`` of this
+        ``GravBodyData`` is not used by the field. To evaluate the field with a different
+        reference radius, set ``spherHarm.radEquator``.
+
+        The gravitational parameter of the field is replaced by ``mu`` of this
+        ``GravBodyData`` so that the field and gravity-gradient torque use the same
+        value. Body initialization raises ``BasiliskError`` unless ``mu`` is finite
+        and positive. To use the file GM, set ``planet.mu = planet.spherHarm.muBody``
+        after loading the file and before initializing the simulation. No warning is
+        given when a valid body GM differs from the gravitational parameter of the file.
+
         Args:
             file (str): The file that contains the spherical harmonics data in the
                 JPL format.

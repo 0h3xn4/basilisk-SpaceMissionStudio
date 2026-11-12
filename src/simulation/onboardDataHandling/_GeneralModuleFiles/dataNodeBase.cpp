@@ -17,8 +17,8 @@
 
  */
 
-#include "architecture/utilities/macroDefinitions.h"
 #include "dataNodeBase.h"
+#include "architecture/utilities/macroDefinitions.h"
 #include "string.h"
 
 /*! Constructor.
@@ -40,7 +40,6 @@ DataNodeBase::~DataNodeBase()
 {
     return;
 }
-
 
 /*! This method is used to reset the module. In general, no functionality is reset.
  @param CurrentSimNanos
@@ -76,8 +75,7 @@ bool DataNodeBase::readMessages()
     //! - read in the data node use/supply messages
     bool dataRead = true;
     bool tmpStatusRead = true;
-    if(this->nodeStatusInMsg.isLinked())
-    {
+    if (this->nodeStatusInMsg.isLinked()) {
         this->nodeStatusMsg = this->nodeStatusInMsg();
         this->dataStatus = this->nodeStatusMsg.deviceCmd;
         tmpStatusRead = this->nodeStatusInMsg.isWritten();
@@ -86,7 +84,7 @@ bool DataNodeBase::readMessages()
 
     //! - call the custom method to perform additional input reading
     bool customRead = this->customReadMessages();
-    return(dataRead && customRead);
+    return (dataRead && customRead);
 }
 
 /*! This method evaluates the implementation-specific data model if the device is set to on.
@@ -95,12 +93,9 @@ bool DataNodeBase::readMessages()
  */
 void DataNodeBase::computeDataStatus(double CurrentTime)
 {
-    if(this->dataStatus > 0)
-    {
+    if (this->dataStatus > 0) {
         this->evaluateDataModel(&this->nodeDataMsg, CurrentTime);
-    }
-    else
-    {
+    } else {
         this->nodeDataMsg = this->nodeDataOutMsg.zeroMsgPayload;
     }
     return;
@@ -113,8 +108,7 @@ void DataNodeBase::computeDataStatus(double CurrentTime)
 void DataNodeBase::UpdateState(uint64_t CurrentSimNanos)
 {
     //! - Only update the data status if we were able to read in messages.
-    if(this->readMessages())
-    {
+    if (this->readMessages()) {
         this->computeDataStatus(static_cast<double>(CurrentSimNanos) * NANO2SEC);
     } else {
         //! - If the read was not successful then zero the output message
@@ -124,7 +118,6 @@ void DataNodeBase::UpdateState(uint64_t CurrentSimNanos)
     this->writeMessages(CurrentSimNanos);
     return;
 }
-
 
 /*! Custom Reset() method.  This allows a child class to add additional functionality to the Reset() method
 

@@ -38,8 +38,8 @@ ModuleIdGenerator::ModuleIdGenerator()
 
 ModuleIdGenerator::~ModuleIdGenerator()
 {
-	delete TheInstance;
-	TheInstance = NULL;
+    delete TheInstance;
+    TheInstance = NULL;
 }
 /*!
  * This gives a pointer to the messaging system to whoever asks for it.
@@ -47,11 +47,10 @@ ModuleIdGenerator::~ModuleIdGenerator()
  */
 ModuleIdGenerator* ModuleIdGenerator::GetInstance()
 {
-    if(TheInstance == NULL)
-    {
+    if (TheInstance == NULL) {
         TheInstance = new ModuleIdGenerator();
     }
-    return(TheInstance);
+    return (TheInstance);
 }
 
 /*!
@@ -60,5 +59,5 @@ ModuleIdGenerator* ModuleIdGenerator::GetInstance()
  */
 int64_t ModuleIdGenerator::checkoutModuleID()
 {
-    return(this->nextModuleID++);
+    return (this->nextModuleID++);
 }

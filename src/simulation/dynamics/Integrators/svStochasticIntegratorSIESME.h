@@ -40,10 +40,13 @@ class svStochasticIntegratorSIESME : public svIntegratorWeakSIESME
      */
     void bindStochasticMethodStorage() override
     {
-        this->flatWorkspace.bind(
-          this->stochasticObjectDescriptors(), this->stochasticNoiseBindings(), this->stochasticNoiseSlots(), 2, 3, 3);
+        this->flatWorkspace.bind(this->stochasticObjectDescriptors(),
+                                 this->stochasticNoiseBindings(),
+                                 this->stochasticNoiseSlots(),
+                                 2,
+                                 3,
+                                 3);
     }
-
 
   private:
     FlatStochasticWorkspace flatWorkspace;
@@ -59,7 +62,7 @@ class svStochasticIntegratorSIEA : public svStochasticIntegratorSIESME
 {
   public:
     svStochasticIntegratorSIEA(DynamicObject* dyn); //!< Constructor
-private:
+  private:
     static SIESMECoefficients getCoefficients();
 };
 
@@ -73,7 +76,7 @@ class svStochasticIntegratorSMEA : public svStochasticIntegratorSIESME
 {
   public:
     svStochasticIntegratorSMEA(DynamicObject* dyn); //!< Constructor
-private:
+  private:
     static SIESMECoefficients getCoefficients();
 };
 
@@ -87,7 +90,7 @@ class svStochasticIntegratorSIEB : public svStochasticIntegratorSIESME
 {
   public:
     svStochasticIntegratorSIEB(DynamicObject* dyn); //!< Constructor
-private:
+  private:
     static SIESMECoefficients getCoefficients();
 };
 
@@ -101,7 +104,7 @@ class svStochasticIntegratorSMEB : public svStochasticIntegratorSIESME
 {
   public:
     svStochasticIntegratorSMEB(DynamicObject* dyn); //!< Constructor
-private:
+  private:
     static SIESMECoefficients getCoefficients();
 };
 

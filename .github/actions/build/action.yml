@@ -40,6 +40,11 @@ runs:
     - name: Setup system dependencies
       uses: ./.github/actions/setup
 
+    - name: Prepare macOS Rust tools
+      if: ${{ runner.os == 'macOS' && contains(inputs.conan-args, '--rustModules True') }}
+      shell: bash
+      run: python .github/scripts/setup_macos_rust.py
+
     - name: Install requirements
       shell: bash
       run: |
@@ -113,7 +118,7 @@ runs:
       shell: bash
       if: ${{ inputs.skip-build == 'false' }}
       env:
-        CONAN_ARGS: "${{ inputs.conan-args }} --buildTesting True"
+        CONAN_ARGS: "${{ inputs.conan-args }} --buildTesting True --verbose"
       run: |
         if [[ "${{ inputs.is-canary }}" == 'true' ]]; then
           pip install --no-build-isolation --no-deps -e ".[examples]" -v

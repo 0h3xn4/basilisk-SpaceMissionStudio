@@ -20,7 +20,8 @@
 #include "stateVecIntegrator.h"
 #include "dynamicObject.h"
 
-StateVecIntegrator::StateVecIntegrator(DynamicObject* dynIn) : dynPtrs{dynIn}
+StateVecIntegrator::StateVecIntegrator(DynamicObject* dynIn)
+    : dynPtrs{ dynIn }
 {
 }
 

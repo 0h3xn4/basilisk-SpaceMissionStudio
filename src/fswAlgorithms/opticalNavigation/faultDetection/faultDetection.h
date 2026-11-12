@@ -20,44 +20,49 @@
 #ifndef _FAULT_DETECTION_H_
 #define _FAULT_DETECTION_H_
 
-#include "cMsgCInterface/OpNavMsg_C.h"
+#include <stdint.h>
+
 #include "cMsgCInterface/CameraConfigMsg_C.h"
 #include "cMsgCInterface/NavAttMsg_C.h"
+#include "cMsgCInterface/OpNavMsg_C.h"
 
-#include "architecture/utilities/macroDefinitions.h"
 #include "architecture/utilities/bskLogging.h"
 #include "architecture/utilities/linearAlgebra.h"
+#include "architecture/utilities/macroDefinitions.h"
 #include "architecture/utilities/rigidBodyKinematics.h"
 
 /*! @brief Module data structure */
-typedef struct {
-    OpNavMsg_C opNavOutMsg; //!< [-] output navigation message for relative position
-    NavAttMsg_C attInMsg; //!< attitude input message
-    OpNavMsg_C navMeasPrimaryInMsg; //!< first measurement input message
-    OpNavMsg_C navMeasSecondaryInMsg; //!< second measurement input message
+typedef struct
+{
+    OpNavMsg_C opNavOutMsg;              //!< [-] output navigation message for relative position
+    NavAttMsg_C attInMsg;                //!< attitude input message
+    OpNavMsg_C navMeasPrimaryInMsg;      //!< first measurement input message
+    OpNavMsg_C navMeasSecondaryInMsg;    //!< second measurement input message
     CameraConfigMsg_C cameraConfigInMsg; //!< camera config inut message
 
     int32_t planetTarget; //!< The planet targeted (None = 0, Earth = 1, Mars = 2, Jupiter = 3 are allowed)
-    double faultMode; //!< What fault mode to go in: 0 is dissimilar (use the primary measurement and compare with secondary), 1 merges the measurements if they are both valid and similar.
-    double sigmaFault; //!< What is the sigma multiplication factor when comparing measurements
+    double faultMode;     //!< What fault mode to go in: 0 is dissimilar (use the primary measurement and compare with
+                          //!< secondary), 1 merges the measurements if they are both valid and similar.
+    double sigmaFault;    //!< What is the sigma multiplication factor when comparing measurements
+    uint64_t lastWriteTime[2]; //!< [ns] Last consumed write time for primary (0) and secondary (1)
+    int hasReadMessage[2];     //!< Whether each input has been consumed since reset
 
     // added for bsk
-    BSKLogger* bskLogger;                               //!< BSK Logging
+    BSKLogger* bskLogger; //!< BSK Logging
 
-}FaultDetectionData;
+} FaultDetectionData;
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-    void SelfInit_faultDetection(FaultDetectionData *configData, int64_t moduleID);
-    void Update_faultDetection(FaultDetectionData *configData, uint64_t callTime,
-        int64_t moduleID);
-    void Reset_faultDetection(FaultDetectionData *configData, uint64_t callTime, int64_t moduleID);
+    void SelfInit_faultDetection(FaultDetectionData* configData, int64_t moduleID);
+    void Update_faultDetection(FaultDetectionData* configData, uint64_t callTime, int64_t moduleID);
+    void Reset_faultDetection(FaultDetectionData* configData, uint64_t callTime, int64_t moduleID);
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif

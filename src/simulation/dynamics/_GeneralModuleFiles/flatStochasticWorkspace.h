@@ -110,7 +110,7 @@ class FlatStochasticWorkspace
             std::copy_n(binding.liveData,
                         binding.scalarCount,
                         this->diffusionStages.col(static_cast<Eigen::Index>(stage)).data() +
-                          static_cast<Eigen::Index>(binding.packedOffset));
+                            static_cast<Eigen::Index>(binding.packedOffset));
         }
     }
 
@@ -121,7 +121,7 @@ class FlatStochasticWorkspace
         const auto offset = static_cast<Eigen::Index>(slot.packedBegin);
         const auto count = static_cast<Eigen::Index>(slot.packedCount);
         this->diffusionStages.col(static_cast<Eigen::Index>(destination)).segment(offset, count) =
-          this->diffusionStages.col(static_cast<Eigen::Index>(source)).segment(offset, count);
+            this->diffusionStages.col(static_cast<Eigen::Index>(source)).segment(offset, count);
     }
 
     /** @brief Combine length populated drift stages from firstStage; length must be positive. */
@@ -134,7 +134,7 @@ class FlatStochasticWorkspace
                 continue;
             }
             this->combinedDrift +=
-              this->driftStages.col(static_cast<Eigen::Index>(firstStage + stage)) * factors.at(stage);
+                this->driftStages.col(static_cast<Eigen::Index>(firstStage + stage)) * factors.at(stage);
         }
     }
 
@@ -149,15 +149,15 @@ class FlatStochasticWorkspace
         const auto offset = static_cast<Eigen::Index>(slot.packedBegin);
         const auto scalarCount = static_cast<Eigen::Index>(slot.packedCount);
         auto target = this->combinedDiffusion.segment(offset, scalarCount);
-        target =
-          this->diffusionStages.col(static_cast<Eigen::Index>(firstStage)).segment(offset, scalarCount) * factors.at(0);
+        target = this->diffusionStages.col(static_cast<Eigen::Index>(firstStage)).segment(offset, scalarCount) *
+                 factors.at(0);
         for (size_t stage = 1; stage < length; ++stage) {
             if (factors.at(stage) == 0.0) {
                 continue;
             }
             target +=
-              this->diffusionStages.col(static_cast<Eigen::Index>(firstStage + stage)).segment(offset, scalarCount) *
-              factors.at(stage);
+                this->diffusionStages.col(static_cast<Eigen::Index>(firstStage + stage)).segment(offset, scalarCount) *
+                factors.at(stage);
         }
     }
 
@@ -168,18 +168,18 @@ class FlatStochasticWorkspace
         const auto offset = static_cast<Eigen::Index>(slot.packedBegin);
         const auto count = static_cast<Eigen::Index>(slot.packedCount);
         this->combinedDiffusion.segment(offset, count) =
-          this->diffusionStages.col(static_cast<Eigen::Index>(stage)).segment(offset, count);
+            this->diffusionStages.col(static_cast<Eigen::Index>(stage)).segment(offset, count);
     }
 
   private:
     bool bound = false; ///< True when buffers and descriptor references are ready.
     const std::vector<StochasticObjectDescriptor>* objects = nullptr; ///< Borrowed object buffers.
-    const std::vector<StochasticNoiseBinding>* bindings = nullptr; ///< Borrowed packed endpoints.
-    const std::vector<StochasticNoiseSlot>* slots = nullptr; ///< Borrowed global-source ranges.
-    Eigen::MatrixXd driftStages; ///< Derivative scalars by drift stage; each column is contiguous.
-    Eigen::MatrixXd diffusionStages; ///< Packed tangent scalars by diffusion stage.
-    Eigen::VectorXd combinedDrift; ///< Reusable weighted sum of drift columns.
-    Eigen::VectorXd combinedDiffusion; ///< Weighted sums, written one global slot at a time.
+    const std::vector<StochasticNoiseBinding>* bindings = nullptr;    ///< Borrowed packed endpoints.
+    const std::vector<StochasticNoiseSlot>* slots = nullptr;          ///< Borrowed global-source ranges.
+    Eigen::MatrixXd driftStages;          ///< Derivative scalars by drift stage; each column is contiguous.
+    Eigen::MatrixXd diffusionStages;      ///< Packed tangent scalars by diffusion stage.
+    Eigen::VectorXd combinedDrift;        ///< Reusable weighted sum of drift columns.
+    Eigen::VectorXd combinedDiffusion;    ///< Weighted sums, written one global slot at a time.
     std::vector<Eigen::VectorXd> vectors; ///< Method scratch, with one entry per global source.
 };
 

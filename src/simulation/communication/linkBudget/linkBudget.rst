@@ -11,6 +11,48 @@ The module computes the end-to-end link budget accounting for free space path lo
 
 This module requires two connected antenna output messages (e.g. from :ref:`simpleAntenna` modules). The link budget calculation automatically determines the link configuration (space-to-space or space-to-ground) based on the antenna environment types.
 
+.. _linkbudget-initialization:
+
+Initialization and Execution Order
+----------------------------------
+
+Schedule the spacecraft and ground-state producers before the antenna modules,
+and schedule both antenna modules before ``linkBudget``. ``Reset`` checks that
+both antenna inputs are connected and clears the previous link results. Link
+placement and atmospheric lookup tables are initialized on the first update
+after both antenna inputs have been written. When atmospheric attenuation is
+enabled, initialization also waits for a nonzero ground antenna position. Until
+then, the output contains zero carrier-to-noise ratios and no usable link
+bandwidth, and the module logs one warning per reset.
+
+This order allows :ref:`groundLocation` to publish its position before the
+atmosphere is initialized, including the altitude of an elevated station. No
+manual warmup or second reset is required. Each subsequent reset also defers
+initialization until execution resumes, so a changed station altitude is read
+after the ground and antenna producers have updated their outputs. A later
+reset cannot distinguish a previous run's written antenna position from a new
+one, so the required model order still applies after the first run.
+
+.. note::
+
+   Deferred initialization changes two aspects of the module lifecycle:
+
+   - ``Reset`` publishes a zero-filled ``linkBudgetOutPayload`` at the reset
+     time. After ``InitializeSimulation()``, a subscriber's ``isWritten()``
+     therefore returns ``True`` even before the first update. The reset output
+     has zero ``CNR1``, ``CNR2`` and ``bandwidth``. Consumers must check the
+     receiving antenna's CNR and the link bandwidth when determining whether
+     service is available. :ref:`downlinkHandling` treats reset and waiting
+     outputs as no service.
+
+   - Antenna placement is validated on the first ``UpdateState`` call with
+     ready inputs. Errors such as an unsupported ground-to-ground link or an
+     unrecognized antenna environment are raised during that update. Atmospheric
+     lookup-table loading and its errors also occur at this point. Applications
+     that handle these errors must include ``ExecuteSimulation()`` or direct
+     ``UpdateState`` calls in their error-handling path. Unlinked antenna inputs
+     are still reported by ``Reset`` during ``InitializeSimulation()``.
+
 Message Connection Descriptions
 -------------------------------
 The following table lists all the module input and output messages.
@@ -108,12 +150,28 @@ Atmospheric Attenuation
 
 For **space-to-ground** links, the module computes atmospheric attenuation due to oxygen, water vapor and nitrogen absorption following the `ITU-R P.676-13 <https://www.itu.int/rec/R-REC-P.676>`__ recommendation. This calculation is only performed when atmospheric attenuation is enabled ``atmosAtt == True`` and one antenna is located on the ground.
 
-The atmospheric attenuation model divides the atmosphere into discrete layers (increasing thickness with increasing altitude) from the ground antenna altitude up to 100 km (Karman line). The slant path depending on angle :math:`\alpha` (see Figure 2) through each layer is computed based on the antenna positions and the altitude of each layer.
+The atmospheric attenuation model starts with an exponential altitude grid from
+the ground antenna altitude to 100 km. It splits cells at the temperature and
+pressure formula boundaries provided by ``ItuAtmosphere::getLayerBoundaries()``.
+The upper-atmosphere transitions at 91 km and 100 km geometric height are
+converted to the altitude coordinate used by the atmosphere's property getters.
+Only boundaries strictly inside the integration interval are inserted, and
+coincident cell edges are merged. At sea level, the resulting grid has 931 cells.
 
-The atmospheric conditions (temperature, pressure, water vapor density) at each altitude layer are obtained from the `ITU-R P.835-7 <https://www.itu.int/rec/R-REC-P.835>`__ reference standard atmosphere model via the ``ItuAtmosphere`` utility class.
+Temperature, pressure, water vapor density, specific attenuation and refractive
+index are evaluated at each cell's midpoint. The atmospheric conditions come
+from the `ITU-R P.835-7 <https://www.itu.int/rec/R-REC-P.835>`__ reference atmosphere
+implementation in ``ItuAtmosphere``. Splitting prevents one midpoint value from
+representing both sides of a piecewise formula transition, reducing integration
+error near gas absorption lines. Each cell's slant elevation is calculated from
+the ground ray invariant before its attenuation is accumulated.
 
 .. note::
-   Atmospheric attenuation lookup tables are precomputed at initialization, using the ground antenna position and frequency and re-used during simulation. Changes in frequency during simulation will not update the atmospheric attenuation profile.
+   Atmospheric attenuation lookup tables are precomputed on the first update
+   with written antenna inputs, using the ground antenna position and frequency,
+   and reused during simulation. Changes in frequency during simulation will
+   not update the atmospheric attenuation profile. Reset the module and update
+   its producers before the next link-budget update to rebuild the profile.
 
 For more information the reader is referred to the following ITU-R recommendations:
 
@@ -300,6 +358,53 @@ The atmospheric attenuation model implements the line-by-line calculation method
 - Pressure-induced nitrogen absorption continuum
 - Non-resonant Debye spectrum for oxygen below 10 GHz
 
+Atmospheric Integration Validation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Native regression tests check complete altitude coverage, positive cell widths
+and midpoint sampling, including ground stations immediately below, at and above
+every atmospheric boundary. No cell may cross a temperature or pressure formula
+boundary. Constant-elevation synthetic atmospheres also check the analytic loss
+at the horizon, below the elevation clamp, at its precise rounded threshold and
+immediately above it, for ground altitudes of 0 m and 1500 m.
+
+Python regression tests use the real ``oxygen.json`` and ``waterVapour.json``
+absorption tables to compare absolute attenuation with a uniform 0.5 m midpoint
+reference integration. The references use the current atmospheric and spectral
+formulas; a separate 1 m calculation agrees within 0.00001 dB. Cases cover ground
+altitudes of 0 m and 1500 m, elevations of 2, 4.9, 5, 5.1, 10 and 90 degrees, and both input
+antenna orders. Absolute tolerances are 0.0001 dB at 10 GHz, 0.05 dB at 60 GHz,
+and 0.02 dB at 118.750334 GHz and 183.310091 GHz. These checks measure integration
+accuracy for the existing atmosphere model; they do not independently validate
+its physical fidelity to the ITU recommendations.
+
+Reproducing the Reference Values
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+From the repository root, use a Python environment containing Basilisk and NumPy::
+
+   python src/simulation/communication/linkBudget/_UnitTest/Support/generate_atmosphere_references.py --check
+
+The utility uses ``DataFile`` and ``get_path`` to locate the registered oxygen
+and water-vapor tables on all supported platforms. It prints each table's source
+and SHA-256 hash, the NumPy version, the 1 m and 0.5 m losses and their absolute
+differences, and replacement ``ATMOSPHERE_ABSOLUTE_CASES`` entries. It exits with
+an error if any convergence difference reaches 0.00001 dB. With ``--check``, it
+also requires the same case matrix as the committed tests and agreement with
+every committed reference within 0.00000001 dB. Omitting ``--check`` generates
+values for review without comparing to the committed table. Neither mode edits
+the test file; normal regression tests use the committed values without running
+the fine-grid calculation.
+
+The utility independently evaluates uniform midpoint cells and reproduces the
+current atmosphere and spectral formulas from ``ItuRefAtmosphere.cpp`` and
+``linkBudget.cpp``, including their pressure branches, altitude conversion and
+water-vapor floor. It preserves the per-layer sine clamp of 0.0872. The source
+records the originating PR commit so formula changes can be reviewed explicitly
+when maintaining the references. Updating the production formulas requires
+reviewing the reference formulas and expected values together; regeneration
+alone does not establish physical correctness.
+
 Elevation Angle Constraints
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -311,7 +416,17 @@ The atmospheric slant path integration uses the relationship:
 
 where :math:`\phi(h)` is the elevation angle at height :math:`h`. As :math:`\phi \to 0^\circ`, the denominator approaches zero, causing numerical issues.
 
-To ensure numerical stability, the module enforces a **minimum elevation angle of :math:`5^\circ`** for atmospheric attenuation calculations. This corresponds to a maximum air mass factor of approximately 11.5.
+To ensure numerical stability, each layer uses
+:math:`\max(\sin\phi(h), 0.0872)` in the denominator. The existing rounded
+constant corresponds to an elevation of approximately 5.002545 degrees and a
+maximum local air mass factor of approximately 11.46789. This behavior is
+preserved; the constant is not replaced by the exact sine of 5 degrees.
+
+The ground ray invariant still uses the actual ground elevation. Clamping is
+applied separately to each layer after computing that layer's refracted
+elevation. Upper layers can leave the clamped region, so total losses for
+different ground elevations below the threshold need not be equal. The clamp is
+a numerical limit and does not establish physical validity for grazing paths.
 
 .. list-table:: Elevation Angle and Air Mass Factor
    :widths: 25 25 50
@@ -404,7 +519,11 @@ Atmospheric attenuation is disabled by default. To enable it for space-to-ground
 
 .. warning::
 
-   The atmospheric attenuation lookup table is precomputed during module initialization using the ground antenna's initial position and frequency. Changes to the antenna frequency during simulation will **not** update the atmospheric attenuation profile. If frequency changes are required, the simulation must be re-initialized.
+   The atmospheric attenuation lookup table uses the ground position and
+   frequency available on the first update with written antenna inputs. Changes
+   to altitude or frequency during execution do not rebuild this table. After
+   changing these quantities, reset the module and run the producers before its
+   next update.
 
 Accessing Link Budget Results
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

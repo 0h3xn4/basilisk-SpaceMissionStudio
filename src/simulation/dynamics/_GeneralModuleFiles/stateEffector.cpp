@@ -56,7 +56,11 @@ void StateEffector::updateEffectorMassProps(double integTime [[maybe_unused]])
 /*! This method is strictly for the back-substituion method for computing the dynamics of the spacecraft. The back-sub
  method first computes rDDot_BN_N and omegaDot_BN_B for the spacecraft using these contributions from the state
  effectors. Then computeDerivatives is called to compute the stateEffectors derivatives using rDDot_BN_N omegaDot_BN_B*/
-void StateEffector::updateContributions(double integTime [[maybe_unused]], BackSubMatrices & backSubContr [[maybe_unused]], Eigen::MRPd sigma_BN [[maybe_unused]], Eigen::Vector3d omega_BN_B [[maybe_unused]], Eigen::Vector3d g_N [[maybe_unused]])
+void StateEffector::updateContributions(double integTime [[maybe_unused]],
+                                        BackSubMatrices& backSubContr [[maybe_unused]],
+                                        Eigen::MRPd sigma_BN [[maybe_unused]],
+                                        Eigen::Vector3d omega_BN_B [[maybe_unused]],
+                                        Eigen::Vector3d g_N [[maybe_unused]])
 {
     return;
 }
@@ -74,8 +78,10 @@ void StateEffector::addPrescribedMotionCouplingContributions(BackSubMatrices& ba
 /*! This method allows for an individual stateEffector to add its energy and momentum calculations to the dynamicObject.
  The analytical devlopement of these contributions can be seen in
  Basilisk/simulation/dynamics/_Documentation/Basilisk-EnergyAndMomentum-20161219.pdf*/
-void StateEffector::updateEnergyMomContributions(double integTime [[maybe_unused]], Eigen::Vector3d & rotAngMomPntCContr_B [[maybe_unused]],
-                                                 double & rotEnergyContr [[maybe_unused]], Eigen::Vector3d omega_BN_B [[maybe_unused]])
+void StateEffector::updateEnergyMomContributions(double integTime [[maybe_unused]],
+                                                 Eigen::Vector3d& rotAngMomPntCContr_B [[maybe_unused]],
+                                                 double& rotEnergyContr [[maybe_unused]],
+                                                 Eigen::Vector3d omega_BN_B [[maybe_unused]])
 {
     return;
 }
@@ -86,8 +92,10 @@ void StateEffector::modifyStates(double integTime [[maybe_unused]])
     return;
 }
 
-/*! This method allows for an individual stateEffector to find the force and torque that the stateEffector is placing on to the body */
-void StateEffector::calcForceTorqueOnBody(double integTime [[maybe_unused]], Eigen::Vector3d omega_BN_B [[maybe_unused]])
+/*! This method allows for an individual stateEffector to find the force and torque that the stateEffector is placing on
+ * to the body */
+void StateEffector::calcForceTorqueOnBody(double integTime [[maybe_unused]],
+                                          Eigen::Vector3d omega_BN_B [[maybe_unused]])
 {
     return;
 }
@@ -104,8 +112,10 @@ void StateEffector::registerProperties(DynParamManager& states [[maybe_unused]])
     return;
 }
 
-/*! This method can only be called for a state effector with override definition set up to support attached dynamic effectors */
-void StateEffector::addDynamicEffector(DynamicEffector * newDynamicEffector [[maybe_unused]], int segment [[maybe_unused]])
+/*! This method can only be called for a state effector with override definition set up to support attached dynamic
+ * effectors */
+void StateEffector::addDynamicEffector(DynamicEffector* newDynamicEffector [[maybe_unused]],
+                                       int segment [[maybe_unused]])
 {
     bskLogger.bskError("StateEffector: This effector is not compatible with attached effectors");
 }

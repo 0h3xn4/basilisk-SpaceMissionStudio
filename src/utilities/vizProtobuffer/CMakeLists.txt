@@ -1,12 +1,17 @@
 
 if(BUILD_VIZINTERFACE)
-    find_package(protobuf CONFIG REQUIRED)
-    message(STATUS "Scanning ${CMAKE_CURRENT_SOURCE_DIR} for protobuf interface definitions")
+    find_package(protobuf CONFIG REQUIRED QUIET)
+    message(VERBOSE "Scanning ${CMAKE_CURRENT_SOURCE_DIR} for protobuf interface definitions")
 
+     # Recheck Conan's toolchain and build environment after dependency upgrades.
+     # Older builds cached this path and can retain an incompatible compiler.
+     unset(PROTOC_EXE CACHE)
      find_program(PROTOC_EXE
          NAMES protoc
-         PATHS ENV
-         PATH NO_DEFAULT_PATH
+         HINTS ${CMAKE_PROGRAM_PATH}
+         PATHS ENV PATH
+         NO_DEFAULT_PATH
+         NO_CACHE
          REQUIRED
      )
 
@@ -26,7 +31,7 @@ if(BUILD_VIZINTERFACE)
              VERBATIM
          )
 
-         message(STATUS "Defining protobuf interface library target: ${PROTO_TARGET}")
+         message(VERBOSE "Defining protobuf interface library target: ${PROTO_TARGET}")
 
          add_library(${PROTO_TARGET}
              "${CMAKE_CURRENT_SOURCE_DIR}/${PROTO_TARGET}.pb.cc"

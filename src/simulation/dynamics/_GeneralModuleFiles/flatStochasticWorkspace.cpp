@@ -19,16 +19,15 @@
 
 #include "flatStochasticWorkspace.h"
 
-void
-FlatStochasticWorkspace::bind(const std::vector<StochasticObjectDescriptor>& objects,
-                              const std::vector<StochasticNoiseBinding>& bindings,
-                              const std::vector<StochasticNoiseSlot>& slots,
-                              size_t driftStageCount,
-                              size_t diffusionStageCount,
-                              size_t scratchVectorCount)
+void FlatStochasticWorkspace::bind(const std::vector<StochasticObjectDescriptor>& objects,
+                                   const std::vector<StochasticNoiseBinding>& bindings,
+                                   const std::vector<StochasticNoiseSlot>& slots,
+                                   size_t driftStageCount,
+                                   size_t diffusionStageCount,
+                                   size_t scratchVectorCount)
 {
     const size_t derivativeScalarCount =
-      objects.empty() ? 0 : objects.back().derivativeOffset + objects.back().derivativeCount;
+        objects.empty() ? 0 : objects.back().derivativeOffset + objects.back().derivativeCount;
     const size_t diffusionScalarCount = slots.empty() ? 0 : slots.back().packedBegin + slots.back().packedCount;
 
     Eigen::MatrixXd newDriftStages(static_cast<Eigen::Index>(derivativeScalarCount),
@@ -54,8 +53,7 @@ FlatStochasticWorkspace::bind(const std::vector<StochasticObjectDescriptor>& obj
     this->bound = true;
 }
 
-void
-FlatStochasticWorkspace::reset() noexcept
+void FlatStochasticWorkspace::reset() noexcept
 {
     this->bound = false;
     this->objects = nullptr;

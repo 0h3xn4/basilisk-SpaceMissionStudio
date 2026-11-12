@@ -21,13 +21,15 @@
 
 #include <math.h>
 
-#include "architecture/utilities/macroDefinitions.h"
 #include "architecture/utilities/linearAlgebra.h"
+#include "architecture/utilities/macroDefinitions.h"
 #include "architecture/utilities/orbitalMotion.h"
 #include "architecture/utilities/rigidBodyKinematics.h"
 
-static void calc_LyapunovFeedback(meanOEFeedbackConfig *configData, NavTransMsgPayload chiefTransMsg,
-                                  NavTransMsgPayload deputyTransMsg, CmdForceInertialMsgPayload *forceMsg);
+static void calc_LyapunovFeedback(meanOEFeedbackConfig* configData,
+                                  NavTransMsgPayload chiefTransMsg,
+                                  NavTransMsgPayload deputyTransMsg,
+                                  CmdForceInertialMsgPayload* forceMsg);
 static void calc_B_cl(double mu, ClassicElements oe_cl, double B[6][3]);
 static void calc_B_eq(double mu, equinoctialElements oe_eq, double B[6][3]);
 static double adjust_range(double lower, double upper, double angle);
@@ -39,11 +41,11 @@ static double adjust_range(double lower, double upper, double angle);
  @param configData The configuration data associated with this module
  @param moduleID The Basilisk module identifier
  */
-void SelfInit_meanOEFeedback(meanOEFeedbackConfig *configData, int64_t moduleID) {
-    (void) moduleID;
+void SelfInit_meanOEFeedback(meanOEFeedbackConfig* configData, int64_t moduleID)
+{
+    (void)moduleID;
     CmdForceInertialMsg_C_init(&configData->forceOutMsg);
 }
-
 
 /*! This method performs a complete reset of the module.  Local module variables that retain
  time varying states between function calls are reset to their default values.  The local copy of the
@@ -53,9 +55,10 @@ void SelfInit_meanOEFeedback(meanOEFeedbackConfig *configData, int64_t moduleID)
  @param callTime The clock time at which the function was called (nanoseconds)
  @param moduleID The Basilisk module identifier
  */
-void Reset_meanOEFeedback(meanOEFeedbackConfig *configData, uint64_t callTime, int64_t moduleID) {
-    (void) callTime;
-    (void) moduleID;
+void Reset_meanOEFeedback(meanOEFeedbackConfig* configData, uint64_t callTime, int64_t moduleID)
+{
+    (void)callTime;
+    (void)moduleID;
     // check if the required input messages are included
     if (!NavTransMsg_C_isLinked(&configData->chiefTransInMsg)) {
         _bskError(configData->bskLogger, "Error: meanOEFeedback.chiefTransInMsg wasn't connected.");
@@ -70,8 +73,8 @@ void Reset_meanOEFeedback(meanOEFeedbackConfig *configData, uint64_t callTime, i
     if (configData->req <= 0.0) {
         _bskError(configData->bskLogger, "Error in meanOEFeedback: req must be set to a positive value.");
     }
-    if (configData->J2 <= 0.0) {
-        _bskError(configData->bskLogger, "Error in meanOEFeedback: J2 must be set to a positive value.");
+    if (!isfinite(configData->J2) || configData->J2 < 0.0) {
+        _bskError(configData->bskLogger, "Error in meanOEFeedback: J2 must be finite and nonnegative.");
     }
 
     return;
@@ -83,7 +86,8 @@ void Reset_meanOEFeedback(meanOEFeedbackConfig *configData, uint64_t callTime, i
  @param callTime The clock time at which the function was called (nanoseconds)
  @param moduleID The Basilisk module identifier
  */
-void Update_meanOEFeedback(meanOEFeedbackConfig *configData, uint64_t callTime, int64_t moduleID) {
+void Update_meanOEFeedback(meanOEFeedbackConfig* configData, uint64_t callTime, int64_t moduleID)
+{
     // in
     NavTransMsgPayload chiefTransMsg;
     NavTransMsgPayload deputyTransMsg;
@@ -110,16 +114,24 @@ void Update_meanOEFeedback(meanOEFeedbackConfig *configData, uint64_t callTime, 
  @param deputyTransMsg Deputy's position and velocity
  @param forceMsg force output (3-axis)
  */
-static void calc_LyapunovFeedback(meanOEFeedbackConfig *configData, NavTransMsgPayload chiefTransMsg,
-                                  NavTransMsgPayload deputyTransMsg, CmdForceInertialMsgPayload *forceMsg) {
+static void calc_LyapunovFeedback(meanOEFeedbackConfig* configData,
+                                  NavTransMsgPayload chiefTransMsg,
+                                  NavTransMsgPayload deputyTransMsg,
+                                  CmdForceInertialMsgPayload* forceMsg)
+{
     // position&velocity to osculating classic orbital elements
     ClassicElements oe_cl_osc_c, oe_cl_osc_d;
     rv2elem(configData->mu, chiefTransMsg.r_BN_N, chiefTransMsg.v_BN_N, &oe_cl_osc_c);
     rv2elem(configData->mu, deputyTransMsg.r_BN_N, deputyTransMsg.v_BN_N, &oe_cl_osc_d);
     // osculating classic oe to mean classic oe
     ClassicElements oe_cl_mean_c, oe_cl_mean_d;
-    clMeanOscMap(configData->req, configData->J2, &oe_cl_osc_c, &oe_cl_mean_c, -1);
-    clMeanOscMap(configData->req, configData->J2, &oe_cl_osc_d, &oe_cl_mean_d, -1);
+    clMeanOscMapChecked(configData->req, configData->J2, &oe_cl_osc_c, &oe_cl_mean_c, -1);
+    clMeanOscMapChecked(configData->req, configData->J2, &oe_cl_osc_d, &oe_cl_mean_d, -1);
+    if (!isfinite(oe_cl_mean_c.a) || !isfinite(oe_cl_mean_d.a)) {
+        _bskError(configData->bskLogger,
+                  "meanOEFeedback: invalid mean-element mapping; check orbital domain and critical inclinations.");
+        return;
+    }
     // calculate necessary Force in LVLH frame
     double oed[6];
     double B[6][3];
@@ -145,8 +157,13 @@ static void calc_LyapunovFeedback(meanOEFeedbackConfig *configData, NavTransMsgP
     } else if (configData->oeType == 1) {
         // mean classic oe to mean equinoctial oe
         equinoctialElements oe_eq_mean_c, oe_eq_mean_d;
-        clElem2eqElem(&oe_cl_mean_c, &oe_eq_mean_c);
-        clElem2eqElem(&oe_cl_mean_d, &oe_eq_mean_d);
+        clElem2eqElemChecked(&oe_cl_mean_c, &oe_eq_mean_c);
+        clElem2eqElemChecked(&oe_cl_mean_d, &oe_eq_mean_d);
+        if (!isfinite(oe_eq_mean_c.a) || !isfinite(oe_eq_mean_d.a)) {
+            _bskError(configData->bskLogger,
+                      "meanOEFeedback: invalid equinoctial conversion; the retrograde equator is singular.");
+            return;
+        }
         // calculate equinoctial oed (da,dP1,dP2,dQ1,dQ2,dl)
         oed[0] = (oe_eq_mean_d.a - oe_eq_mean_c.a) / oe_eq_mean_c.a - configData->targetDiffOeMean[0];
         oed[1] = oe_eq_mean_d.P1 - oe_eq_mean_c.P1 - configData->targetDiffOeMean[1];
@@ -183,12 +200,13 @@ static void calc_LyapunovFeedback(meanOEFeedbackConfig *configData, NavTransMsgP
  @param oe_cl nonsingular orbital elements
  @param B
  */
-static void calc_B_cl(double mu, ClassicElements oe_cl, double B[6][3]) {
+static void calc_B_cl(double mu, ClassicElements oe_cl, double B[6][3])
+{
     // define parameters necessary to calculate Bmatrix
     double a = oe_cl.a;
     double e = oe_cl.e;
     double i = oe_cl.i;
-//    double Omega = oe_cl.Omega;
+    //    double Omega = oe_cl.Omega;
     double omega = oe_cl.omega;
     double f = oe_cl.f;
     double theta = omega + f;
@@ -200,8 +218,8 @@ static void calc_B_cl(double mu, ClassicElements oe_cl, double B[6][3]) {
     double r = p / (1 + e * cos(f));
 
     // sabstitute into Bmatrix
-    B[0][0] = 2.0 * pow(a, 2) * e * sin(f) / h / a;  // nomalization
-    B[0][1] = 2.0 * pow(a, 2) * p / (h * r) / a;     // nomalization
+    B[0][0] = 2.0 * pow(a, 2) * e * sin(f) / h / a; // nomalization
+    B[0][1] = 2.0 * pow(a, 2) * p / (h * r) / a;    // nomalization
     B[0][2] = 0;
 
     B[1][0] = p * sin(f) / h;
@@ -237,7 +255,8 @@ static void calc_B_cl(double mu, ClassicElements oe_cl, double B[6][3]) {
  @param oe_eq nonsingular orbital elements
  @param B
  */
-static void calc_B_eq(double mu, equinoctialElements oe_eq, double B[6][3]) {
+static void calc_B_eq(double mu, equinoctialElements oe_eq, double B[6][3])
+{
     // define parameters necessary to calculate Bmatrix
     double a = oe_eq.a;
     double P1 = oe_eq.P1;
@@ -254,8 +273,8 @@ static void calc_B_eq(double mu, equinoctialElements oe_eq, double B[6][3]) {
     double p = p_r * r;
 
     // sabstitute into Bmatrix
-    B[0][0] = 2.0 * pow(a, 2) / h * (P2 * sin(L) - P1 * cos(L)) / a;  // nomalization
-    B[0][1] = 2.0 * pow(a, 2) * p_r / h / a;                          // nomalization
+    B[0][0] = 2.0 * pow(a, 2) / h * (P2 * sin(L) - P1 * cos(L)) / a; // nomalization
+    B[0][1] = 2.0 * pow(a, 2) * p_r / h / a;                         // nomalization
     B[0][2] = 0;
 
     B[1][0] = -p * cos(L) / h;
@@ -281,13 +300,15 @@ static void calc_B_eq(double mu, equinoctialElements oe_eq, double B[6][3]) {
 }
 
 /*! This function is used to adjust a certain value in a certain range between lower threshold and upper threshold.
- This function is particularily used to adjsut angles used in orbital motions such as True Anomaly, Mean Anomaly, and so on.
+ This function is particularily used to adjsut angles used in orbital motions such as True Anomaly, Mean Anomaly, and so
+ on.
  @return double
  @param lower lower threshold
  @param upper upper threshold
  @param angle an angle which you want to be between lower and upper
 */
-static double adjust_range(double lower, double upper, double angle) {
+static double adjust_range(double lower, double upper, double angle)
+{
     if (upper < lower) {
         printf("illegal parameters\n");
         return -1;

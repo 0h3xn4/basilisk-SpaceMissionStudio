@@ -17,13 +17,12 @@
 
 */
 
-
 #include "simulation/mujocoDynamics/MJSystemMassMatrix/MJSystemMassMatrix.h"
 #include "architecture/utilities/macroDefinitions.h"
-#include <iostream>
 #include <cstring>
-#include <mujoco/mujoco.h>
 #include <iomanip>
+#include <iostream>
+#include <mujoco/mujoco.h>
 
 void MJSystemMassMatrix::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
 {
@@ -62,7 +61,6 @@ void MJSystemMassMatrix::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
         }
     }
 
-
     // verify that all free joints are at the root of a kinematic tree
     for (int j = 0; j < model->njnt; ++j) {
         if (model->jnt_type[j] == mjJNT_FREE) {
@@ -72,7 +70,10 @@ void MJSystemMassMatrix::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
             const bool jointIsFirstOnBody = (j == model->body_jntadr[b]);
 
             if (!bodyIsTreeRoot || !jointIsFirstOnBody) {
-                bskLogger.bskError("MJSystemMassMatrix: Free joint j=%d on body b=%d must be the first joint on a tree root body.", j, b);
+                bskLogger.bskError(
+                    "MJSystemMassMatrix: Free joint j=%d on body b=%d must be the first joint on a tree root body.",
+                    j,
+                    b);
             }
         }
     }
@@ -81,7 +82,7 @@ void MJSystemMassMatrix::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
 void MJSystemMassMatrix::UpdateState(uint64_t CurrentSimNanos)
 {
     const mjModel* model = scene->getMujocoModel();
-    const mjData*  data  = scene->getMujocoData();
+    const mjData* data = scene->getMujocoData();
 
     // always zero the output message buffers before assigning values
     MJSysMassMatrixMsgPayload payload = this->massMatrixOutMsg.zeroMsgPayload;
@@ -90,7 +91,6 @@ void MJSystemMassMatrix::UpdateState(uint64_t CurrentSimNanos)
     const std::size_t NN = (this->nDOF) * this->nDOF;
     std::vector<mjtNum> Mdense(NN, mjtNum(0));
     mj_fullM(model, data, Mdense.data());
-
 
     // write to the output message
     payload.nSC = static_cast<int>(this->nSC);

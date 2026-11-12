@@ -23,12 +23,17 @@
 #include "architecture/utilities/bskLogging.h"
 #include "simulation/dynamics/_GeneralModuleFiles/gravityModel.h"
 
+#include <Eigen/Dense>
+#include <cstddef>
+#include <optional>
+#include <string>
 #include <vector>
 
 /**
  * The Spherical Harmonics gravity model
  */
-class SphericalHarmonicsGravityModel : public GravityModel {
+class SphericalHarmonicsGravityModel : public GravityModel
+{
   public:
     /** Initialize all parameters necessary for the computation of gravity.
      *
@@ -39,14 +44,21 @@ class SphericalHarmonicsGravityModel : public GravityModel {
      */
     std::optional<std::string> initializeParameters() override;
 
-    /** Initialize all parameters necessary for the computation of gravity.
+    /** @brief Initialize the gravity model from the body parameters.
      *
-     * The attributes `muBody`and `radEquator` are read from the given `GravBodyData`.
+     * The attribute `radEquator` is kept if it is positive, for example when it was
+     * loaded from the coefficient file, since the normalized coefficients are only
+     * valid with the reference radius of their model. Otherwise, it is read from
+     * the `radEquator` of the given `GravBodyData`.
      *
-     * Will return an error message (string) if `cBar` or `sBar` were not set.
-     * Otherwise, returns an empty optional.
+     * The attribute `muBody` is replaced by `body.mu`, which must be finite and
+     * positive so the field and other gravity consumers use the same parameter.
+     *
+     * @param body Gravity body supplying the gravitational parameter and fallback reference radius.
+     * @return An error message if `body.mu` is invalid or `cBar` or `sBar` were not set;
+     * otherwise, an empty optional.
      */
-    std::optional<std::string> initializeParameters(const GravBodyData&) override;
+    std::optional<std::string> initializeParameters(const GravBodyData& body) override;
 
     /** Returns the gravity acceleration at a position around this body.
      *
@@ -69,7 +81,8 @@ class SphericalHarmonicsGravityModel : public GravityModel {
      * If include_zero_degree is false the degree that corresponds to the spherical
      * term (point-mass) of the gravity is ignored.
      */
-    Eigen::Vector3d computeField(const Eigen::Vector3d& position_planetFixed, size_t degree,
+    Eigen::Vector3d computeField(const Eigen::Vector3d& position_planetFixed,
+                                 size_t degree,
                                  bool include_zero_degree) const;
 
     /** Returns the gravitational potential energy at a position around this body.
@@ -90,8 +103,8 @@ class SphericalHarmonicsGravityModel : public GravityModel {
     bool dependsOnOrientation() const override;
 
   public:
-    double radEquator = 0;  /**< [m] Reference radius for the planet */
-    double muBody = 0;      /**< [m^3/s^2] Gravitation parameter for the planet */
+    double radEquator = 0; /**< [m] Reference radius of the spherical harmonics coefficients */
+    double muBody = 0;     /**< [m^3/s^2] Gravitation parameter for the planet */
 
     /** The maximum degree of Spherical Harmonics to use
      *
@@ -116,11 +129,11 @@ class SphericalHarmonicsGravityModel : public GravityModel {
      * They are coefficients used in the method of Pines for the gravity due to SH.
      * For their definition, see the 'Basilisk-GravityEffector' documentation.
      */
-    mutable std::vector<std::vector<double>> aBar;  /**< [-] Eq. 61 */
-    std::vector<std::vector<double>> n1;            /**< [-] Eq. 63 */
-    std::vector<std::vector<double>> n2;            /**< [-] Eq. 64 */
-    std::vector<std::vector<double>> nQuot1;        /**< [-] Eq. 79 */
-    std::vector<std::vector<double>> nQuot2;        /**< [-] Eq. 80 */
+    mutable std::vector<std::vector<double>> aBar; /**< [-] Eq. 61 */
+    std::vector<std::vector<double>> n1;           /**< [-] Eq. 63 */
+    std::vector<std::vector<double>> n2;           /**< [-] Eq. 64 */
+    std::vector<std::vector<double>> nQuot1;       /**< [-] Eq. 79 */
+    std::vector<std::vector<double>> nQuot2;       /**< [-] Eq. 80 */
 };
 
 #endif /* SH_GRAVITY_MODEL_H */

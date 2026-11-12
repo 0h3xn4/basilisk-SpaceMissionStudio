@@ -129,12 +129,14 @@ This type assumes that the apparent radius of the planet is larger than that of 
 Annular Eclipse (:math:`c < a-b`)
 """""""""""""""""""""""""""""""""
 
-This type assumes the apparent radius of the sun is larger than that of the planet (:math:`a>b`).
-Use the equation for a circular area, :math:`A = \pi r^2`, to find the area of the sun and
-planet faces, replacing :math:`r` with the corresponding apparent radius. The illumination
-fraction is then just the ratio of the planet's area to the sun's area.
+This type assumes the apparent radius of the sun is larger than that of the planet (:math:`a>b`),
+so the disk of the planet lies entirely inside the solar disk. Use the equation for a circular
+area, :math:`A = \pi r^2`, to find the area of the sun and planet faces, replacing :math:`r`
+with the corresponding apparent radius. The occulted area of the solar disk is the planet's
+area :math:`A_P = \pi b^2`, and the illumination fraction is the visible fraction of the solar
+disk of area :math:`A_H = \pi a^2`.
 
-.. math:: \text{Illumination Fraction} = \frac{A_P}{A_H}
+.. math:: \text{Illumination Fraction} = 1 - \frac{A_P}{A_H} = 1 - \frac{b^2}{a^2}
     :label: eq:18
 
 Partial Eclipse (:math:`c < a+ b`)
@@ -153,7 +155,7 @@ Parameters :math:`a`, :math:`b`, and :math:`c` are those calculated previously i
 .. math:: y = \sqrt{a^2 - x^2}
     :label: eq:elipse:21
 
-Like with the annular partial eclipse, the illumination factor for this type is the ratio between the occulted area and the sun's apparent area. This is given by the equation below.
+Like with the annular eclipse, the illumination factor for this type is one minus the ratio between the occulted area and the sun's apparent area. This is given by the equation below.
 
 .. math:: \text{Illumination Fraction} = 1 - \frac{A}{\pi a^2}
     :label: eq:elipse:22
@@ -188,7 +190,7 @@ User Guide
 
 Setting The Spacecraft State Input Messages
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The spacecrat state messages are read in by the ``eclipse`` module to determine where the spacecraft is relative to the sun and the planet(s).  The module can handle a list of input messages, however, these are not set directly.  Rather, use the method::
+The spacecraft state messages are read in by the ``eclipse`` module to determine where the spacecraft is relative to the sun and the planet(s).  The module can handle a list of input messages, however, these are not set directly.  Rather, use the method::
 
     addSpacecraftToModel(scObject.scStateOutMsg)
 
@@ -217,3 +219,39 @@ The ``eclipse`` module will output a series of messages of type :ref:`EclipseMsg
     eclipseObject.eclipseOutMsgs[2]
 
 where ``0`` indicates the first spacecraft illumination factor messages, etc.
+
+Spacecraft State Timing
+-----------------------
+The module is normally executed before the spacecraft within a task, so the spacecraft state message it reads was written
+at the end of the previous step. By default the message is used as written. To avoid an output that lags the interval it is applied
+to, the extrapolation can be enabled with ``setExtrapolateScStateToStepMidpoint(True)``. The spacecraft position is
+then advanced with the message velocity by half of the message age, which is the middle of the interval that the next
+spacecraft update integrates. It is skipped for a message that was written at the current time and for a stale
+message that was written before the previous update of the module, for example a state written once at the start of
+the simulation.
+
+.. warning::
+
+    The extrapolation requires that the module is updated with the same task period as the spacecraft, so that the
+    state message written by the spacecraft at the previous module update is exactly one module interval old. If the
+    task periods differ, whether the spacecraft is faster or slower than the module, half of the message age is not the
+    middle of the module interval. The state is then not extrapolated to the midpoint: the spacecraft stay at the epoch
+    of their messages, and the planets are moved to that epoch if all the spacecraft messages were written at the
+    previous module update (they are left as written otherwise), so that every spacecraft is evaluated against the same
+    planet epoch. A warning is logged once when a spacecraft message is found not to have been written at the previous
+    module update. A task period mismatch is not always detectable this way: a message written at the current module
+    update, for example by a faster spacecraft that runs before the module, is used as written and gives no warning. No
+    message that is not the output of the previous module update is ever extrapolated. A task period that changes
+    during the simulation has the same effect. The extrapolation only starts once two write times of the spacecraft
+    state message have been observed and their interval equals the module update interval, so the first updates are not
+    extrapolated. Until then the spacecraft state is used as written and the sun and the planets are moved back to the
+    epoch of that state, so the relative geometry stays consistent. Run the module in the same task as the spacecraft,
+    or at the same period.
+
+When the extrapolation is enabled the position and the orientation of the planet (or of the sun and the planets for
+the eclipse) are advanced, or moved back, with their message velocity and angular rate to the same middle of the
+interval as the spacecraft, so that the relative geometry is evaluated at a single epoch. Other time-dependent inputs,
+such as the epoch used for solar time or a space weather sample, are not shifted and are evaluated at the current
+time.
+As in the gravity effector, the planet is advanced by the time since its message was written, whatever the age of the
+message, so a planet message written once with a non-zero velocity is projected forward over the whole simulation.

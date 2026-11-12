@@ -33,14 +33,13 @@
  @param configData The configuration data associated with this module
  @param moduleID The module identifier
  */
-void
-SelfInit_simpleInstrumentController(simpleInstrumentControllerConfig* configData, int64_t moduleID)
+void SelfInit_simpleInstrumentController(simpleInstrumentControllerConfig* configData, int64_t moduleID)
 {
-    (void) moduleID;
+    (void)moduleID;
     configData->imaged = 0;
     configData->controllerStatus = 1;
     configData->constraintStartTime = 0.0; // [ns]
-    configData->elapsedTime = 0.0; // [ns]
+    configData->elapsedTime = 0.0;         // [ns]
     configData->constraintsActive = 0;
 
     DeviceCmdMsg_C_init(&configData->deviceCmdOutMsg);
@@ -53,11 +52,10 @@ SelfInit_simpleInstrumentController(simpleInstrumentControllerConfig* configData
  @param callTime [ns] time the method is called
  @param moduleID The module identifier
 */
-void
-Reset_simpleInstrumentController(simpleInstrumentControllerConfig* configData, uint64_t callTime, int64_t moduleID)
+void Reset_simpleInstrumentController(simpleInstrumentControllerConfig* configData, uint64_t callTime, int64_t moduleID)
 {
-    (void) callTime;
-    (void) moduleID;
+    (void)callTime;
+    (void)moduleID;
     // check if the required message has not been connected
     if (!AccessMsg_C_isLinked(&configData->locationAccessInMsg)) {
         _bskError(configData->bskLogger, "Error: simpleInstrumentController.locationAccessInMsg wasn't connected.");
@@ -70,7 +68,7 @@ Reset_simpleInstrumentController(simpleInstrumentControllerConfig* configData, u
     configData->imaged = 0;
     configData->constraintsActive = 0;
     configData->constraintStartTime = 0.0; // [ns]
-    configData->elapsedTime = 0.0; // [ns]
+    configData->elapsedTime = 0.0;         // [ns]
 }
 
 /*! Add a description of what this main Update() routine does for this module
@@ -79,8 +77,9 @@ Reset_simpleInstrumentController(simpleInstrumentControllerConfig* configData, u
  @param callTime The clock time at which the function was called (nanoseconds)
  @param moduleID The module identifier
 */
-void
-Update_simpleInstrumentController(simpleInstrumentControllerConfig* configData, uint64_t callTime, int64_t moduleID)
+void Update_simpleInstrumentController(simpleInstrumentControllerConfig* configData,
+                                       uint64_t callTime,
+                                       int64_t moduleID)
 {
     double sigma_BR_norm; //!< Norm of sigma_BR
     double omega_BR_norm; //!< Norm of omega_BR
@@ -125,9 +124,9 @@ Update_simpleInstrumentController(simpleInstrumentControllerConfig* configData, 
         // If the target has not been imaged
         if (!configData->imaged) {
             unsigned int constraintsMet =
-              (sigma_BR_norm <= configData->attErrTolerance) &&
-              (!configData->useRateTolerance || (omega_BR_norm <= configData->rateErrTolerance)) &&
-              (accessInMsgBuffer.hasAccess);
+                (sigma_BR_norm <= configData->attErrTolerance) &&
+                (!configData->useRateTolerance || (omega_BR_norm <= configData->rateErrTolerance)) &&
+                (accessInMsgBuffer.hasAccess);
 
             if (constraintsMet) {
                 // Default: immediate imaging
@@ -142,7 +141,7 @@ Update_simpleInstrumentController(simpleInstrumentControllerConfig* configData, 
                     if (!configData->constraintsActive) {
                         configData->constraintsActive = 1;
                         configData->constraintStartTime = (double)callTime; // [ns] current sim time
-                        configData->elapsedTime = 0.0; // [ns]
+                        configData->elapsedTime = 0.0;                      // [ns]
                     }
 
                     if (configData->acquisitionTime < 0.0) {
@@ -161,12 +160,12 @@ Update_simpleInstrumentController(simpleInstrumentControllerConfig* configData, 
                                 "simpleInstrumentController: allowedTime is negative and has been set to zero.");
                     }
 
-                    configData->elapsedTime = (double) callTime - configData->constraintStartTime;
+                    configData->elapsedTime = (double)callTime - configData->constraintStartTime;
 
                     // Determine the effective time to image: cannot exceed allowedTime
                     double effectiveImageTime = (configData->acquisitionTime > configData->allowedTime)
-                                                  ? configData->allowedTime
-                                                  : configData->acquisitionTime;
+                                                    ? configData->allowedTime
+                                                    : configData->acquisitionTime;
 
                     if (configData->elapsedTime >= effectiveImageTime) {
                         // Capture only while the acquisition and imaging window remain within the allowed duration

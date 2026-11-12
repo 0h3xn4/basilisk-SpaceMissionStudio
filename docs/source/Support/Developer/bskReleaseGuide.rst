@@ -107,10 +107,14 @@ release:
    containing the active
    ``.. include:: ../bskReleaseNotesSnippets/_compiled_latest.rst`` directive.
    Move the ``bsk-release-current`` label to this section. Keep only one active
-   snippet include in the documentation so notes appear once.
-#. In ``bskKnownIssues.rst``, change the completed release heading to its
-   literal version and create a new ``Version |release|`` section above it for
-   the new beta cycle.
+   release-note snippet include in the documentation so notes appear once.
+#. Keep completed known issues in ``docs/source/Support/bskKnownIssues/2.X.rst``
+   under their literal version and date. Create the next series page if needed
+   and add it at the top of the ``bskKnownIssues.rst`` index. Add a new
+   ``Version |release|`` section containing
+   ``.. include:: ../bskKnownIssuesSnippets/_compiled_latest.rst``.
+   Move the ``bsk-known-issues-current`` label to this section, keeping exactly
+   one active known-issue include.
 #. Open a PR from the beta branch to ``develop`` and wait for CI to pass before
    merging.
 #. After merging, manually run the ``Nightly Wheels`` workflow on ``develop``
@@ -207,24 +211,37 @@ Finalize the Release Notes and Known Issues
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Normal PRs contribute release-note snippets under
-``docs/source/Support/bskReleaseNotesSnippets``. Maintainers gather, review,
-and place the finalized notes in the appropriate version-series RST file;
-the snippet compiler does not assign notes to releases. At release time:
+``docs/source/Support/bskReleaseNotesSnippets`` and known-issue snippets under
+``docs/source/Support/bskKnownIssuesSnippets``. Follow each folder's README
+for when entries are required and how to format them. Maintainers gather,
+review, and place finalized content in the appropriate version-series RST files
+under ``bskReleaseNotes/`` and ``bskKnownIssues/``. Both collections use the same
+compiler; it does not assign entries to releases or delete snippets.
+
+Known issues cover issues affecting tagged releases. An issue introduced and
+fixed by a commit within the same beta cycle does not need a known-issue entry
+if it never affected a tagged release. An issue discovered during beta
+development that also affects a tagged release still needs an entry. Document
+unresolved issues that will ship in the upcoming tagged release before tagging.
+Release-note requirements apply separately.
+
+At release time:
 
 #. Compile the current snippets:
 
    .. code-block:: bash
 
-      make -C docs release-notes-snippets
+      make -C docs snippets
 
 #. Collect and edit the notes for the release. Put them in
    ``docs/source/Support/bskReleaseNotes/2.X.rst`` under a literal version and
    release date, newest first. For example, ``2.12.1`` belongs above ``2.12.0``
    in ``2.12.rst``; ``2.13.0`` belongs in ``2.13.rst``. Create a series page and
    add it to the index when preparing the first release in that series.
-#. Before tagging, sort longer release-note lists into topic subsections within
-   the dated release section. Use the topics below in the same order, omitting
-   empty categories. Small patch releases can remain simple bullet lists.
+#. Before tagging, sort longer release-note and known-issue lists into topic
+   subsections within the dated release section. Use the topics below in the
+   same order, omitting empty categories. Small patch releases can remain simple
+   bullet lists.
 
    - Compatibility and migration
    - Build, installation, and CI
@@ -237,8 +254,10 @@ the snippet compiler does not assign notes to releases. At release time:
    - Documentation, examples, and validation
 
    Use RST subsection headings underlined with ``~`` characters, as in the
-   ``2.12.0``, ``2.11.0``, and ``2.10.0`` notes. Place each entry once under its
-   primary topic, keeping feature-specific examples, documentation, and tests
+   ``2.12.0`` and ``2.11.0`` release notes and known issues. If a topic is still
+   long, add more specific subheadings underlined with ``^``, as in the
+   ``2.12.0`` known issues for spacecraft dynamics. Place each entry once under
+   its primary topic, keeping feature-specific examples, documentation, and tests
    with the feature. Put changes requiring users to adapt their code or setup
    under Compatibility and migration. Edit for clarity and combine related
    entries where appropriate, preserving migration instructions, RST references,
@@ -249,15 +268,41 @@ the snippet compiler does not assign notes to releases. At release time:
    the include present but commented if useful for the next development cycle.
    Retain existing section labels and anchors when finalizing a heading so
    bookmarks continue to work.
-#. Add the release date to the corresponding heading in ``bskKnownIssues.rst``.
-#. Review the notes for duplicate, internal-only, or unclear entries and verify
-   that every RST reference resolves.
-#. Delete only the consumed snippet files. Preserve ``README.md``, the compiler
-   script, the sample, and other underscore-prefixed support files.
+#. In ``bskKnownIssues/2.X.rst``, replace the active known-issue include with its
+   reviewed content under a literal version and release date, newest first.
+   Create a series page and add it to the ``bskKnownIssues.rst`` index if needed.
+   Add a permanent label such as ``bsk-known-issues-2-13-0`` to the finalized
+   section. Retain existing version labels and heading anchors so bookmarks
+   continue to work. Keep unresolved limitations and workarounds documented;
+   archiving an entry does not imply it was resolved.
+#. Review the notes for duplicate, internal-only, unclear, or contradictory
+   entries and verify that every RST reference resolves. Reconcile multiple
+   pending descriptions of the same issue or workaround before archiving.
+   Remove provisional entries for issues introduced and fixed entirely within
+   the beta cycle if no tagged release was affected.
+#. After saving the reviewed content, delete only the consumed snippet files
+   from each collection. Preserve each ``README.md``, the compiler wrapper,
+   samples, and other underscore-prefixed support files.
 
 For a patch release, create dated ``2.X.Y`` sections for the selected patch
 notes in ``bskReleaseNotes/2.X.rst`` and for the known issues in
-``bskKnownIssues.rst``, without disturbing newer ``develop`` release content.
+``bskKnownIssues/2.X.rst``, without disturbing newer ``develop`` release content.
+
+On the maintenance branch, move ``bsk-known-issues-current`` to the newly
+finalized known-issue section and ``bsk-release-current`` to the new release-note
+section. Keep each current label in exactly one location and preserve permanent
+version labels on the older sections. This makes the legacy ``#version-release``
+bookmarks open the latest patch. When forwarding patch history to ``develop``,
+leave its current labels on the active beta sections.
+
+Consume only snippets for the selected patch fixes; do not clear either
+collection wholesale when it also contains entries for newer work.
+
+Full documentation builds reject nonempty snippet collections with no active
+include. After finalization, empty collections may have no include. Restore the
+active includes when starting the next development cycle, before publishing
+new snippets. Standalone compilation remains available while preparing a
+release, and single-page previews are exempt from this full-build check.
 
 Each series page starts with a title followed by its release sections. Use this
 structure when adding a new series, replacing ``2.X`` with its version series:
@@ -274,10 +319,24 @@ structure when adding a new series, replacing ``2.X`` with its version series:
 
    .. include:: ../bskReleaseNotesSnippets/_compiled_latest.rst
 
-Move the current-release label and active include when advancing to a new
-series. For another development patch in the same series, add the active
-section above the finalized releases in the same file. Keep
-``Version 1.x and earlier`` as the last archive link in the index.
+Use the matching structure for a known-issue series page:
+
+.. code-block:: rst
+
+   Version 2.X Known Issues
+   =======================
+
+   .. _bsk-known-issues-current:
+
+   Version |release|
+   -----------------
+
+   .. include:: ../bskKnownIssuesSnippets/_compiled_latest.rst
+
+Move each collection's current-version label and active include when advancing
+to a new series. For another development patch in the same series, add the
+active section above the finalized releases in the same file. Keep
+``Version 1.x and earlier`` as the last archive link in each index.
 
 .. _bsk-release-task-local-validation:
 
@@ -360,6 +419,33 @@ is neither ``master`` nor ``develop``. After publishing a patch:
    documentation under ``/develop``.
 #. Verify both the root release documentation and the ``/develop``
    documentation after the workflows finish.
+
+.. _bsk-release-task-recovery:
+
+Recover Failed Source-Distribution Validation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If all wheel build and packaging jobs succeeded but ``Test SDist`` failed because
+of an external dependency download, fix the validation environment on the release
+branch and keep the published tag unchanged. The ``Publish Wheels`` workflow has
+an optional ``recovery_run_id`` input for this case:
+
+.. code-block:: bash
+
+   gh workflow run publish-wheels.yml --ref patch/v2_X_x \
+     -f destination=pypi -f recovery_run_id=ORIGINAL_RUN_ID
+
+Run this only after reviewing the original failure and the environment fix. The
+workflow verifies that the original run used the same final tag and commit, that
+all wheel checks succeeded, and that publication was skipped. It downloads the
+original, unexpired artifacts, verifies their package versions and platform pairs,
+and installs and imports the original source distribution with Conan retries and
+source backups configured. Publication runs only after these checks pass.
+
+This recovery uses the original distributions without rebuilding or modifying
+them. It cannot repair a source-code defect in the tagged archive or recover a
+partially published release. A rerun of the original workflow still uses its old
+workflow definition; dispatch recovery from the branch containing the fix.
 
 .. _bsk-release-task-github-release:
 

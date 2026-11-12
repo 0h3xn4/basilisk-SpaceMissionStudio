@@ -32,8 +32,7 @@ Eigen::VectorXd ForceAtSiteLTI::readInput(uint64_t /*CurrentSimNanos*/)
     return u;
 }
 
-void ForceAtSiteLTI::writeOutput(uint64_t CurrentSimNanos,
-                                 const Eigen::VectorXd &y)
+void ForceAtSiteLTI::writeOutput(uint64_t CurrentSimNanos, const Eigen::VectorXd& y)
 {
     ForceAtSiteMsgPayload payload{};
     payload.force_S[0] = y(0);

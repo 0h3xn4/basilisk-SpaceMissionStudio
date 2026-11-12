@@ -90,6 +90,40 @@ The spherical coordinate rates are computed by differentiating the range, azimut
     :label: eq:SEZ_ElDot:7
 
 
+Planet Rotation
+~~~~~~~~~~~~~~~
+The spacecraft velocity :math:`{}^{N}\mathbf{v}_{B/N}` is an inertial quantity, but the rates above are
+those seen from the rotating ground location :math:`L`.  The planet velocity :math:`{}^{N}\mathbf{v}_{P/N}` is read
+from the planet state message and removed, so the module is valid for a planet that moves in the inertial frame.
+The planet angular velocity is obtained from the
+SPICE planet orientation matrix :math:`[PN]` and its derivative using :math:`[\dot{PN}] = -[\tilde{\boldsymbol{\omega}}_{P/N}][PN]`,
+which gives :math:`\boldsymbol{\omega}_{P/N}` in :math:`P` frame components:
+
+.. math:: [\tilde{\boldsymbol{\omega}}_{P/N}] = -[\dot{PN}][PN]^T
+    :label: eq:gl_wTilde:8
+
+Because it is crossed with the inertial vector :math:`{}^{N}\mathbf{r}_{B/P}`, the angular velocity is first
+expressed in inertial components, :math:`{}^{N}\boldsymbol{\omega}_{P/N} = [PN]^T\,{}^{P}\boldsymbol{\omega}_{P/N}`.
+The spacecraft velocity relative to the rotating location is then
+
+.. math:: {}^{L}\mathbf{v}_{B/L} = [LP][PN]\left({}^{N}\mathbf{v}_{B/N} - {}^{N}\mathbf{v}_{P/N} - {}^{N}\boldsymbol{\omega}_{P/N} \times {}^{N}\mathbf{r}_{B/P}\right)
+    :label: eq:gl_vBL:9
+
+
+Overhead Geometry
+~~~~~~~~~~~~~~~~~
+Azimuth is undefined when the horizontal SEZ separation vanishes. When this separation is below the
+floating-point tolerance
+
+.. math:: \epsilon\left(\|\mathbf{r}_{P/N}\| + 8\left(\|\mathbf{r}_{B/P}\| + \|\mathbf{r}_{L/P}\|\right)\right),
+
+the module reports zero ``azimuth``, ``az_dot`` and ``el_dot``. Here :math:`\epsilon` is double-precision
+machine epsilon. The first term accounts for position quantization far from the inertial origin; the
+local terms allow for round-off in the position differences and frame rotations. This distinguishes
+exactly overhead geometry from small but resolvable horizontal offsets. The :ref:`groundMapping` and
+:ref:`stripLocation` modules use the same convention.
+
+
 User Guide
 ----------
 

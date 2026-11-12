@@ -3,9 +3,38 @@ Executive Summary
 
 This module implements a opNav point attitude guidance routine.
 
-This algorithm is intended to be incredibly simple and robust: it finds the angle error between the camera boresight (or desired control axis in the camera frame) and the planet heading in the camera frame and brings them to zero. This is analoguous to sunSafePoint.  The file
+This algorithm is intended to be incredibly simple and robust: it finds the angle error between the camera boresight (or desired control axis in the camera frame) and the planet heading in the camera frame and brings them to zero. This is analogous to sunSafePoint.  The file
 :download:`PDF Description </../../src/fswAlgorithms/attGuidance/opNavPoint/_Documentation/Basilisk-opNavPoint-20190820.pdf>`.
 contains further information on this module's function, how to run it, as well as testing.
+
+Frame Conventions
+-----------------
+The target heading from ``opnavDataInMsg`` and the camera axis ``alignAxis_C`` are both expressed in camera
+frame :math:`\mathcal{C}` components.  The principal rotation axis is computed from these two vectors in camera
+components and then mapped into body frame :math:`\mathcal{B}` components with the camera orientation
+:math:`[CB]` from ``cameraConfigInMsg``:
+
+.. math::
+
+    {}^{\mathcal{B}}\hat{\boldsymbol{e}} = [CB]^{T}\, {}^{\mathcal{C}}\hat{\boldsymbol{e}}
+
+The output ``sigma_BR`` is built from this body frame axis, so the implied reference attitude points
+``alignAxis_C`` at the target for any camera mounting ``sigma_CB``.  The module variable ``opNavMnvrVec`` holds
+the body frame axis, while ``eHat180_C`` holds the fallback axis, in camera frame components, used when the target
+is nearly opposite ``alignAxis_C``.
+
+Saved Heading
+-------------
+Each new valid image saves the target heading in inertial frame components.  While no new valid image is available,
+the saved heading is mapped back into the camera frame with the current attitude and used for guidance until
+``timeOut`` seconds have passed since the write time of the last accepted valid message; the module then switches
+to the search rate ``omega_RN_B``.  A new valid image is always used immediately.
+
+Freshness is determined by the message write timestamp: after the first valid message, only a strictly newer
+valid message replaces the saved heading.  A retained ``valid=1`` payload neither restarts the timeout nor
+changes the saved inertial heading.  With ``timeOut=0``, each new valid message is used for one update only.
+Producers must supply increasing write timestamps for new measurements; republishing an old image with a
+new write timestamp is treated as a new measurement.
 
 Message Connection Descriptions
 -------------------------------

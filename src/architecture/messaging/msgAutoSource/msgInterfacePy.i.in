@@ -44,6 +44,8 @@ from Basilisk.architecture.messaging.messagingSupport import *
 %ignore Message::Message(Message &&);
 %ignore Message::operator=(const Message &);
 %ignore Message::operator=(Message &&);
+%ignore Message::redirectTo;
+%ignore Message::getSourceHandle;
 
 %pythonappend Recorder::Recorder %{{
     from Basilisk.architecture.messaging import _msgKeepAlive
@@ -79,6 +81,10 @@ INSTANTIATE_TEMPLATES({type}, {type}Payload, {baseDir})
 %template({type}OutMsgsVector) std::vector<Message<{type}Payload>, std::allocator<Message<{type}Payload>> >;
 %template({type}OutMsgsPtrVector) std::vector<Message<{type}Payload>*, std::allocator<Message<{type}Payload>*> >;
 %template({type}InMsgsVector) std::vector<ReadFunctor<{type}Payload>, std::allocator<ReadFunctor<{type}Payload>> >;
+%pythoncode %{{
+from Basilisk.architecture.messaging import _msgKeepAlive
+_msgKeepAlive.preserveCppPointerVectorOwner({type}OutMsgsPtrVector)
+%}}
 {extraPythonContent}
 %pythoncode %{{
 if "{type}" == "EclipseMsg":

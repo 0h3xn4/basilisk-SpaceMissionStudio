@@ -24,6 +24,7 @@ import sys
 import venv
 import zipfile
 from contextlib import contextmanager
+from functools import cache
 from importlib.metadata import distributions
 from pathlib import Path
 from types import ModuleType
@@ -62,6 +63,34 @@ def _loadWheelTester():
 
 WHEEL_BUILDER = _loadWheelBuilder()
 WHEEL_TESTER = _loadWheelTester()
+
+
+@pytest.mark.parametrize("suffix", ["so", "pyd"])
+def test_grouped_opnav_wheel_delta(suffix, monkeypatch):
+    """Package grouped OpenCV bindings without accepting incomplete or mixed layouts.
+
+    :param suffix: Native extension suffix for Unix or Windows wheels.
+    :param monkeypatch: Pytest helper for reusing the unchanged source inventory.
+    """
+    # Discover the real modules once; each missing-file case uses the same tree.
+    monkeypatch.setattr(
+        WHEEL_BUILDER, "discover_cmake_include_modules",
+        cache(WHEEL_BUILDER.discover_cmake_include_modules),
+    )
+    component = WHEEL_BUILDER.COMPONENTS["opnav"]
+    base = {"Basilisk/__init__.py", "Basilisk/simulation/_simulationCoreNative." + suffix}
+    delta = {"Basilisk/_opNavNative." + suffix, "Basilisk/_load_opnav.py"}
+    for package, name in (("simulation", "camera"), ("fswAlgorithms", "centerRadiusCNN"),
+                          ("fswAlgorithms", "houghCircles"), ("fswAlgorithms", "limbFinding")):
+        delta.update({f"Basilisk/{package}/{name}.py", f"Basilisk/{package}/_{name}.py"})
+    assert WHEEL_BUILDER.validate_delta(base, base | delta, component) == sorted(delta)
+    for required in delta:
+        with pytest.raises(ValueError):
+            WHEEL_BUILDER.validate_delta(base, base | (delta - {required}), component)
+    with pytest.raises(ValueError, match="unexpected"):
+        WHEEL_BUILDER.validate_delta(base, base | delta | {"Basilisk/simulation/_camera." + suffix}, component)
+    with pytest.raises(ValueError, match="Base wheel"):
+        WHEEL_BUILDER.validate_delta(base | {"Basilisk/_load_opnav.py"}, base | delta, component)
 
 
 def _buildInfoData(opNavEnabled, *, schemaVersion=4, diagnostics=None):

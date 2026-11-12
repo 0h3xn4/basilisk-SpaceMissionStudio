@@ -26,13 +26,14 @@
 #include "architecture/_GeneralModuleFiles/sys_model.h"
 #include "architecture/messaging/messaging.h"
 #include "architecture/msgPayloadDefC/CModuleTemplateMsgPayload.h"
+#include "architecture/msgPayloadDefCpp/JointArrayStateMsgPayload.h"
 
-class DerivedSysModel : public SysModel {};
+class DerivedSysModel : public SysModel
+{};
 
 namespace {
 
-void
-expectMessagePointersReferenceOwnStorage(Message<CModuleTemplateMsgPayload>& message)
+void expectMessagePointersReferenceOwnStorage(Message<CModuleTemplateMsgPayload>& message)
 {
     messagePointerData* pointers = message.GetPointers();
     EXPECT_EQ(reinterpret_cast<uintptr_t>(pointers->header), message.getHeaderAddress());
@@ -115,6 +116,80 @@ TEST(MessagingPointerContract, MessageCopiesAndMovesRebindPointerState)
     expectMessagePointersReferenceOwnStorage(messages.front());
 }
 
+/** @brief Copies and moves of a redirected output take independent payload snapshots. */
+TEST(MessagingPointerContract, RedirectedMessageCopiesAndMovesOwnTheirStorage)
+{
+    Message<CModuleTemplateMsgPayload> gateway;
+    Message<CModuleTemplateMsgPayload> output;
+    output.redirectTo(gateway);
+    CModuleTemplateMsgPayload payload = {};
+    payload.dataVector[0] = 42.0;      // [units]
+    constexpr uint64_t timestamp = 10; // [ns]
+    output.write(&payload, 7, timestamp);
+
+    Message<CModuleTemplateMsgPayload> copied(output);
+    Message<CModuleTemplateMsgPayload> moved(std::move(output));
+    Message<CModuleTemplateMsgPayload> copyAssigned;
+    Message<CModuleTemplateMsgPayload> moveAssigned;
+    copyAssigned.redirectTo(gateway);
+    moveAssigned.redirectTo(gateway);
+    auto* heldPointers = copyAssigned.GetPointers();
+    copyAssigned = output;
+    moveAssigned = std::move(output);
+
+    for (auto* snapshot : { &copied, &moved, &copyAssigned, &moveAssigned }) {
+        expectMessagePointersReferenceOwnStorage(*snapshot);
+        EXPECT_NE(snapshot->getPayloadAddress(), gateway.getPayloadAddress());
+        auto reader = snapshot->addSubscriber();
+        EXPECT_DOUBLE_EQ(reader().dataVector[0], 42.0);
+        EXPECT_EQ(reader.timeWritten(), timestamp);
+        EXPECT_EQ(reader.moduleID(), 7);
+        payload.dataVector[0] = 99.0; // [units]
+        snapshot->write(&payload, 8, timestamp);
+        EXPECT_DOUBLE_EQ(reader().dataVector[0], 99.0);
+        EXPECT_DOUBLE_EQ(gateway.addSubscriber()().dataVector[0], 42.0);
+    }
+    EXPECT_EQ(reinterpret_cast<uintptr_t>(heldPointers->payload), copyAssigned.getPayloadAddress());
+}
+
+/** @brief Moving a redirected vector payload must not consume the gateway's data. */
+TEST(MessagingPointerContract, RedirectedMessageMovesPreserveGatewayVectors)
+{
+    Message<JointArrayStateMsgPayload> gateway;
+    Message<JointArrayStateMsgPayload> output;
+    JointArrayStateMsgPayload payload;
+    payload.states = { 1.0, 2.0 };     // [-]
+    payload.stateDots = { 3.0, 4.0 };  // [-]
+    payload.stateDDots = { 5.0, 6.0 }; // [-]
+    constexpr uint64_t timestamp = 10; // [ns]
+    gateway.write(&payload, 7, timestamp);
+    output.redirectTo(gateway);
+    auto gatewayReader = gateway.addSubscriber();
+
+    Message<JointArrayStateMsgPayload> constructed(std::move(output));
+    Message<JointArrayStateMsgPayload> assigned;
+    assigned.redirectTo(gateway);
+    assigned = std::move(output);
+    for (auto* snapshot : { &constructed, &assigned }) {
+        auto reader = snapshot->addSubscriber();
+        EXPECT_NE(snapshot->getPayloadAddress(), gateway.getPayloadAddress());
+        EXPECT_EQ(reader().states, payload.states);
+        EXPECT_EQ(reader().stateDots, payload.stateDots);
+        EXPECT_EQ(reader().stateDDots, payload.stateDDots);
+        EXPECT_EQ(reader.timeWritten(), timestamp);
+        EXPECT_EQ(reader.moduleID(), 7);
+        JointArrayStateMsgPayload empty;
+        snapshot->write(&empty, 8, timestamp);
+    }
+    EXPECT_EQ(gatewayReader().states, payload.states);
+    EXPECT_EQ(gatewayReader().stateDots, payload.stateDots);
+    EXPECT_EQ(gatewayReader().stateDDots, payload.stateDDots);
+    EXPECT_EQ(gatewayReader.timeWritten(), timestamp);
+    EXPECT_EQ(gatewayReader.moduleID(), 7);
+    EXPECT_TRUE(gatewayReader.isWritten());
+    EXPECT_EQ(output.getPayloadAddress(), gateway.getPayloadAddress());
+}
+
 TEST(RecorderCopyContract, SysModelDerivedTypesAreNotCopyable)
 {
     static_assert(!std::is_copy_constructible<SysModel>::value, "SysModel must not be copy constructible.");
@@ -134,12 +209,12 @@ TEST(RecorderCopyContract, RecorderCopiesStateWithUniqueModuleId)
 
     Message<CModuleTemplateMsgPayload> msg;
     CModuleTemplateMsgPayload payload = {};
-    payload.dataVector[0] = 1.0;  // [units]
+    payload.dataVector[0] = 1.0; // [units]
 
-    uint64_t firstWriteTime = 0;  // [ns]
+    uint64_t firstWriteTime = 0; // [ns]
     msg.write(&payload, 0, firstWriteTime);
 
-    uint64_t recordInterval = 10;  // [ns]
+    uint64_t recordInterval = 10; // [ns]
     Recorder<CModuleTemplateMsgPayload> original(&msg, recordInterval);
     original.ModelTag = "sourceRecorder";
     original.RNGSeed = 7;
@@ -153,8 +228,8 @@ TEST(RecorderCopyContract, RecorderCopiesStateWithUniqueModuleId)
     ASSERT_EQ(copied.record().size(), 1U);
     EXPECT_DOUBLE_EQ(copied.record()[0].dataVector[0], 1.0);
 
-    payload.dataVector[0] = 2.0;  // [units]
-    uint64_t secondWriteTime = 10;  // [ns]
+    payload.dataVector[0] = 2.0;   // [units]
+    uint64_t secondWriteTime = 10; // [ns]
     msg.write(&payload, 0, secondWriteTime);
 
     original.UpdateState(secondWriteTime);
@@ -170,12 +245,12 @@ TEST(RecorderCopyContract, RecorderAssignmentKeepsTargetModuleId)
 {
     Message<CModuleTemplateMsgPayload> msg;
     CModuleTemplateMsgPayload payload = {};
-    payload.dataVector[0] = 3.0;  // [units]
+    payload.dataVector[0] = 3.0; // [units]
 
-    uint64_t firstWriteTime = 0;  // [ns]
+    uint64_t firstWriteTime = 0; // [ns]
     msg.write(&payload, 0, firstWriteTime);
 
-    uint64_t recordInterval = 10;  // [ns]
+    uint64_t recordInterval = 10; // [ns]
     Recorder<CModuleTemplateMsgPayload> original(&msg, recordInterval);
     original.UpdateState(firstWriteTime);
 

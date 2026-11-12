@@ -24,6 +24,133 @@
 
 
 %include "stdint.i"
+%include "architecture/messaging/pythonSourceOwner.ih"
+
+// Capture the owning proxy only for instance methods, including member getters.
+// The shared local also exists for free/static Message-returning functions, where
+// it stays null. This avoids treating their first argument as an owning instance.
+%typemap(check) SWIGTYPE *self (PyObject *_global_bskMessageParent = nullptr) {
+    _global_bskMessageParent = $self;
+    (void)_global_bskMessageParent;
+}
+
+%fragment("bsk_message_parent", "header") %{
+// Borrowed MuJoCo and configuration proxies retain their native storage owner
+// through this chain. Return an owned reference to its terminal Python owner.
+static PyObject* _bsk_message_storage_owner(PyObject* parent) {
+    PyObject* owner = PyObject_GetAttrString(parent, "_swig_bsk_owner");
+    if (!owner) {
+        if (!PyErr_ExceptionMatches(PyExc_AttributeError)) return nullptr;
+        PyErr_Clear();
+        Py_INCREF(parent);
+        return parent;
+    }
+    if (Py_EnterRecursiveCall(" while resolving a message storage owner")) {
+        Py_DECREF(owner);
+        return nullptr;
+    }
+    PyObject* result = _bsk_message_storage_owner(owner);
+    Py_LeaveRecursiveCall();
+    Py_DECREF(owner);
+    return result;
+}
+
+// Flatten borrowed container views to their actual owner. A stand-alone pointer
+// vector does not own its elements and must not masquerade as their owner.
+static int _bsk_remember_message_parent(PyObject* proxy, PyObject* parent) {
+    PyObject* owner = _bsk_message_storage_owner(parent);
+    if (!owner) return -1;
+    PyObject* reference = PyObject_GetAttrString(owner, "_bskMessageOwner");
+    if (!reference) {
+        if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
+            Py_DECREF(owner);
+            return -1;
+        }
+        PyErr_Clear();
+        PyObject* pointerVector = PyObject_GetAttrString(owner, "_bskPointerVector");
+        if (pointerVector) {
+            int isPointerVector = PyObject_IsTrue(pointerVector);
+            Py_DECREF(pointerVector);
+            if (isPointerVector != 0) {
+                Py_DECREF(owner);
+                return isPointerVector < 0 ? -1 : 0;
+            }
+        } else {
+            if (!PyErr_ExceptionMatches(PyExc_AttributeError)) {
+                Py_DECREF(owner);
+                return -1;
+            }
+            PyErr_Clear();
+        }
+        reference = PyWeakref_NewRef(owner, nullptr);
+    }
+    Py_DECREF(owner);
+    if (!reference) return -1;
+    PyObject* name = PyUnicode_FromString("_bskMessageOwner");
+    int status = name ? PyObject_GenericSetAttr(proxy, name, reference) : -1;
+    Py_XDECREF(name);
+    Py_DECREF(reference);
+    return status;
+}
+%}
+
+%typemap(out, fragment="bsk_message_parent") Message * (PyObject *_global_bskMessageParent = nullptr) {
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr($1), $descriptor, $owner | %newpointer_flags);
+    if ($result && $1 && !$owner && _global_bskMessageParent) {
+        if (_bsk_remember_message_parent($result, _global_bskMessageParent) < 0) {
+            Py_CLEAR($result);
+            SWIG_fail;
+        }
+    }
+}
+
+%typemap(out) Message & = Message *;
+%typemap(out) const Message & = Message *;
+
+// Only borrowed member vectors have an enclosing storage owner. Copies and
+// slices own a new array but not its pointees, so do not inherit that owner.
+%typemap(out, fragment="bsk_message_parent") std::vector * (PyObject *_global_bskMessageParent = nullptr) {
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr($1), $descriptor, $owner | %newpointer_flags);
+    if ($result && $1 && !$owner && _global_bskMessageParent) {
+        if (_bsk_remember_message_parent($result, _global_bskMessageParent) < 0) {
+            Py_CLEAR($result);
+            SWIG_fail;
+        }
+    }
+}
+
+// Preserve the original Python argument for the Message member setter below.
+%typemap(in) Message * (void *pointer = nullptr, PyObject *messageOwner_$1 = nullptr) {
+    int result = SWIG_ConvertPtr($input, &pointer, $descriptor, $disown | %convertptr_flags);
+    if (!SWIG_IsOK(result)) {
+        %argument_fail(result, "$type", $symname, $argnum);
+    }
+    $1 = reinterpret_cast<$1_ltype>(pointer);
+    messageOwner_$1 = $input;
+    (void)messageOwner_$1;  // Only member setters consume the saved Python owner.
+}
+
+// Python output assignment connects and retains a gateway; native assignment copies a value.
+%typemap(memberin, fragment="bsk_python_source_owner_init,bsk_message_parent") Message {
+    if (!$input) {
+        SWIG_exception_fail(SWIG_ValueError, "A message gateway cannot be None");
+    }
+    PyObject *storageOwner = PyObject_CallMethod(messageOwner_$input, "_redirection_owner", nullptr);
+    if (!storageOwner) {
+        SWIG_fail;
+    }
+    PyObject *enclosingOwner = _global_bskMessageParent
+        ? _bsk_message_storage_owner(_global_bskMessageParent) : nullptr;
+    if (_global_bskMessageParent && !enclosingOwner) {
+        Py_DECREF(storageOwner);
+        SWIG_fail;
+    }
+    $1.redirectTo(*$input, storageOwner,
+                  &_bsk_readfunctor_acquire, &_bsk_readfunctor_release,
+                  enclosingOwner);
+    Py_XDECREF(enclosingOwner);
+    Py_DECREF(storageOwner);
+}
 
 %define ARRAYASLIST(type, fromfunc, asfunc)
 %typemap(in) type [ANY] (type temp[$1_dim0]) {

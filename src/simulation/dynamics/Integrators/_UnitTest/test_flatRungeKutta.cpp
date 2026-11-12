@@ -173,7 +173,7 @@ class UnequalExtentDynamics final : public DynamicObject
         spec.diffusionTangent = { 3, 1 };
         spec.updateKind = StateUpdateKind::Special;
         this->state =
-          this->dynManager.registerState("unequalExtentState", spec, std::make_unique<UnequalExtentPolicy>());
+            this->dynManager.registerState("unequalExtentState", spec, std::make_unique<UnequalExtentPolicy>());
         Eigen::MatrixXd initialState(4, 1);
         initialState << 1.0, -2.0, 3.0, -4.0;
         this->state->setState(initialState);
@@ -237,7 +237,7 @@ class MixedUpdateDynamics final : public DynamicObject
         specialSpec.diffusionTangent = { 3, 1 };
         specialSpec.updateKind = StateUpdateKind::Special;
         this->specialState =
-          this->dynManager.registerState("special", specialSpec, std::make_unique<MixedUpdatePolicy>());
+            this->dynManager.registerState("special", specialSpec, std::make_unique<MixedUpdatePolicy>());
         Eigen::MatrixXd specialValue(4, 1);
         specialValue << -0.75, 1.5, -2.25, 3.0;
         this->specialState->setState(specialValue);
@@ -337,7 +337,7 @@ class RungeKuttaCandidateProbe final : public svIntegratorRungeKutta<numberStage
 {
   public:
     RungeKuttaCandidateProbe(DynamicObject* dynamics, const RKCoefficients<numberStages>& coefficients)
-      : svIntegratorRungeKutta<numberStages>(dynamics, coefficients)
+        : svIntegratorRungeKutta<numberStages>(dynamics, coefficients)
     {
     }
 
@@ -387,13 +387,13 @@ class RungeKuttaCandidateProbe final : public svIntegratorRungeKutta<numberStage
             for (const auto& descriptor : this->flatStateDescriptors()) {
                 const auto offset = static_cast<Eigen::Index>(descriptor.derivativeOffset);
                 Eigen::Map<Eigen::MatrixXd> scaledDerivative(
-                  scaled.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
+                    scaled.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
                 Eigen::Map<Eigen::MatrixXd> combinedDerivative(
-                  combined.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
+                    combined.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
                 const Eigen::Map<const Eigen::MatrixXd> stageDerivative(
-                  this->kStorage.col(static_cast<Eigen::Index>(stageIndex)).data() + offset,
-                  descriptor.derivativeRows,
-                  descriptor.derivativeColumns);
+                    this->kStorage.col(static_cast<Eigen::Index>(stageIndex)).data() + offset,
+                    descriptor.derivativeRows,
+                    descriptor.derivativeColumns);
                 scaledDerivative = stageDerivative * coefficient;
                 if (!haveTerm) {
                     combinedDerivative = scaledDerivative;
@@ -413,11 +413,11 @@ class RungeKuttaCandidateProbe final : public svIntegratorRungeKutta<numberStage
             const auto stateOffset = static_cast<Eigen::Index>(descriptor.stateOffset);
             const auto derivativeOffset = static_cast<Eigen::Index>(descriptor.derivativeOffset);
             const Eigen::Map<const Eigen::MatrixXd> base(
-              this->baseState.data() + stateOffset, descriptor.stateRows, descriptor.stateColumns);
+                this->baseState.data() + stateOffset, descriptor.stateRows, descriptor.stateColumns);
             const Eigen::Map<const Eigen::MatrixXd> combinedDrift(
-              combined.data() + derivativeOffset, descriptor.derivativeRows, descriptor.derivativeColumns);
+                combined.data() + derivativeOffset, descriptor.derivativeRows, descriptor.derivativeColumns);
             Eigen::Map<Eigen::MatrixXd> candidate(
-              output.data() + stateOffset, descriptor.stateRows, descriptor.stateColumns);
+                output.data() + stateOffset, descriptor.stateRows, descriptor.stateColumns);
             if (descriptor.updateKind == StateUpdateKind::Special) {
                 descriptor.specialUpdate->buildDriftCandidate(base, combinedDrift, timeStep, candidate);
             } else {
@@ -434,11 +434,9 @@ class RungeKuttaStorageProbe final : public svIntegratorRungeKutta<numberStages>
 {
   public:
     RungeKuttaStorageProbe(DynamicObject* dynamics, const RKCoefficients<numberStages>& coefficients)
-      : svIntegratorRungeKutta<numberStages>(dynamics, coefficients)
+        : svIntegratorRungeKutta<numberStages>(dynamics, coefficients)
     {
     }
-
-
 };
 
 template<size_t numberStages>
@@ -448,7 +446,7 @@ class AdaptiveToleranceProbe final : public svIntegratorAdaptiveRungeKutta<numbe
     AdaptiveToleranceProbe(DynamicObject* dynamics,
                            const RKAdaptiveCoefficients<numberStages>& coefficients,
                            double methodLargestOrder)
-      : svIntegratorAdaptiveRungeKutta<numberStages>(dynamics, coefficients, methodLargestOrder)
+        : svIntegratorAdaptiveRungeKutta<numberStages>(dynamics, coefficients, methodLargestOrder)
     {
     }
 
@@ -478,14 +476,7 @@ class AdaptiveToleranceProbe final : public svIntegratorAdaptiveRungeKutta<numbe
     }
 };
 
-
-
-
-
-
-
-RKCoefficients<1>
-eulerCoefficients()
+RKCoefficients<1> eulerCoefficients()
 {
     RKCoefficients<1> coefficients;
     coefficients.aMatrix = { { { { 0.0 } } } };
@@ -494,8 +485,7 @@ eulerCoefficients()
     return coefficients;
 }
 
-RKCoefficients<4>
-rk4Coefficients()
+RKCoefficients<4> rk4Coefficients()
 {
     RKCoefficients<4> coefficients;
     coefficients.aMatrix = { { { { 0.0, 0.0, 0.0, 0.0 } },
@@ -507,8 +497,7 @@ rk4Coefficients()
     return coefficients;
 }
 
-RKAdaptiveCoefficients<4>
-bogackiShampineCoefficients()
+RKAdaptiveCoefficients<4> bogackiShampineCoefficients()
 {
     RKAdaptiveCoefficients<4> coefficients;
     coefficients.aMatrix = { { { { 0.0, 0.0, 0.0, 0.0 } },
@@ -521,8 +510,7 @@ bogackiShampineCoefficients()
     return coefficients;
 }
 
-RKAdaptiveCoefficients<1>
-unequalEmbeddedEulerCoefficients()
+RKAdaptiveCoefficients<1> unequalEmbeddedEulerCoefficients()
 {
     RKAdaptiveCoefficients<1> coefficients;
     coefficients.aMatrix = { { { { 0.0 } } } };
@@ -532,16 +520,14 @@ unequalEmbeddedEulerCoefficients()
     return coefficients;
 }
 
-uint64_t
-doubleBits(double value)
+uint64_t doubleBits(double value)
 {
     uint64_t bits = 0;
     std::memcpy(&bits, &value, sizeof(bits));
     return bits;
 }
 
-void
-expectStateBitsEqual(const TestDynamics& first, const TestDynamics& second)
+void expectStateBitsEqual(const TestDynamics& first, const TestDynamics& second)
 {
     const auto firstMatrix = first.matrixState->stateView();
     const auto secondMatrix = second.matrixState->stateView();
@@ -558,8 +544,7 @@ expectStateBitsEqual(const TestDynamics& first, const TestDynamics& second)
     }
 }
 
-void
-configureTolerances(svIntegratorAdaptiveRungeKutta<4>& integrator, const TestDynamics& dynamics)
+void configureTolerances(svIntegratorAdaptiveRungeKutta<4>& integrator, const TestDynamics& dynamics)
 {
     integrator.setRelativeTolerance(2.5e-7);
     integrator.setAbsoluteTolerance(3.0e-10);
@@ -571,8 +556,11 @@ configureTolerances(svIntegratorAdaptiveRungeKutta<4>& integrator, const TestDyn
 
 } // namespace
 
-void*
-operator new(std::size_t size)
+// Preserve the replacement allocation boundary for GCC's allocation-pair diagnostics.
+#if defined(__GNUC__) && !defined(__clang__)
+__attribute__((noinline))
+#endif
+void* operator new(std::size_t size)
 {
     allocationCount.fetch_add(1, std::memory_order_relaxed);
     if (void* memory = std::malloc(size)) {
@@ -581,34 +569,33 @@ operator new(std::size_t size)
     throw std::bad_alloc();
 }
 
-void*
-operator new[](std::size_t size)
+void* operator new[](std::size_t size)
 {
     return ::operator new(size);
 }
 
-void
-operator delete(void* memory) noexcept
+// Keep GCC from diagnosing the malloc-backed replacement pair as mismatched after inlining.
+#if defined(__GNUC__) && !defined(__clang__)
+__attribute__((noinline))
+#endif
+void operator delete(void* memory) noexcept
 {
     std::free(memory);
 }
 
-void
-operator delete[](void* memory) noexcept
+void operator delete[](void* memory) noexcept
 {
-    std::free(memory);
+    ::operator delete(memory);
 }
 
-void
-operator delete(void* memory, std::size_t) noexcept
+void operator delete(void* memory, std::size_t) noexcept
 {
-    std::free(memory);
+    ::operator delete(memory);
 }
 
-void
-operator delete[](void* memory, std::size_t) noexcept
+void operator delete[](void* memory, std::size_t) noexcept
 {
-    std::free(memory);
+    ::operator delete(memory);
 }
 
 TEST(FlatRungeKutta, FixedStepExceptionRestoresAcceptedBase)
@@ -671,8 +658,8 @@ TEST(FlatRungeKutta, NativeConstructorsRejectNonfiniteTableausAndOrder)
     adaptiveCoefficients.bStarArray = { { 0.0 } };
     EXPECT_THROW((svIntegratorAdaptiveRungeKutta<1>(&dynamics, adaptiveCoefficients, 0.0)), std::invalid_argument);
     EXPECT_THROW(
-      (svIntegratorAdaptiveRungeKutta<1>(&dynamics, adaptiveCoefficients, std::numeric_limits<double>::infinity())),
-      std::invalid_argument);
+        (svIntegratorAdaptiveRungeKutta<1>(&dynamics, adaptiveCoefficients, std::numeric_limits<double>::infinity())),
+        std::invalid_argument);
 
     RKCoefficients<2> implicitCoefficients;
     implicitCoefficients.aMatrix = { { { { 0.0, 0.25 } }, { { 1.0, 0.0 } } } };
@@ -1026,7 +1013,7 @@ TEST(FlatRungeKutta, ObjectSpecificToleranceOverridesControlStepAcceptance)
     strictIntegrator.setRelativeTolerance(strictRelative);
     strictIntegrator.setAbsoluteTolerance(strictAbsolute);
 
-    for (const std::string& stateName : { "matrixStateWithANameLongEnoughToAllocate", "vectorState" }) {
+    for (const std::string stateName : { "matrixStateWithANameLongEnoughToAllocate", "vectorState" }) {
         overrideIntegrator.setRelativeTolerance(overrideDynamics, stateName, looseRelative);
         overrideIntegrator.setAbsoluteTolerance(overrideDynamics, stateName, looseAbsolute);
     }
@@ -1058,7 +1045,6 @@ TEST(FlatRungeKutta, BindingKeepsStateAndDerivativeExtentsIndependent)
     }
     EXPECT_EQ(dynamics.state->derivativeView().size(), 3);
 }
-
 
 TEST(FlatRungeKutta, FinalizationAndRepeatedDeclarationsPreserveStorage)
 {
@@ -1105,7 +1091,7 @@ TEST(FlatRungeKutta, SurvivingDynamicsAdvanceAfterSynchronizedPeerDestruction)
             for (auto* object : { primary.get(), secondary.get() }) {
                 if (adaptive) {
                     object->setIntegrator(
-                      new svIntegratorAdaptiveRungeKutta<4>(object, bogackiShampineCoefficients(), 3.0));
+                        new svIntegratorAdaptiveRungeKutta<4>(object, bogackiShampineCoefficients(), 3.0));
                 } else {
                     object->setIntegrator(new svIntegratorRungeKutta<4>(object, rk4Coefficients()));
                 }
@@ -1164,8 +1150,7 @@ TEST(FlatRungeKutta, AdaptivePeerDestructionMatchesFreshBinding)
         referencePrimary.vectorState->setState(primary.vectorState->stateView());
         referenceSurvivor.matrixState->setState(survivor.matrixState->stateView());
         referenceSurvivor.vectorState->setState(survivor.vectorState->stateView());
-        auto* reference =
-          new AdaptiveToleranceProbe<4>(&referencePrimary, bogackiShampineCoefficients(), 3.0);
+        auto* reference = new AdaptiveToleranceProbe<4>(&referencePrimary, bogackiShampineCoefficients(), 3.0);
         referencePrimary.setIntegrator(reference);
         referenceSurvivor.setIntegrator(new svIntegratorRungeKutta<4>(&referenceSurvivor, rk4Coefficients()));
         referencePrimary.syncDynamicsIntegration(&referenceSurvivor);

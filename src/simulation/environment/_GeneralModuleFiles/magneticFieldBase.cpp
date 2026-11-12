@@ -22,6 +22,8 @@
 #include "architecture/utilities/linearAlgebra.h"
 #include "architecture/utilities/macroDefinitions.h"
 #include "architecture/utilities/simDefinitions.h"
+#include "architecture/utilities/stateExtrapolation.h"
+#include "architecture/utilities/utcTime.h"
 
 /*! This method initializes some basic parameters for the module.
 
@@ -44,9 +46,8 @@ MagneticFieldBase::MagneticFieldBase()
     this->epochDateTime.tm_mday = EPOCH_DAY;
     this->epochDateTime.tm_hour = EPOCH_HOUR;
     this->epochDateTime.tm_min = EPOCH_MIN;
-    this->epochDateTime.tm_sec = (int) round(EPOCH_SEC);
+    this->epochDateTime.tm_sec = (int)round(EPOCH_SEC);
     this->epochDateTime.tm_isdst = -1;
-
 
     //! - zero the planet message, and set the DCM to an identity matrix
     this->planetState = planetPosInMsg.zeroMsgPayload;
@@ -64,7 +65,8 @@ MagneticFieldBase::~MagneticFieldBase() = default;
 
  @param tmpScMsg A spacecraft state message name.
  */
-void MagneticFieldBase::addSpacecraftToModel(Message<SCStatesMsgPayload> *tmpScMsg){
+void MagneticFieldBase::addSpacecraftToModel(Message<SCStatesMsgPayload>* tmpScMsg)
+{
 
     /* add input message */
     this->scStateInMsgs.push_back(tmpScMsg->addSubscriber());
@@ -73,18 +75,20 @@ void MagneticFieldBase::addSpacecraftToModel(Message<SCStatesMsgPayload> *tmpScM
     addOwnedMessage(this->ownedEnvOutMsgs, this->envOutMsgs);
 
     /* create buffer message copies*/
-    MagneticFieldMsgPayload msgMagBuffer;
+    MagneticFieldMsgPayload msgMagBuffer{};
     this->magFieldOutBuffer.push_back(msgMagBuffer);
 
     return;
 }
-
 
 /*! This method is used to reset the module.
 
  */
 void MagneticFieldBase::Reset(uint64_t CurrentSimNanos)
 {
+    this->previousUpdateNanos = CurrentSimNanos;
+    this->scStateExtrapolation.reset();
+
     //! - call the custom environment module reset method
     customReset(CurrentSimNanos);
 
@@ -98,14 +102,13 @@ void MagneticFieldBase::Reset(uint64_t CurrentSimNanos)
         this->epochDateTime.tm_mday = epochMsg.day;
         this->epochDateTime.tm_hour = epochMsg.hours;
         this->epochDateTime.tm_min = epochMsg.minutes;
-        this->epochDateTime.tm_sec = (int) round(epochMsg.seconds);
-        mktime(&this->epochDateTime);
+        this->epochDateTime.tm_sec = (int)round(epochMsg.seconds);
+        normalizeUtcTime(&this->epochDateTime);
     } else {
         customSetEpochFromVariable();
     }
     return;
 }
-
 
 /*! Custom Reset() method.  This allows a child class to add additional functionality to the Reset() method
 
@@ -130,7 +133,7 @@ void MagneticFieldBase::customSetEpochFromVariable()
  */
 void MagneticFieldBase::writeMessages(uint64_t CurrentClock)
 {
-    for (long unsigned int c=0; c<this->envOutMsgs.size(); c++) {
+    for (long unsigned int c = 0; c < this->envOutMsgs.size(); c++) {
         this->envOutMsgs.at(c)->write(&this->magFieldOutBuffer.at(c), this->moduleID, CurrentClock);
     }
 
@@ -148,11 +151,35 @@ void MagneticFieldBase::customWriteMessages(uint64_t CurrentClock [[maybe_unused
     return;
 }
 
-/*! This method is used to read the incoming command message and set the
- associated spacecraft positions for computing the atmosphere.
-
+/*! Enables or disables the extrapolation of the spacecraft state to the middle of the interval the next spacecraft
+ update integrates, see extrapolateScStateToStepMidpoint(). It is disabled by default, in which case the spacecraft
+ state message is used as written. The extrapolation assumes that the module and the spacecraft run at the same task
+ rate with a constant spacecraft step; a warning is logged once if a spacecraft message was not written at the
+ previous module update, which is typically a task rate mismatch. A mismatch is not always detectable, but a message
+ that is not the output of the previous module update is never extrapolated.
+ @param enable [-] true to extrapolate the spacecraft state to the middle of the step
  */
-bool MagneticFieldBase::readMessages()
+void MagneticFieldBase::setExtrapolateScStateToStepMidpoint(bool enable)
+{
+    this->scStateExtrapolation.setEnabled(enable);
+}
+
+/*! Returns whether the spacecraft state extrapolation is enabled.
+ @return [-] true if the spacecraft state is extrapolated
+ */
+bool MagneticFieldBase::getExtrapolateScStateToStepMidpoint() const
+{
+    return this->scStateExtrapolation.isEnabled();
+}
+
+/*! This method is used to read the incoming command message and set the
+ associated spacecraft positions for computing the magnetic field. If enabled with
+ setExtrapolateScStateToStepMidpoint(), the spacecraft state is extrapolated to the middle of the interval the next
+ spacecraft update integrates, see extrapolateScStateToStepMidpoint().
+ @param CurrentSimNanos [ns] current simulation time
+ @return true if all required messages were read
+ */
+bool MagneticFieldBase::readMessages(uint64_t CurrentSimNanos)
 {
     SCStatesMsgPayload scMsg;
 
@@ -160,12 +187,14 @@ bool MagneticFieldBase::readMessages()
 
     //! - read in the spacecraft state messages
     bool scRead;
-    if(this->scStateInMsgs.size() > 0)
-    {
+    if (this->scStateInMsgs.size() > 0) {
         scRead = true;
-        for (long unsigned int c=0; c<this->scStateInMsgs.size(); c++) {
+        this->scStateExtrapolation.prepareFromMessages(
+            CurrentSimNanos, this->previousUpdateNanos, this->scStateInMsgs, this->bskLogger);
+        for (long unsigned int c = 0; c < this->scStateInMsgs.size(); c++) {
             bool tmpScRead;
-            scMsg = this->scStateInMsgs.at(c)();
+            scMsg = this->scStateExtrapolation.applyMessage(
+                this->scStateInMsgs.at(c), CurrentSimNanos, this->previousUpdateNanos);
             tmpScRead = this->scStateInMsgs.at(c).isWritten();
             scRead = scRead && tmpScRead;
 
@@ -176,20 +205,20 @@ bool MagneticFieldBase::readMessages()
         scRead = false;
     }
 
-    //! - Read in the optional planet message.  if no planet message is set, then a zero planet position, velocity and orientation is assumed
+    //! - Read in the optional planet message.  if no planet message is set, then a zero planet position, velocity and
+    //! orientation is assumed
     bool planetRead = true;
-    if(this->planetPosInMsg.isLinked())
-    {
-        this->planetState = this->planetPosInMsg();
+    if (this->planetPosInMsg.isLinked()) {
+        this->planetState = this->scStateExtrapolation.applyPlanetMessage(
+            this->planetPosInMsg, CurrentSimNanos, this->previousUpdateNanos);
         planetRead = this->planetPosInMsg.isWritten();
     }
 
     //! - call the custom method to perform additional input reading
     bool customRead = customReadMessages();
 
-    return(planetRead && scRead && customRead);
+    return (planetRead && scRead && customRead);
 }
-
 
 /*! Custom output input reading method.  This allows a child class to add additional functionality.
 
@@ -210,7 +239,7 @@ void MagneticFieldBase::updateLocalMagField(double currentTime)
     //! - loop over all the spacecraft
     std::vector<MagneticFieldMsgPayload>::iterator magMsgIt;
     magMsgIt = this->magFieldOutBuffer.begin();
-    for(it = scStates.begin(); it != scStates.end(); it++, atmoInd++, magMsgIt++){
+    for (it = scStates.begin(); it != scStates.end(); it++, atmoInd++, magMsgIt++) {
         //! - Computes planet relative state vector
         this->updateRelativePos(&(this->planetState), &(*it));
 
@@ -218,9 +247,9 @@ void MagneticFieldBase::updateLocalMagField(double currentTime)
         *magMsgIt = this->envOutMsgs[0]->zeroMsgPayload;
 
         //! - check if radius is in permissible range
-        if(this->orbitRadius > this->envMinReach &&
-           (this->orbitRadius < this->envMaxReach || this->envMaxReach < 0)) {
-            //! - compute the local magnetic field.  The evaluateMageticFieldModel() method must be implement for each model
+        if (this->orbitRadius > this->envMinReach && (this->orbitRadius < this->envMaxReach || this->envMaxReach < 0)) {
+            //! - compute the local magnetic field.  The evaluateMageticFieldModel() method must be implement for each
+            //! model
             evaluateMagneticFieldModel(&(*magMsgIt), currentTime);
         }
     }
@@ -233,7 +262,7 @@ void MagneticFieldBase::updateLocalMagField(double currentTime)
  @param scState A spacecraft states message struct.
 
  */
-void MagneticFieldBase::updateRelativePos(SpicePlanetStateMsgPayload *planetState, SCStatesMsgPayload *scState)
+void MagneticFieldBase::updateRelativePos(SpicePlanetStateMsgPayload* planetState, SCStatesMsgPayload* scState)
 {
     //! - compute spacecraft position vector relative to planet
     v3Subtract(scState->r_BN_N, planetState->PositionVector, this->r_BP_N.data());
@@ -255,18 +284,21 @@ void MagneticFieldBase::UpdateState(uint64_t CurrentSimNanos)
 {
     //! - clear the output buffer
     std::vector<MagneticFieldMsgPayload>::iterator it;
-    for(it = this->magFieldOutBuffer.begin(); it!= this->magFieldOutBuffer.end(); it++){
+    for (it = this->magFieldOutBuffer.begin(); it != this->magFieldOutBuffer.end(); it++) {
         memset(&(*it), 0x0, sizeof(MagneticFieldMsgPayload));
         *it = this->envOutMsgs[0]->zeroMsgPayload;
     }
     //! - update local neutral density information
-    if(this->readMessages())
-    {
-        updateLocalMagField(static_cast<double>(CurrentSimNanos) * NANO2SEC);
+    if (this->readMessages(CurrentSimNanos)) {
+        // time dependent models are evaluated at the epoch of the (possibly extrapolated) geometry
+        const uint64_t epochNanos =
+            this->scStateExtrapolation.evaluationEpochNanos(CurrentSimNanos, this->previousUpdateNanos); // [ns]
+        updateLocalMagField(static_cast<double>(epochNanos) * NANO2SEC);
     }
 
     //! - write out neutral density message
     this->writeMessages(CurrentSimNanos);
+    this->previousUpdateNanos = CurrentSimNanos;
 
     return;
 }

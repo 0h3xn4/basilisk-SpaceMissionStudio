@@ -33,8 +33,10 @@
 %import "simulation/dynamics/_GeneralModuleFiles/gravityModel.i"
 
 %include "std_vector.i"
-%template() std::vector<double>;
-%template() std::vector<std::vector<double>>;
+// Match swig_common_model.i's template arguments, including the inner allocator,
+// so SWIG uses the same type descriptors for DoubleVector and MultiArray.
+%template() std::vector<double, std::allocator<double>>;
+%template() std::vector<std::vector<double, std::allocator<double>>>;
 
 %include <std_shared_ptr.i>
 %shared_ptr(SphericalHarmonicsGravityModel)
@@ -56,7 +58,10 @@
 %extend SphericalHarmonicsGravityModel {
    %pythoncode %{
       def loadFromFile(self, fileName: str, maxDeg: int):
-          """Loads the C and S coefficients from a file."""
+          """Loads the C and S coefficients from a file.
+
+          Also sets ``radEquator`` and ``muBody`` from the first row of the file.
+          """
           from Basilisk.simulation.gravityEffector import loadGravFromFile
           loadGravFromFile(fileName, self, maxDeg)
           return self

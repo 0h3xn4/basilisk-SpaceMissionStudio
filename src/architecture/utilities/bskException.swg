@@ -1,9 +1,12 @@
+// Shared binding policy must precede container declarations in every module.
+%include "architecture/_GeneralModuleFiles/swig_python_iterators.ih"
+
 %include "exception.i"
 
 %{
 #include "architecture/utilities/bskLogging.h"
 
-PyObject* get_PyExc_BasiliskError() {
+static PyObject* get_PyExc_BasiliskError() {
     PyObject* bskLogging = PyImport_ImportModule("Basilisk.architecture.bskLogging");
 
     PyObject* PyExc_BasiliskError = PyObject_GetAttrString(bskLogging, "BasiliskError");

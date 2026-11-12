@@ -35,6 +35,7 @@ Orbital Simulations
    Including Custom Gravitational Bodies <scenarioCustomGravBody>
    Near-Halo Orbit Simulation <scenarioHaloOrbit>
    Showing Ground Tracks on a Planet <scenarioGroundTracks>
+   Initializing Orbits from OMM Data <scenarioOrbitFromOmm>
 
 
 Attitude Simulations
@@ -152,6 +153,14 @@ Planet Albedo
 Spacecraft Sensors
 ------------------
 
+Instrument Cameras
+^^^^^^^^^^^^^^^^^^
+
+.. toctree::
+   :maxdepth: 1
+
+   Independent Moving Camera Platforms <scenarioMovingCamera>
+
 Coarse Sun Sensors
 ^^^^^^^^^^^^^^^^^^
 
@@ -225,8 +234,12 @@ It's recommended to study the first 6 scenarios in order:
   Pointing with Reaction Wheels in MuJoCo <mujoco/scenarioAttitudeFeedbackRWMuJoCo>
   Translation-only formation flying under differential drag <mujoco/scenarioFormationFlyingWithDrag>
   Satellite Drag with Stochastic (Random) Density using MuJoCo <mujoco/scenarioStochasticDrag>
-  Spacecraft Control with Thruster Arms using MuJoCo <mujoco/scenarioThrArmControl>
+  Spacecraft Regulation Control with Thruster Arms using MuJoCo <mujoco/scenarioThrArmControl>
+  Spacecraft Tracking Control with Thruster Arms using MuJoCo <mujoco/scenarioThrArmTracking>
   Combining MuJoCo Scenes and a Spacecraft in Vizard <mujoco/scenarioMJSceneVizard>
+  Hinged Rigid Body Dynamics using MuJoCo <mujoco/scenarioHingedRigidBodyMuJoCo>
+  Flexible Multi-Segment Solar Panel using MuJoCo <mujoco/scenarioFlexiblePanelMuJoCo>
+  Reaction Wheel Momentum Dumping using MuJoCo <mujoco/scenarioMomentumDumpingMuJoCo>
 
 Support Files
 ^^^^^^^^^^^^^

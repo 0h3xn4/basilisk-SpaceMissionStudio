@@ -70,8 +70,14 @@ the surrounding work is already touching that area.
 7. **PR metadata requirements**
    - Follow `docs/source/Support/bskReleaseNotesSnippets/README.md` for when a
      release-note snippet is required and how snippet files should be formatted.
-   - Update `docs/source/Support/bskKnownIssues.rst` when a PR fixes, changes, or
-     documents a known user-visible issue or workaround.
+   - Follow `docs/source/Support/bskKnownIssuesSnippets/README.md` when a PR
+     fixes, changes, or documents an issue or workaround affecting a tagged
+     release. Issues introduced and fixed within the same beta cycle do not
+     require a known-issue entry if no tagged release was affected. Document
+     unresolved issues that will ship in the next tagged release before tagging.
+     Update an existing pending entry when revising the same issue;
+     otherwise add a snippet. Preserve published history except to correct
+     errors, and describe later changes in a new snippet.
 
 8. **SysModel documentation requirement**
    - Every new SysModel must include a corresponding `.rst` documentation file.
@@ -83,7 +89,8 @@ the surrounding work is already touching that area.
 9. **Basilisk Module Creation**
     - Ensure new Basilisk modules have a unit test
     - Unit test method needs to have documentation strings
-    - Ensure the copyright statement is in new files using the current year
+    - Ensure the copyright statement is in new files using the current year.
+      Release-note and known-issue snippets do not require copyright statements.
 
 
 10. **Basilisk Example Files**

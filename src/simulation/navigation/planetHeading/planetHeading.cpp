@@ -21,11 +21,7 @@
 #include "architecture/utilities/avsEigenSupport.h"
 
 /*! Customer constructor just sets the spacecraftSTateInMsg by default*/
-PlanetHeading::PlanetHeading()
-{
-
-}
-
+PlanetHeading::PlanetHeading() {}
 
 /*! This method reads messages, calculates the planet heading, and writes out the heading message
 
@@ -45,7 +41,8 @@ void PlanetHeading::UpdateState(uint64_t CurrentSimNanos)
 /*! Read input messages and save data to member variables
 
  */
-void PlanetHeading::readMessages() {
+void PlanetHeading::readMessages()
+{
     SpicePlanetStateMsgPayload planetPositionMsgData;
     /*! - read in planet state message (required) */
     planetPositionMsgData = this->planetPositionInMsg();
@@ -61,7 +58,8 @@ void PlanetHeading::readMessages() {
 /*! This method is used to write out the planet heading message
 
  */
-void PlanetHeading::writeMessages(uint64_t CurrentSimNanos) {
+void PlanetHeading::writeMessages(uint64_t CurrentSimNanos)
+{
     BodyHeadingMsgPayload planetHeadingOutMsgData;
     planetHeadingOutMsgData = this->planetHeadingOutMsg.zeroMsgPayload;
     eigenVector3d2CArray(this->rHat_PB_B, planetHeadingOutMsgData.rHat_XB_B);

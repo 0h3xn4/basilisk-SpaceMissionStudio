@@ -23,19 +23,18 @@
 /** @brief Method workspace allocated after state binding. */
 struct svStochasticIntegratorEulerHeun::FlatStorage
 {
-    Eigen::VectorXd firstDrift; ///< Drift evaluated at the step-entry state.
+    Eigen::VectorXd firstDrift;      ///< Drift evaluated at the step-entry state.
     Eigen::VectorXd firstDiffusions; ///< Packed diffusions evaluated at the step-entry state.
 };
 
 svStochasticIntegratorEulerHeun::svStochasticIntegratorEulerHeun(DynamicObject* dynIn)
-  : StochasticRKIntegratorBase(dynIn)
+    : StochasticRKIntegratorBase(dynIn)
 {
 }
 
 svStochasticIntegratorEulerHeun::~svStochasticIntegratorEulerHeun() noexcept = default;
 
-void
-svStochasticIntegratorEulerHeun::bindFlatStorage()
+void svStochasticIntegratorEulerHeun::bindFlatStorage()
 {
     auto storage = std::make_unique<FlatStorage>();
     storage->firstDrift.resize(this->stochasticPackedDerivatives().size());
@@ -43,8 +42,7 @@ svStochasticIntegratorEulerHeun::bindFlatStorage()
     this->flatStorage = std::move(storage);
 }
 
-void
-svStochasticIntegratorEulerHeun::integrateImpl(double currentTime, double timeStep)
+void svStochasticIntegratorEulerHeun::integrateImpl(double currentTime, double timeStep)
 {
     if (timeStep == 0.0) {
         return;

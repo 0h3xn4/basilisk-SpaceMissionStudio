@@ -17,8 +17,8 @@
 
  */
 #include "simulation/dynamics/DynOutput/orbElemConvert/orbElemConvert.h"
-#include <iostream>
 #include "architecture/utilities/linearAlgebra.h"
+#include <iostream>
 
 //! The constructor.  Note that you may want to overwrite the message names.
 OrbElemConvert::OrbElemConvert()
@@ -32,14 +32,13 @@ OrbElemConvert::~OrbElemConvert()
     return;
 }
 
-
 /*! This method is used to reset the module.
 
  */
 void OrbElemConvert::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
 {
-    int numInputs = 0;      //!< number of input messages connected
-    int numOutputs = 0;     //!< number of output messages connected
+    int numInputs = 0;  //!< number of input messages connected
+    int numOutputs = 0; //!< number of output messages connected
 
     numInputs += this->scStateInMsg.isLinked();
     numInputs += this->spiceStateInMsg.isLinked();
@@ -163,12 +162,9 @@ void OrbElemConvert::UpdateState(uint64_t CurrentSimNanos)
 {
     //! - Read the input message and convert it over appropriately depending on switch
     ReadInputs();
-    if(this->elemInMsg.isLinked() && inputsGood)
-    {
+    if (this->elemInMsg.isLinked() && inputsGood) {
         Elements2Cartesian();
-    }
-    else if(inputsGood)
-    {
+    } else if (inputsGood) {
         Cartesian2Elements();
     }
 

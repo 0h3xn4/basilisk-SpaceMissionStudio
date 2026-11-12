@@ -39,8 +39,7 @@
 namespace {
 using integrator_step_test::stepIntegrator;
 
-uint64_t
-doubleBits(double value)
+uint64_t doubleBits(double value)
 {
     uint64_t bits = 0;
     std::memcpy(&bits, &value, sizeof(bits));
@@ -112,7 +111,7 @@ class SideEffectDiffusionDynamics final : public DynamicObject
 {
   public:
     explicit SideEffectDiffusionDynamics(bool mutateUnboundState)
-      : mutateUnboundState(mutateUnboundState)
+        : mutateUnboundState(mutateUnboundState)
     {
         StateSpec drivenSpec;
         drivenSpec.state = { 1, 1 };
@@ -157,8 +156,7 @@ class SideEffectDiffusionDynamics final : public DynamicObject
     bool mutateUnboundState = false;
 };
 
-std::shared_ptr<PrescribedGaussianNoiseGenerator>
-prescribed(size_t noiseCount, size_t stepCount)
+std::shared_ptr<PrescribedGaussianNoiseGenerator> prescribed(size_t noiseCount, size_t stepCount)
 {
     auto generator = std::make_shared<PrescribedGaussianNoiseGenerator>();
     for (size_t step = 0; step < stepCount; ++step) {
@@ -174,8 +172,7 @@ prescribed(size_t noiseCount, size_t stepCount)
 }
 
 template<typename Integrator>
-void
-expectTopologyCasesAndFixedSeedBits()
+void expectTopologyCasesAndFixedSeedBits()
 {
     for (size_t noiseCount = 0; noiseCount <= 2; ++noiseCount) {
         TableauDynamics dynamics(noiseCount);
@@ -204,8 +201,7 @@ expectTopologyCasesAndFixedSeedBits()
 }
 
 template<typename Integrator>
-void
-expectZeroDurationAndRollback()
+void expectZeroDurationAndRollback()
 {
     TableauDynamics dynamics(2);
     Integrator integrator(&dynamics);
@@ -229,8 +225,7 @@ expectZeroDurationAndRollback()
 }
 
 template<typename Integrator>
-void
-expectNoAllocationsAfterBind()
+void expectNoAllocationsAfterBind()
 {
     TableauDynamics dynamics(2);
     Integrator integrator(&dynamics);
@@ -238,13 +233,12 @@ expectNoAllocationsAfterBind()
     stepIntegrator(integrator, 0.0, 0.0);
 
     const auto observed =
-      integrator_allocation_test::trackAllocations([&]() { stepIntegrator(integrator, 0.0, 0.125); });
+        integrator_allocation_test::trackAllocations([&]() { stepIntegrator(integrator, 0.0, 0.125); });
     EXPECT_EQ(observed.allocationCalls(), 0U);
 }
 
 template<typename Integrator>
-void
-expectDiffusionSideEffectsAreIsolated()
+void expectDiffusionSideEffectsAreIsolated()
 {
     SideEffectDiffusionDynamics reference(false);
     SideEffectDiffusionDynamics sideEffecting(true);
@@ -261,8 +255,7 @@ expectDiffusionSideEffectsAreIsolated()
 }
 
 template<template<typename> class Check>
-void
-forEachTableauIntegrator()
+void forEachTableauIntegrator()
 {
     Check<svStochasticIntegratorRS1>()();
     Check<svStochasticIntegratorRS2>()();

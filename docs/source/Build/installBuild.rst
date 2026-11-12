@@ -47,6 +47,12 @@ shown in the platform-specific installation instructions. The editable installat
 virtual environment; subsequent incremental or clean native rebuilds update the same ``dist3`` package in place and
 do not require another editable installation.
 
+Before starting build operations, ``conanfile.py`` checks the running Python version against
+``project.requires-python`` in ``pyproject.toml``. CMake checks its selected Python interpreter against
+the same range during configuration, including when invoked directly. An unsupported version stops the
+build with an error identifying the interpreter and supported range. Create or activate a virtual
+environment with a supported Python version before retrying.
+
 By default the build is for Python3 with the support for :ref:`vizInterface`
 included to enable recording data for or live-streaming to :ref:`Vizard <Vizard>`.
 
@@ -84,6 +90,11 @@ The script accepts the following options to customize this process.
       - None
       - If set, prevents Conan, CMake dependency fetching, and Cargo from accessing the network. Every selected
         dependency must already exist in the local caches; see :ref:`offlineBuild`.
+    * - ``verbose``
+      -
+      - False
+      - Shows the full Conan command, dependency details, and verbose CMake configuration messages.
+        See :ref:`buildOutput`.
     * - ``buildProject``
       - Boolean
       - True
@@ -93,6 +104,11 @@ The script accepts the following options to customize this process.
       - True
       - Builds the native GoogleTest executables and registers them with CTest. Pip and wheel builds disable this
         option because published packages do not run the native test executables.
+    * - ``exportCompileCommands``
+      - Boolean
+      - True
+      - Exports ``dist3/compile_commands.json`` with Ninja or Makefile generators for clangd and other language
+        servers. Xcode and Visual Studio do not support export. See :ref:`clangdSetup` for editor configuration.
     * - ``buildType``
       - Release, Debug
       - Release
@@ -100,7 +116,7 @@ The script accepts the following options to customize this process.
         control the build type through their interface.
     * - ``strictWarnings``
       - Boolean
-      - False
+      - True
       - Enables additional compiler diagnostics for Basilisk C and C++ sources.  See
         :ref:`strictCompilerWarnings`.
     * - ``generator``
@@ -143,6 +159,42 @@ Native test targets are also enabled by default for source builds. To omit them 
 
     python3 conanfile.py --buildTesting False
 
+Compilation database export is enabled by default with supported generators. To disable it, use::
+
+    python3 conanfile.py --exportCompileCommands False
+
+Disabling export also removes an existing ``compile_commands.json`` from the configured build directory during
+Conan generation, so clangd cannot keep reading that stale database.
+
+.. _buildOutput:
+
+Build Output
+------------
+The build script uses Conan's ``notice`` verbosity by default. Profile dumps, dependency graphs, and routine
+generator details are suppressed, while package installation notices, deprecation warnings, and errors remain
+visible. Conan still prints ``Already installed!`` notices for cached packages. CMake dependency discovery uses
+``REQUIRED QUIET`` to hide routine target declarations while retaining errors for missing required packages.
+CMake also uses ``NOTICE`` level by default, displaying a compact summary of the compilers, language tools,
+optional features, strict-warning setting, and build directory. Compiler probes, module discovery, and other
+routine configuration details are hidden. Warnings, deprecations, errors, and compiler diagnostics remain visible.
+Verbose output is off unless requested.
+
+Rust builds show a concise label for each module. Routine Cargo ``Compiling`` and ``Finished`` lines are hidden
+until a diagnostic or other unrecognized stderr output appears; the remaining output is then retained in full
+to preserve diagnostic context. Cargo manifest warnings, build-script warnings, compiler diagnostics, and failure
+status are preserved. Cargo's ``--quiet`` option is not used because it suppresses some of those warnings.
+
+To show dependency details and the full Conan command for troubleshooting, use::
+
+    python3 conanfile.py --verbose
+
+This also enables verbose CMake configuration output for that invocation; the next normal invocation returns to
+``NOTICE`` level. The script selects CMake's log level on the command line without changing its cached setting.
+``CONAN_LOG_LEVEL`` can override Conan's default verbosity, but explicit ``--verbose`` takes precedence
+over that environment variable. Neither setting suppresses compiler diagnostics. The verbosity flag also applies
+when the build script creates a missing MuJoCo package.
+For Rust modules, ``--verbose`` also passes through Cargo's full output.
+
 .. _offlineBuild:
 
 Preparing for Offline Builds
@@ -182,11 +234,11 @@ data, such as ``bskLargeData`` or ``bskExamples``, still require either network 
 
 Strict Compiler Warnings
 ------------------------
-Developers can enable additional compiler diagnostics with::
+Additional compiler diagnostics are enabled by default for Basilisk C and C++ sources. To build without the strict
+compiler warnings use the extra option::
 
-    python3 conanfile.py --buildProject True --strictWarnings True
+    python3 conanfile.py --buildProject True --strictWarnings False
 
-The option is disabled by default and does not change the warning policy of a normal Basilisk build.  When enabled,
 Clang and GCC builds check additional cases involving numeric conversions, signedness, selected shadowed local
 declarations, format strings, implicit fallthrough, unused parameters, double promotion, and other potentially unsafe
 constructs.  Intentionally unused interface parameters are marked explicitly, and intentional numeric conversions
@@ -196,12 +248,16 @@ warning level ``/W4`` and enable its size-conversion diagnostic.  Warnings remai
 
 For example, a clean MuJoCo-enabled build with the additional diagnostics is created with::
 
-    python3 conanfile.py --clean --mujoco True --strictWarnings True
+    python3 conanfile.py --clean --mujoco True
 
 The warning policy is defined in CMake so it is consistent across supported CMake generators, including Unix
 Makefiles, Ninja, and Xcode.  SWIG and Protocol Buffer generated source, Conan-provided dependencies, imported model
-implementations, and other third-party targets are not part of the Basilisk warning baseline.  Developers invoking
-CMake directly can enable the same policy with ``-DBSK_STRICT_WARNINGS=ON``.
+implementations, and other third-party targets are not part of the Basilisk warning baseline.
+
+To disable the additional diagnostics, use ``--strictWarnings False``, or ``-o "&:strictWarnings=False"`` when invoking
+Conan directly. Direct CMake builds also default to this policy and can disable it with ``-DBSK_STRICT_WARNINGS=OFF``.
+For an existing direct CMake build whose cache still contains ``OFF``, pass ``-DBSK_STRICT_WARNINGS=ON`` once to enable
+the diagnostics.
 
 .. warning::
 
@@ -239,7 +295,7 @@ For a Rust-enabled build, this produces output similar to::
       C++ ABI:        libc++ (210106, ABI 1), Itanium ABI
       C++ runtime:    system, exceptions, RTTI
       Python API:     0x03090000
-      Eigen:          3.4.0, 16-byte max alignment, NEON
+      Eigen:          5.0.1, 16-byte max alignment, NEON
       SWIG runtime:   5
       Conan profile:  Release, C++17, libc++
 

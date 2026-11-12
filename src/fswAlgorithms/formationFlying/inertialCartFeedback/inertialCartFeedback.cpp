@@ -60,7 +60,9 @@ void InertialCartFeedback::UpdateState(uint64_t CurrentSimNanos)
     const Eigen::Vector3d v_BN_N = cArray2EigenVector3d(depNav.v_BN_N);
     const Eigen::Vector3d r_RN_N = cArray2EigenVector3d(depRef.r_RN_N);
     const Eigen::Vector3d v_RN_N = cArray2EigenVector3d(depRef.v_RN_N);
-    const Eigen::Vector3d a_RN_N = cArray2EigenVector3d(depRef.a_RN_N); // total reference acceleration for the deputy, including feed-forward terms for non-natural motion if applicable
+    const Eigen::Vector3d a_RN_N = cArray2EigenVector3d(
+        depRef.a_RN_N); // total reference acceleration for the deputy, including feed-forward terms
+                        // for non-natural motion if applicable
     const Eigen::Vector3d deltaR_N = r_BN_N - r_RN_N;
     const Eigen::Vector3d deltaV_N = v_BN_N - v_RN_N;
     const double normRDeputy = r_BN_N.norm();
@@ -75,10 +77,7 @@ void InertialCartFeedback::UpdateState(uint64_t CurrentSimNanos)
     }
 
     Eigen::Vector3d forceCmd_N =
-            -this->deputyMass * aGravDeputy_N
-            +this->deputyMass * a_RN_N
-            -this->K * deltaR_N
-            -this->P * deltaV_N;
+        -this->deputyMass * aGravDeputy_N + this->deputyMass * a_RN_N - this->K * deltaR_N - this->P * deltaV_N;
 
     eigenVector3d2CArray(forceCmd_N, forceOut.forceRequestInertial);
     this->forceOutMsg.write(&forceOut, this->moduleID, CurrentSimNanos);
@@ -99,9 +98,7 @@ void InertialCartFeedback::setK(const std::vector<double>& value)
     if (value.size() != 9) {
         bskLogger.bskError("inertialCartFeedback: K must contain exactly 9 elements.");
     }
-    this->K << value[0], value[1], value[2],
-               value[3], value[4], value[5],
-               value[6], value[7], value[8];
+    this->K << value[0], value[1], value[2], value[3], value[4], value[5], value[6], value[7], value[8];
 
     if ((this->K - this->K.transpose()).norm() > 1e-12) {
         bskLogger.bskError("inertialCartFeedback: K must be symmetric positive definite.");
@@ -119,9 +116,7 @@ void InertialCartFeedback::setP(const std::vector<double>& value)
     if (value.size() != 9) {
         bskLogger.bskError("inertialCartFeedback: P must contain exactly 9 elements.");
     }
-    this->P << value[0], value[1], value[2],
-               value[3], value[4], value[5],
-               value[6], value[7], value[8];
+    this->P << value[0], value[1], value[2], value[3], value[4], value[5], value[6], value[7], value[8];
 
     if ((this->P - this->P.transpose()).norm() > 1e-12) {
         bskLogger.bskError("inertialCartFeedback: P must be symmetric positive definite.");

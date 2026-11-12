@@ -17,11 +17,11 @@
 
  */
 #include "simulation/sensors/starTracker/starTracker.h"
-#include "architecture/utilities/rigidBodyKinematics.h"
+#include "architecture/utilities/gauss_markov.h"
 #include "architecture/utilities/linearAlgebra.h"
 #include "architecture/utilities/macroDefinitions.h"
+#include "architecture/utilities/rigidBodyKinematics.h"
 #include <iostream>
-#include "architecture/utilities/gauss_markov.h"
 
 StarTracker::StarTracker()
 {
@@ -47,7 +47,6 @@ StarTracker::~StarTracker()
     return;
 }
 
-
 /*! This method is used to reset the module.
  @param CurrentSimNanos The current simulation time from the architecture
   */
@@ -59,11 +58,10 @@ void StarTracker::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
     }
 
     //! - Alert the user if the noise matrix was not the right size.  That'd be bad.
-    if(this->PMatrix.size() != 9)
-    {
+    if (this->PMatrix.size() != 9) {
         bskLogger.bskError("Your process noise matrix (PMatrix) is not 3*3. Quitting.");
     }
-    if(this->walkBounds.size() != 3){
+    if (this->walkBounds.size() != 3) {
         bskLogger.bskError("Your walkbounds is not size 3. Quitting");
     }
 
@@ -108,10 +106,10 @@ void StarTracker::applySensorErrors()
     @param sigma
     @param sensorValues
  */
-void StarTracker::computeQuaternion(double *sigma, STSensorMsgPayload *sensorValues)
+void StarTracker::computeQuaternion(double* sigma, STSensorMsgPayload* sensorValues)
 {
-    double dcm_BN[3][3];            /* dcm, inertial to body frame */
-    double dcm_CN[3][3];            /* dcm, inertial to case frame */
+    double dcm_BN[3][3]; /* dcm, inertial to body frame */
+    double dcm_CN[3][3]; /* dcm, inertial to case frame */
     MRP2C(sigma, dcm_BN);
     m33MultM33(RECAST3X3 this->dcm_CB, dcm_BN, dcm_CN);
     C2EP(dcm_CN, sensorValues->qInrtl2Case);
@@ -152,7 +150,7 @@ void StarTracker::UpdateState(uint64_t CurrentSimNanos)
 */
 void StarTracker::setAMatrix(const Eigen::MatrixXd& propMatrix)
 {
-    if(propMatrix.rows() != 3 || propMatrix.cols() != 3) {
+    if (propMatrix.rows() != 3 || propMatrix.cols() != 3) {
         bskLogger.bskError("StarTracker: Propagation matrix must be 3x3");
     }
     this->AMatrix = propMatrix;

@@ -22,8 +22,8 @@
 #include <iostream>
 
 /*! Initialize C-wrapped output messages */
-void
-VscmgVelocitySteering::SelfInit(){
+void VscmgVelocitySteering::SelfInit()
+{
     VSCMGRefStatesMsg_C_init(&this->vscmgRefStatesOutMsgC);
 }
 
@@ -41,8 +41,7 @@ VscmgVelocitySteering::VscmgVelocitySteering()
 /*! This method is used to reset the module, checks that required input messages are connected, and initializes internal
  * states.
  */
-void
-VscmgVelocitySteering::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
+void VscmgVelocitySteering::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
 {
     // check that required input messages are connected
     if (!this->vscmgParamsInMsg.isLinked()) {
@@ -64,8 +63,7 @@ VscmgVelocitySteering::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
     this->vscmgConfigParams = this->vscmgParamsInMsg();
 
     for (int i = 0; i < vscmgConfigParams.numVSCMG; i++) {
-        this->h_bar[static_cast<size_t>(i)] =
-            vscmgConfigParams.JsList[i] * vscmgConfigParams.Omega0List[i];
+        this->h_bar[static_cast<size_t>(i)] = vscmgConfigParams.JsList[i] * vscmgConfigParams.Omega0List[i];
     }
     const Eigen::Map<const Eigen::VectorXd> h_bar_vec(this->h_bar.data(), vscmgConfigParams.numVSCMG);
     double mean_h_bar = 0.0;
@@ -78,22 +76,22 @@ VscmgVelocitySteering::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
 
 /*! This is the main method that gets called every time the module is updated.  Provide an appropriate description.
  */
-void
-VscmgVelocitySteering::UpdateState(uint64_t CurrentSimNanos)
+void VscmgVelocitySteering::UpdateState(uint64_t CurrentSimNanos)
 {
-    double omegas;                                          /*![rad/s] projection of body angular velocity onto gsHat axis*/
-    double omegat;                                          /*![rad/s] projection of body angular velocity onto gtHat axis*/
-    double delta;                                           /*![-] proximity to CMG singularity*/
-    double W_si;                                            /*![-] RW mode weight*/
-    Eigen::Vector3d omega_BN_B;                             /*![rad/s] angular velocity of the body frame relative to the inertial frame*/
-    Eigen::Vector3d omega_RN_B;                             /*![rad/s] angular velocity of the reference frame relative to the inertial frame*/
-    Eigen::Vector3d gsHat0_B;                               /*![-] first gimbal unit axis when rotation angle is 0*/
-    Eigen::Vector3d gtHat0_B;                               /*![-] second gimbal unit axis when rotation angle is 0*/
-    Eigen::Vector3d ggHat_B;                                /*![-] third gimbal unit axis*/
-    Eigen::VectorXd etaDot(2 * vscmgConfigParams.numVSCMG); /*![rad/s^2] and [rad/s] desired RW accelerations and gimbal rates*/
-    Eigen::Matrix3d BG0;                                    /*![-] DCM between body frame and gimbal frame when rotation angle is zero */
-    Eigen::Matrix3d GG0;                                    /*![-] DCM between gimbal frame and gimbal frame when rotation angle is zero */
-    Eigen::Matrix3d BG;                                     /*![-] DCM between body frame and gimbal frame */
+    double omegas;              /*![rad/s] projection of body angular velocity onto gsHat axis*/
+    double omegat;              /*![rad/s] projection of body angular velocity onto gtHat axis*/
+    double delta;               /*![-] proximity to CMG singularity*/
+    double W_si;                /*![-] RW mode weight*/
+    Eigen::Vector3d omega_BN_B; /*![rad/s] angular velocity of the body frame relative to the inertial frame*/
+    Eigen::Vector3d omega_RN_B; /*![rad/s] angular velocity of the reference frame relative to the inertial frame*/
+    Eigen::Vector3d gsHat0_B;   /*![-] first gimbal unit axis when rotation angle is 0*/
+    Eigen::Vector3d gtHat0_B;   /*![-] second gimbal unit axis when rotation angle is 0*/
+    Eigen::Vector3d ggHat_B;    /*![-] third gimbal unit axis*/
+    Eigen::VectorXd etaDot(
+        2 * vscmgConfigParams.numVSCMG); /*![rad/s^2] and [rad/s] desired RW accelerations and gimbal rates*/
+    Eigen::Matrix3d BG0;                 /*![-] DCM between body frame and gimbal frame when rotation angle is zero */
+    Eigen::Matrix3d GG0;                 /*![-] DCM between gimbal frame and gimbal frame when rotation angle is zero */
+    Eigen::Matrix3d BG;                  /*![-] DCM between body frame and gimbal frame */
     Eigen::Matrix3d QWQT;
     Eigen::Matrix3Xd D0(3, vscmgConfigParams.numVSCMG);
     Eigen::Matrix3Xd D1(3, vscmgConfigParams.numVSCMG);
@@ -152,9 +150,9 @@ VscmgVelocitySteering::UpdateState(uint64_t CurrentSimNanos)
 
         D0.col(i) = BG.col(0) * vscmgConfigParams.IwsList[i];
         D1.col(i) =
-          (vscmgConfigParams.IwsList[i] * VSCMGSpeeds.wheelSpeeds[i] + 0.5 * vscmgConfigParams.JsList[i] * omegas) *
-            BG.col(1) +
-          0.5 * vscmgConfigParams.JsList[i] * omegat * BG.col(0);
+            (vscmgConfigParams.IwsList[i] * VSCMGSpeeds.wheelSpeeds[i] + 0.5 * vscmgConfigParams.JsList[i] * omegas) *
+                BG.col(1) +
+            0.5 * vscmgConfigParams.JsList[i] * omegat * BG.col(0);
         D2.col(i) = 0.5 * vscmgConfigParams.JtList[i] * (omegat * BG.col(0) + omegas * BG.col(1));
         D3.col(i) = vscmgConfigParams.JgList[i] * (omegat * BG.col(0) - omegas * BG.col(1));
         D4.col(i) = 0.5 * (vscmgConfigParams.JsList[i] - vscmgConfigParams.JtList[i]) *
@@ -190,22 +188,19 @@ VscmgVelocitySteering::UpdateState(uint64_t CurrentSimNanos)
     VSCMGRefStatesMsg_C_write(&this->outputRefStates, &this->vscmgRefStatesOutMsgC, this->moduleID, CurrentSimNanos);
 }
 
-void
-VscmgVelocitySteering::setMu(double var)
+void VscmgVelocitySteering::setMu(double var)
 {
     this->mu = var;
 }
 
-void
-VscmgVelocitySteering::setW0_s(std::vector<double> var)
+void VscmgVelocitySteering::setW0_s(std::vector<double> var)
 {
     for (size_t i = 0; i < var.size() && i < MAX_EFF_CNT; ++i) {
         this->W0_s[i] = var[i];
     }
 }
 
-void
-VscmgVelocitySteering::setW_g(std::vector<double> var)
+void VscmgVelocitySteering::setW_g(std::vector<double> var)
 {
     for (size_t i = 0; i < var.size() && i < MAX_EFF_CNT; ++i) {
         this->W_g[i] = var[i];

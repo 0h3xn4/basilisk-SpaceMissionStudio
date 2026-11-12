@@ -15,10 +15,11 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 */
 
+%include "architecture/_GeneralModuleFiles/swig_python_iterators.ih"
+
 %pythoncode %{
     import numpy as np
     import pprint
-    import atexit as _bsk_atexit
     from typing import List, Sequence
     from Basilisk.utilities import deprecated
 %};
@@ -29,52 +30,15 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 %}
 
 %{
+// Keep abi3 wheels compatible with the oldest supported NumPy runtime,
+// including when the build uses newer headers with a higher default API target.
+#define NPY_TARGET_VERSION NPY_1_24_API_VERSION
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
-#include <atomic>
 %}
 
-%{
-// --- issue #676: GIL-safe Python keep-alive callbacks installed on ReadFunctor ------------
-// A ReadFunctor stores an opaque owner token (the subscribed message's PyObject*) plus these
-// two callbacks. They are invoked from C++ (ReadFunctor copy/move/destruction), which can run
-// on a thread that does not hold the GIL and even during interpreter shutdown. Check that the
-// runtime can safely acquire the GIL before adjusting a reference count. The atexit callback
-// covers every supported Stable ABI level; Py_IsFinalizing() adds a direct check when exposed
-// by the active C API. Python reference counting stays in this SWIG layer;
-// messaging.h stays Python-free.
-static std::atomic<bool> _bsk_python_shutting_down{false};
-static bool _bsk_python_runtime_is_usable() {
-    if (!Py_IsInitialized()) return false;
-    if (_bsk_python_shutting_down.load(std::memory_order_acquire)) return false;
-#if PY_VERSION_HEX >= 0x030D0000 && (!defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030D0000)
-    if (Py_IsFinalizing()) return false;
-#endif
-    return true;
-}
-static void _bsk_readfunctor_acquire(void* handle) {
-    if (!_bsk_python_runtime_is_usable()) return;
-    PyGILState_STATE gstate = PyGILState_Ensure();
-    Py_XINCREF((PyObject*)handle);
-    PyGILState_Release(gstate);
-}
-static void _bsk_readfunctor_release(void* handle) {
-    if (!_bsk_python_runtime_is_usable()) return;
-    PyGILState_STATE gstate = PyGILState_Ensure();
-    Py_XDECREF((PyObject*)handle);
-    PyGILState_Release(gstate);
-}
-%}
-
-%inline %{
-static void _bsk_mark_python_shutting_down() {
-    _bsk_python_shutting_down.store(true, std::memory_order_release);
-}
-%}
-
-%pythoncode %{
-_bsk_atexit.register(_bsk_mark_python_shutting_down)
-%}
+%include "architecture/messaging/pythonSourceOwner.ih"
+%fragment("bsk_python_source_owner_init");
 
 %init %{
 import_array();  // Required to initialize NumPy C API
@@ -136,7 +100,7 @@ pprint.PrettyPrinter._dispatch[messageTypePayload.__repr__] = _pprint_ ## messag
         // copy, and move operations then balance it via the release/acquire callbacks.
         // NOTE: keep percent and hash characters out of comments in this macro; SWIG treats
         // them as directive/stringize operators and they corrupt the generated wrapper.
-        void _install_keepalive(PyObject* source) {
+        void _set_source_owner(PyObject* source) {
             _bsk_readfunctor_acquire(source);
             $self->setSource((void*)source,
                              &_bsk_readfunctor_acquire,
@@ -165,10 +129,16 @@ pprint.PrettyPrinter._dispatch[messageTypePayload.__repr__] = _pprint_ ## messag
                 object.__setattr__(payload, "_bskPayloadOwner", reader._get_source_owner())
                 return payload
 
+            def _install_keepalive(self, source):
+                """Retain the storage owner, including for registered redirected outputs."""
+                owner = source._storage_owner() if isinstance(source, messageType) else source
+                self._set_source_owner(owner)
+
             def subscribeTo(self, source):
                 if type(source) == messageType:
+                    owner = source._storage_owner()
                     self.__subscribe_to(source)
-                    self._install_keepalive(source)   # issue 676: prevent GC of the source message
+                    self._install_keepalive(owner)
                     return
 
                 try:
@@ -200,6 +170,14 @@ pprint.PrettyPrinter._dispatch[messageTypePayload.__repr__] = _pprint_ ## messag
 
 %template(messageType) Message<messageTypePayload>;
 %extend Message<messageTypePayload>{
+    PyObject* _get_storage_owner(PyObject* source) {
+        PyGILState_STATE gstate = PyGILState_Ensure();
+        void* owner = $self->getSourceHandle();
+        PyObject* result = owner ? static_cast<PyObject*>(owner) : source;
+        Py_INCREF(result);
+        PyGILState_Release(gstate);
+        return result;
+    }
     ReadFunctor<messageTypePayload> _add_subscriber_with_keepalive(PyObject* source) {
         ReadFunctor<messageTypePayload> reader = $self->addSubscriber();
         _bsk_readfunctor_acquire(source);
@@ -218,9 +196,26 @@ pprint.PrettyPrinter._dispatch[messageTypePayload.__repr__] = _pprint_ ## messag
         return recorder;
     }
     %pythoncode %{
+        def _storage_owner(self):
+            """Return the owner of the currently addressed message storage."""
+            return self._get_storage_owner(self)
+
+        def _redirection_owner(self):
+            """Resolve an embedded target's module before borrowing its storage."""
+            from Basilisk.architecture.messaging import _msgKeepAlive
+            parent_reference = _msgKeepAlive._instance_attributes(self).get("_bskMessageOwner")
+            if parent_reference is None:
+                if not self.thisown:
+                    raise ReferenceError("Cannot redirect to a borrowed message: its storage owner is unknown")
+                return self._storage_owner()
+            parent = parent_reference()
+            if parent is None:
+                raise ReferenceError("The module owning this message has been deleted")
+            return self._get_storage_owner(parent)
+
         def addSubscriber(self):
             """Create a reader that keeps this message alive."""
-            return self._add_subscriber_with_keepalive(self)
+            return self._add_subscriber_with_keepalive(self._storage_owner())
 
         def write(self, payload, time=0, moduleID=0):
             """Write the message payload.
@@ -238,7 +233,7 @@ pprint.PrettyPrinter._dispatch[messageTypePayload.__repr__] = _pprint_ ## messag
 
         def recorder(self, timeDiff=0):
             """Create a recorder that keeps this message alive."""
-            return self._recorder_with_keepalive(self, timeDiff)
+            return self._recorder_with_keepalive(self._storage_owner(), timeDiff)
     %}
 };
 

@@ -72,14 +72,26 @@ def utc_to_tt(jd_utc):
     return jd_utc + delta_t
 
 def frame_bias():
-    d_alpha = -0.0146 * ARCSEC2RAD
-    xi      = -0.016617 * ARCSEC2RAD
-    eta     = -0.0068192 * ARCSEC2RAD
+    """
+    Frame bias matrix from the GCRS to the mean equator and equinox of J2000.
+
+    Uses the IERS Conventions (2010) form :math:`B = R_1(-\\eta_0) R_2(\\xi_0) R_3(d\\alpha_0)`.
+    Here :math:`R_i(\\theta)` is the axes (frame) rotation returned by :func:`rot`, which rotates the
+    coordinate frame by :math:`\\theta` about axis :math:`i` (for example :math:`R_3(\\theta)` has
+    :math:`+\\sin\\theta` in row 1, column 2); under the vector-rotation convention the same product
+    reads as the transpose.
+
+    Returns:
+        numpy.ndarray: 3x3 rotation matrix that maps GCRS vector components to mean J2000 components.
+    """
+    d_alpha = -0.0146 * ARCSEC2RAD  # [rad] ICRS right ascension offset of the J2000 mean equinox
+    xi      = -0.016617 * ARCSEC2RAD  # [rad] celestial pole offset in x
+    eta     = -0.0068192 * ARCSEC2RAD  # [rad] celestial pole offset in y
 
     return (
-        rot(3, d_alpha) @
-        rot(2, -xi) @
-        rot(1, -eta)
+        rot(1, -eta) @
+        rot(2, xi) @
+        rot(3, d_alpha)
     )
 
 def nutation_iau1980(T):
@@ -297,6 +309,18 @@ def rot(axis, angle):
 
 # Helper functions: Coordinate conversion; TEME -> J2000/ICRS
 def _teme2j2000(r, v, epoch):
+    """
+    Rotate a TEME state into the Basilisk inertial frame.
+
+    The rotation chain is equation of equinoxes, IAU 1980 nutation, IAU 1976 precession, and the inverse of
+    :func:`frame_bias`, so the output is expressed in the GCRF. These are the ICRF-aligned axes that SPICE
+    calls ``J2000`` and that Basilisk uses as its inertial frame.
+
+    :param r: TEME position vector [m]
+    :param v: TEME velocity vector [m/s]
+    :param epoch: UTC epoch of the state as a ``datetime``
+    :return: tuple ``(r, v)`` with the GCRF position [m] and velocity [m/s]
+    """
 
     jd_utc = datetime_to_jd(epoch)
     jd_tt  = utc_to_tt(jd_utc)
@@ -408,6 +432,66 @@ def _norad_id_to_tle_str(norad_id) -> str:
             "See: https://celestrak.org/NORAD/elements/gp-faq.php"
         )
     return f"{norad_id_int:05d}"
+
+def _isTleElementLine(line: str, lineNumber: int) -> bool:
+    """
+    Check whether a line has the prefix of a TLE element line with the given number.
+
+    An element line starts with its line number in column 1 and a blank in column 2.
+    A name can also have this prefix, so complete record layouts take precedence when
+    identifying names in :func:`satTle2elem`. Field validation is left to the parser.
+
+    :param line: one line of a TLE file
+    :param lineNumber: 1 or 2
+    :return: True if the line starts with ``lineNumber`` followed by a blank
+    """
+    return line.startswith(f"{lineNumber} ")
+
+def _isTleTitleLine(line: str) -> bool:
+    """
+    Check whether a line can occupy a satellite-name or file-title position.
+
+    Names can start with a line number, but full-width element lines and recognizable
+    truncated headers must not be consumed as titles when a companion line is missing.
+    Short fragments require a numeric or Alpha-5-like catalog field, including
+    overlong numeric IDs that shift subsequent fields. Line-1 headers
+    include the classification and launch number, or the designator/epoch field
+    boundaries. Line-2 headers include the catalog and start of the inclination
+    field, or the inclination/ascending-node field boundaries. Longer fragments
+    also identify themselves by field boundaries and decimal-point placement in
+    the epoch (line 1) or ascending node (line 2), even when the catalog is malformed.
+    Intact sequences of epoch/rate fields or orbital fields identify element lines
+    whose later columns have shifted because header characters are missing.
+    Ignore trailing whitespace so padded names are recognized as well.
+
+    :param line: one line of a TLE file
+    :return: True if the line can be a title without matching an element-line header
+    """
+    line = line.rstrip()
+    if not (_isTleElementLine(line, 1) or _isTleElementLine(line, 2)):
+        return True
+    if len(line) >= 69:
+        return False
+    # Deleted header characters shift later columns. Recognize intact sequences
+    # of numeric fields without relying on their starting column: epoch and mean
+    # motion derivative on line 1; ascending node, eccentricity and perigee on line 2.
+    line1Body = r"[0-9]{5}\.[0-9]{8} [ +-]\.[0-9]{8}(?: |$)"
+    line2Body = r"[ 0-9]{3}\.[0-9]{4} [0-9]{7} [ 0-9]{3}\.[0-9]{4}(?: |$)"
+    bodyPattern = line1Body if line[0] == "1" else line2Body
+    if re.search(bodyPattern, line[2:]):
+        return False
+    # Later field structure identifies longer fragments independently of catalog
+    # validity, including overflow into the classification or separator column.
+    # Decimal points distinguish these fields from words separated by spaces.
+    line1FieldBoundaries = r"1 .{15} .{5}\..{8} ."
+    line2FieldBoundaries = r"2 .{14} .{3}\..{4} ."
+    if re.match(line1FieldBoundaries, line) or re.match(line2FieldBoundaries, line):
+        return False
+    # Short fragments need a recognizable catalog to distinguish ordinary names.
+    catalogField = r"(?:[ 0-9]{5}|[A-Za-z][0-9]{4}|[0-9]{6,})"
+    line1Header = "1 " + catalogField + r"[A-Z ] (?:[0-9]{5}|.{8} .)"
+    line2Header = "2 " + catalogField + r" (?:[ 0-9]{3}\.|.{8} .)"
+    return re.match(line1Header, line) is None and re.match(line2Header, line) is None
 
 def _calcTleChecksum(stringArray: str) -> int:
     """
@@ -541,6 +625,14 @@ def _parseTle(tle: str) -> TleData:
     nDot = _firstDeriv2ballistCoef(nDot_str) # dn/dt in [rev/day^2]
     nDotDot = _tleStr2physVal(nDotDot_str) # d^2n/dt^2 in [rev/day^3]
     bStar = _tleStr2physVal(bStar_str)
+    # Only SGP4 element sets can be converted here. Distributed TLEs carry type 0; CCSDS 502.0-B-3
+    # section 4.2.4.7 codes 2 = SGP4 and 4 = SGP4-XP, whose drag and second-derivative fields hold BTERM
+    # and AGOM, so SGP4 would return a plausible but wrong state. This matches satOmm2elem().
+    if ephemType_str.strip() not in ('', '0', '2'):
+        raise ValueError(
+            f"_parseTle() received an unsupported ephemeris type '{ephemType_str}' for NORAD ID "
+            f"{sat_id_1_clean}; expected 0 (default) or 2 (SGP4). Type 4 element sets need SGP4-XP."
+        )
     propagator = {'1': 'SGP4', '2': 'SDP4', '3': 'SGP8', '4': 'SDP8', '0': 'Unknown'}.get(ephemType_str, 'Unknown')
     elemSetNo = int(elemSetNo_str)
 
@@ -566,9 +658,12 @@ def _parseTle(tle: str) -> TleData:
     tleData.nDot = nDot
     tleData.nDotDot = nDotDot
     tleData.bStar = bStar
-    tleData.launchDate = dt.datetime(_parseTleYear(launchYear_str), 1, 1)
-    tleData.launchNo = int(launchNo_str)
-    tleData.pol = pol_str
+    # Analyst objects and some unidentified objects have a blank international designator
+    # (columns 10-17). Leave the launch fields at their defaults instead of failing the set.
+    if (launchYear_str + launchNo_str + pol_str).strip():
+        tleData.launchDate = dt.datetime(_parseTleYear(launchYear_str), 1, 1)
+        tleData.launchNo = int(launchNo_str)
+        tleData.pol = pol_str
 
     return tleData
 
@@ -740,14 +835,50 @@ def _generateTleFromMean(oe_mean: om.ClassicElements, tleData: TleData) -> str:
 
     return f"{tleData.satName}\n{line1}\n{line2}"
 
-def satTle2elem(tle_path: str):
+def satTle2elem(tle_path: str, *, on_error: str = "raise"):
     """
-    Convert the TLEs of a constellation to classical orbital elements for each satellite.
+    Convert SGP4 TLE records to osculating orbital elements and satellite metadata.
+
+    The ephemeris-type field (column 63 of line 1) may be blank, ``0`` or ``2``.
+    Other types, including ``4`` (SGP4-XP), are unsupported and follow the per-set
+    error handling below.
+
+    A blank international designator (columns 10-17 of line 1) is accepted.
+    In that case, ``launchDate`` is ``None``, while ``launchNo`` and ``pol`` retain
+    their :class:`TleData` defaults of ``1`` and ``"A"``. These defaults do not
+    represent known launch metadata for the object.
+
+    By default, the first error during parsing or orbital conversion is raised
+    immediately, and no partial result is returned. Set ``on_error="skip"`` to
+    skip complete sets that raise ``ValueError`` or ``ArithmeticError`` and return
+    the readable sets. Each skipped set produces a printed warning. These errors
+    include bad checksums, malformed fields, unsupported catalog numbers, SGP4
+    errors, overflow and division by zero. If every attempted set fails in skip
+    mode, the first set's original error is raised. File access errors, file-level
+    format errors and exceptions outside these two classes propagate in both modes.
+
+    Trailing blank lines are ignored. Lines with a 69-column element-line prefix or
+    a recognizable truncated element header are rejected in title positions as
+    possible orphaned lines. Longer fragments with recognizable field structure
+    are rejected even if their catalog fields are malformed.
+    Intact sequences of element fields also identify shortened headers whose
+    missing characters have shifted later columns.
+    Prefix an intentional element-like title with ``0``
+    followed by a space to disambiguate it. For a satellite-name line, the prefix
+    is retained in ``satName``.
 
     :param tle_path: path to a TLE with one or multiple satellites in either 2LE or 3LE format
-    :return: elementsList: list of classical orbital elements for each satellite
-             metadataList: list of dictionaries containing TLE metadata for each satellite
+    :param on_error: keyword-only error policy: ``"raise"`` (default) stops at the
+                     first record error; ``"skip"`` warns and skips complete sets
+                     with validation or arithmetic errors. Other values raise
+                     ``ValueError`` before the file is opened.
+    :return: list of :class:`TleData` objects for successfully converted records,
+             with osculating orbital elements in ``oe`` and satellite metadata
+             in the other attributes
     """
+    if not isinstance(on_error, str) or on_error not in ("raise", "skip"):
+        raise ValueError("satTle2elem() on_error must be 'raise' or 'skip'.")
+
     def resetTleStr() -> None:
         """
         Reset the TLE strings and flags for reading a new satellite.
@@ -766,32 +897,61 @@ def satTle2elem(tle_path: str):
         tle_text = f.read()
 
     tle_lines = tle_text.splitlines()
+    while tle_lines and not tle_lines[-1].strip():
+        tle_lines.pop()
     noLines = len(tle_lines)
     if noLines < 2:
         raise ValueError(f"constTLE2Elem() received a TLE with {noLines} lines. A valid TLE must have at least two lines.")
-    noOfLinesStartingWith1 = sum(1 for line in tle_lines if line.startswith('1'))
-    noOfLinesStartingWith2 = sum(1 for line in tle_lines if line.startswith('2'))
-    noOfLinesStartingWithOther = len(tle_lines) - noOfLinesStartingWith1 - noOfLinesStartingWith2
-
     # Initialize variables
     tleDataList = []
 
     readingOrderIndex = 0
+    firstRecordLine = 0
 
-    # Basic checks on the TLE input format (Robustness)
-    if noOfLinesStartingWith1 != noOfLinesStartingWith2:
-        raise ValueError(f"constTLE2Elem() received a TLE with {noOfLinesStartingWith1} lines starting with '1' and {noOfLinesStartingWith2} lines starting with '2'. The number of lines starting with '1' and '2' must be equal.")
-    if noOfLinesStartingWithOther >= noOfLinesStartingWith1:
-        #TLE contains at least as many titles as lines starting with '1' or '2'=> 3LE datatype
-        tleType = 3 # 3LE
-    elif noOfLinesStartingWithOther == 0 and noLines >= 2:
-        # TLE has no title lines at least two or more lines => 2LE
-        tleType = 2 # 2LE
-    elif noOfLinesStartingWithOther == 1 and noLines > 2:
-        # TLE has one title line and more than two lines => 2LE (first line likely title for 2LE-file)
-        tleType = 2 # 2LE
-        if tle_lines[0].startswith('1') or tle_lines[0].startswith('2'):
-            raise ValueError("constTLE2Elem() received a TLE with one title line but the first line starts with '1' or '2'. --- TLE not valid ---.")
+    # Recognize complete layouts before counting prefixes: names and file titles
+    # may themselves start with '1 ' or '2 '. Check only element-line prefixes so
+    # malformed fields and truncated lines still reach the per-set parser.
+    if noLines % 3 == 0 and all(
+        _isTleElementLine(tle_lines[lineNo], 1)
+        and _isTleElementLine(tle_lines[lineNo + 1], 2)
+        for lineNo in range(1, noLines, 3)
+    ):
+        for lineNo in range(0, noLines, 3):
+            if not _isTleTitleLine(tle_lines[lineNo]):
+                raise ValueError(
+                    f"satTle2elem() found a possible orphaned TLE element line in a satellite-name "
+                    f"position on line {lineNo + 1} in {tle_path}."
+                )
+        tleType = 3
+    elif noLines % 2 == 1 and all(
+        _isTleElementLine(tle_lines[lineNo], 1) and _isTleElementLine(tle_lines[lineNo + 1], 2)
+        for lineNo in range(1, noLines, 2)
+    ):
+        if not _isTleTitleLine(tle_lines[0]):
+            raise ValueError(
+                f"satTle2elem() found a possible orphaned TLE element line in a file-title "
+                f"position on line 1 in {tle_path}."
+            )
+        tleType = 2
+        firstRecordLine = 1
+    else:
+        # Preserve the existing format checks for files without a complete layout.
+        noOfLinesStartingWith1 = sum(1 for line in tle_lines if _isTleElementLine(line, 1))
+        noOfLinesStartingWith2 = sum(1 for line in tle_lines if _isTleElementLine(line, 2))
+        noOfLinesStartingWithOther = noLines - noOfLinesStartingWith1 - noOfLinesStartingWith2
+        if noOfLinesStartingWith1 != noOfLinesStartingWith2:
+            raise ValueError(f"constTLE2Elem() received a TLE with {noOfLinesStartingWith1} lines starting with '1' and {noOfLinesStartingWith2} lines starting with '2'. The number of lines starting with '1' and '2' must be equal.")
+        if noOfLinesStartingWithOther >= noOfLinesStartingWith1:
+            #TLE contains at least as many titles as lines starting with '1' or '2'=> 3LE datatype
+            tleType = 3 # 3LE
+        elif noOfLinesStartingWithOther == 0 and noLines >= 2:
+            # TLE has no title lines at least two or more lines => 2LE
+            tleType = 2 # 2LE
+        elif noOfLinesStartingWithOther == 1 and noLines > 2:
+            # TLE has one title line and more than two lines => 2LE (first line likely title for 2LE-file)
+            tleType = 2 # 2LE
+            if _isTleElementLine(tle_lines[0], 1) or _isTleElementLine(tle_lines[0], 2):
+                raise ValueError("constTLE2Elem() received a TLE with one title line but the first line starts with '1' or '2'. --- TLE not valid ---.")
 
     # Define the reading order based on the TLE tleType
     if tleType == 2:
@@ -807,10 +967,12 @@ def satTle2elem(tle_path: str):
         raise ValueError(f"constTLE2Elem() received an invalid TLE type '{tleType}'. The type must be '2LE' or '3LE'.")
 
     resetTleStr()
+    setNo = 0  # number of complete sets met so far, for warnings
+    skipped = []  # errors of the sets that were skipped
     # Read through all lines and extract TLEs
-    for lineNo, line in enumerate(tle_lines):
+    for lineNo, line in enumerate(tle_lines[firstRecordLine:], start=firstRecordLine):
         expected = readingOrder[readingOrderIndex] if readingOrderIndex < len(readingOrder) else None
-        if line.startswith('1') and expected == 'line1':
+        if _isTleElementLine(line, 1) and expected == 'line1':
             if satTleReady[1]:
                 print(f"WARNING: constTLE2Elem() found a new TLE line1 before completing the previous TLE (line number {lineNo}). The previous TLE will be discarded.")
                 # Reset for next TLE
@@ -820,7 +982,7 @@ def satTle2elem(tle_path: str):
             satTleReady[tleType-2] = True
             readingOrderIndex += 1
             line1 = line
-        elif line.startswith('2') and expected == 'line2':
+        elif _isTleElementLine(line, 2) and expected == 'line2':
             if satTleReady[tleType-1]:
                 print(f"WARNING: constTLE2Elem() found a new TLE line2 before completing the previous TLE (line number {lineNo}). The previous TLE will be discarded.")
                 # Reset for next TLE
@@ -844,12 +1006,22 @@ def satTle2elem(tle_path: str):
             continue
 
         if all(satTleReady):
-            tleDataClass = _parseTle(satTLE)
-            oscOE = _convertMean2osculating(line1, line2, tleDataClass)
-            tleDataClass.oe = oscOE
-            tleDataList.append(tleDataClass)
+            setNo += 1
+            try:
+                tleDataClass = _parseTle(satTLE)
+                oscOE = _convertMean2osculating(line1, line2, tleDataClass)
+            except (ValueError, ArithmeticError) as error:
+                if on_error == "raise":
+                    raise
+                print(f"WARNING: satTle2elem() skipped TLE set {setNo} (ending on line {lineNo}) in {tle_path}: {error}")
+                skipped.append(error)
+            else:
+                tleDataClass.oe = oscOE
+                tleDataList.append(tleDataClass)
             # Reset for next TLE
             resetTleStr()
+    if not tleDataList and skipped:
+        raise skipped[0]
     return tleDataList
 
 def _str2tleFormat(value: float) -> str:

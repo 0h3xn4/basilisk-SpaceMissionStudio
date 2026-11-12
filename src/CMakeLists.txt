@@ -35,6 +35,8 @@ list(APPEND CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}/conan")
 include(bskTargetExcludeBuildOptions)
 include(bskBuildInfo)
 include(bskCollectWrapperCustomFiles)
+include(bskCombineFswBindings)
+include(bskCombineSimulationBindings)
 include(bskFindRustModules)
 include(bskSourceInventory)
 
@@ -68,10 +70,10 @@ list(FILTER BSK_CUSTOM_CMAKE_FILES INCLUDE REGEX "(^|/)Custom\\.cmake$")
 # Find necessary packages
 find_package(Python3 ${PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development.Module OPTIONAL_COMPONENTS Development.SABIModule)
 
-# enforce minimum supported Python version and warn on deprecated versions
-if(Python3_VERSION VERSION_LESS "3.9")
-    message(FATAL_ERROR "Basilisk requires Python 3.9 or newer, but found Python ${Python3_VERSION}.")
-elseif(Python3_VERSION VERSION_LESS "3.10")
+# Enforce the package's supported Python range and warn on deprecated versions.
+include(bskCheckPythonVersion)
+bsk_check_python_version("${CMAKE_CURRENT_SOURCE_DIR}/../pyproject.toml")
+if(Python3_VERSION VERSION_LESS "3.10")
     message(WARNING "You are using Python ${Python3_VERSION}, but support for Python 3.9 is deprecated and will be removed in March 2027.")
 endif()
 
@@ -84,8 +86,8 @@ set(SWIG_USE_SWIG_DEPENDENCIES ON)
 # Set the Python module library to be linked to.
 set(PYTHON3_MODULE Python3::Module)
 if(PY_LIMITED_API AND NOT PY_LIMITED_API STREQUAL "")
-  message(STATUS "Requested Py_LIMITED_API=${PY_LIMITED_API}")
-  message(STATUS "(Refer to https://docs.python.org/3/c-api/stable.html#limited-c-api for details)")
+  message(VERBOSE "Requested Py_LIMITED_API=${PY_LIMITED_API}")
+  message(VERBOSE "(Refer to https://docs.python.org/3/c-api/stable.html#limited-c-api for details)")
 
   if(NOT Python3_Development.SABIModule_FOUND)
     message(FATAL_ERROR "Could not find the required Python3 Stable ABI module!")
@@ -108,39 +110,47 @@ endif()
 #
 function(create_symlinks destinationPath)
   # Do nothing if building in-source
-  if(${CMAKE_CURRENT_BINARY_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
+  if("${CMAKE_CURRENT_BINARY_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
     return()
   endif()
 
-  foreach(filePath ${ARGN})
-    get_filename_component(fileName ${filePath} NAME)
+  file(MAKE_DIRECTORY "${destinationPath}")
+  # Retire Finder metadata copied by earlier builds without touching the source.
+  file(REMOVE "${destinationPath}/.DS_Store")
+  foreach(filePath IN LISTS ARGN)
+    get_filename_component(fileName "${filePath}" NAME)
+    if(fileName STREQUAL ".DS_Store")
+      continue()
+    endif()
 
-    # Get OS dependent path to use in `execute_process`
-    file(TO_NATIVE_PATH "${destinationPath}/${fileName}" link)
-    file(TO_NATIVE_PATH "${filePath}" target)
+    # Native paths passed as arguments must not contain shell escape characters.
+    set(linkPath "${destinationPath}/${fileName}")
+    cmake_path(NATIVE_PATH linkPath link)
+    cmake_path(NATIVE_PATH filePath target)
 
     # Delete the files from the dist directory, and instead just link them to the files in source
-    file(REMOVE ${destinationPath}/${fileName})
+    file(REMOVE "${destinationPath}/${fileName}")
 
     if(UNIX)
-      set(command ln -s ${target} ${link})
-    elseif(IS_DIRECTORY ${target})
-      message("Creating Directory Symbolic Link")
-      set(command cmd.exe /c mklink /D ${link} ${target})
+      set(command ln -s "${target}" "${link}")
+    elseif(IS_DIRECTORY "${target}")
+      message(VERBOSE "Creating Directory Symbolic Link")
+      set(command cmd.exe /c mklink /D "${link}" "${target}")
     else()
-      # message(target)
-      set(command cmd.exe /c mklink ${link} ${target})
+      set(command cmd.exe /c mklink "${link}" "${target}")
     endif()
 
     execute_process(
       COMMAND ${command}
       RESULT_VARIABLE result
+      OUTPUT_VARIABLE output
       ERROR_VARIABLE output)
 
     # If the symlink is unsuccessful, then copy the file directly into dist
     if(NOT ${result} EQUAL 0)
-      file(COPY ${target} DESTINATION ${destinationPath})
-      message("Could not create symbolic link for: ${target} --> ${output}.  Copied instead")
+      file(COPY "${filePath}" DESTINATION "${destinationPath}")
+      string(STRIP "${output}" output)
+      message(WARNING "Could not create symbolic link for ${target}: ${output}. Copied instead.")
     endif()
 
   endforeach(filePath)
@@ -178,7 +188,7 @@ function(generate_package_libraries INIT_DIRECTORY AllLibs)
     file(RELATIVE_PATH PARENT_DIR "${INIT_DIRECTORY}" "${PARENT_DIRECTORY}")
 
     if(${PARENT_DIR_NAME} IN_LIST EXCLUDED_BSK_LIBRARIES)
-      message("Skipped Package Library: ${PARENT_DIR_NAME}")
+      message(VERBOSE "Skipped Package Library: ${PARENT_DIR_NAME}")
         continue()
     endif()
 
@@ -215,7 +225,7 @@ function(generate_package_libraries INIT_DIRECTORY AllLibs)
     set(PACKAGE_IMPLEMENTATION_FILES ${C_FILES})
     list(FILTER PACKAGE_IMPLEMENTATION_FILES INCLUDE REGEX "\\.(c|cpp)$")
     if(NOT PACKAGE_IMPLEMENTATION_FILES)
-      message(STATUS "Skipped Header-Only Package Library: ${PARENT_DIR_NAME}")
+      message(VERBOSE "Skipped Header-Only Package Library: ${PARENT_DIR_NAME}")
       continue()
     endif()
 
@@ -238,7 +248,7 @@ function(generate_package_libraries INIT_DIRECTORY AllLibs)
     # If the library directory has a Custom.cmake, include that
     set(PACKAGE_CUSTOM_FILE "${LIB_DIR}/Custom.cmake")
     if(PACKAGE_CUSTOM_FILE IN_LIST BSK_CUSTOM_CMAKE_FILES)
-      message(STATUS "Including custom Custom.cmake for package lib: ${LIB_DIR}")
+      message(VERBOSE "Including custom Custom.cmake for package lib: ${LIB_DIR}")
       include("${PACKAGE_CUSTOM_FILE}")
     endif()
 
@@ -514,7 +524,7 @@ function(bsk_include_wrapper_custom_files TARGET_FILE TARGET_NAME PARENT_DIR MOD
     "${EXTERNAL_MODULES_PATH}"
     "${BSK_CUSTOM_CMAKE_FILES}")
   foreach(CUSTOM_FILE IN LISTS CUSTOM_FILES)
-    message(STATUS "Including custom Custom.cmake for: ${TARGET_FILE}")
+    message(VERBOSE "Including custom Custom.cmake for: ${TARGET_FILE}")
     include("${CUSTOM_FILE}")
   endforeach()
 endfunction(bsk_include_wrapper_custom_files)
@@ -525,7 +535,7 @@ function(generate_package_targets TARGET_LIST LIB_DEP_LIST MODULE_DIR)
     get_filename_component(PARENT_DIR ${TARGET_FILE} DIRECTORY)
 
     if(${TARGET_NAME} IN_LIST EXCLUDED_BSK_TARGETS)
-      message("Skipped Target: ${TARGET_NAME}")
+      message(VERBOSE "Skipped Target: ${TARGET_NAME}")
         continue()
     endif()
 
@@ -540,6 +550,40 @@ function(generate_package_targets TARGET_LIST LIB_DEP_LIST MODULE_DIR)
     list(FILTER WRAPPER_FILES EXCLUDE REGEX "\\.(c|cpp)$")
     list(APPEND WRAPPER_FILES ${WRAPPER_IMPLEMENTATION_FILES})
 
+    set(MODULE_NAME "${TARGET_NAME}")
+    set(WRAPPER_LIBRARY_TYPE MODULE)
+    bsk_select_simulation_binding_group(BINDING_GROUP "${MODULE_NAME}" "${PARENT_DIR}" "${MODULE_DIR}")
+    if(BINDING_GROUP)
+      set(TARGET_NAME "${MODULE_NAME}GroupedObjects")
+      set(WRAPPER_LIBRARY_TYPE OBJECT)
+      set_property(SOURCE ${TARGET_FILE} APPEND PROPERTY SWIG_FLAGS "-interface" "_${MODULE_NAME}")
+      set_property(GLOBAL APPEND PROPERTY BSK_${BINDING_GROUP}_OBJECT_TARGETS "${TARGET_NAME}")
+      set_property(GLOBAL APPEND PROPERTY BSK_${BINDING_GROUP}_MODULES "${MODULE_DIR}.${MODULE_NAME}")
+      file(STRINGS "${CMAKE_SOURCE_DIR}/${TARGET_FILE}" SWIG_MODULE_LINE REGEX "^[ \t]*%module")
+      if(NOT SWIG_MODULE_LINE MATCHES "%module(\\([^)]*\\))?[ \t]+([A-Za-z_][A-Za-z_0-9]*)")
+        message(FATAL_ERROR "Cannot determine the Python module name in ${TARGET_FILE}")
+      endif()
+      set_property(GLOBAL APPEND PROPERTY BSK_${BINDING_GROUP}_PROXIES
+        "${MODULE_DIR}.${MODULE_NAME}=${MODULE_DIR}.${CMAKE_MATCH_2}")
+    elseif("${MODULE_DIR}" STREQUAL "fswAlgorithms")
+      bsk_collect_wrapper_custom_files(
+        FSW_CUSTOM_FILES "${PARENT_DIR}" "${MODULE_DIR}" "${CMAKE_SOURCE_DIR}"
+        "${EXTERNAL_MODULES_PATH}" "${BSK_CUSTOM_CMAKE_FILES}")
+      if(NOT FSW_CUSTOM_FILES)
+        set(TARGET_NAME "${MODULE_NAME}FswObjects")
+        set(WRAPPER_LIBRARY_TYPE OBJECT)
+        set(BINDING_GROUP fswCoreNative)
+        # Keep each Python extension's original name and initialization entry point.
+        set_property(SOURCE ${TARGET_FILE} APPEND PROPERTY SWIG_FLAGS "-interface" "_${MODULE_NAME}")
+        set_property(GLOBAL APPEND PROPERTY BSK_FSW_OBJECT_TARGETS "${TARGET_NAME}")
+        set_property(GLOBAL APPEND PROPERTY BSK_FSW_COMBINED_MODULES "${MODULE_NAME}")
+      endif()
+      set_property(GLOBAL APPEND PROPERTY BSK_FSW_BINDING_TARGETS "${TARGET_NAME}")
+    endif()
+    if(MODULE_DIR STREQUAL "simulation" OR MODULE_DIR STREQUAL "fswAlgorithms")
+      set_property(GLOBAL APPEND PROPERTY BSK_SIMULATION_BINDING_TARGETS "${TARGET_NAME}")
+    endif()
+
     set_property(SOURCE ${TARGET_FILE} PROPERTY USE_TARGET_INCLUDE_DIRECTORIES TRUE) # Allows for include paths in the
                                                                                      # .i files
     set_property(SOURCE ${TARGET_FILE} PROPERTY CPLUSPLUS ON)
@@ -547,7 +591,7 @@ function(generate_package_targets TARGET_LIST LIB_DEP_LIST MODULE_DIR)
     swig_add_library(
       ${TARGET_NAME}
       LANGUAGE "python"
-      TYPE MODULE
+      TYPE ${WRAPPER_LIBRARY_TYPE}
       SOURCES ${TARGET_FILE}
               ${WRAPPER_FILES}
               # TODO: Following commented lines will become default with future imports OUTFILE_DIR
@@ -559,7 +603,30 @@ function(generate_package_targets TARGET_LIST LIB_DEP_LIST MODULE_DIR)
               "${CMAKE_BINARY_DIR}/Basilisk/${MODULE_DIR}") # generated .py file
 
     bsk_suppress_strict_warnings_for_sources(
-      "${CMAKE_BINARY_DIR}/Basilisk/${MODULE_DIR}/${TARGET_NAME}PYTHON_wrap.cxx")
+      "${CMAKE_BINARY_DIR}/Basilisk/${MODULE_DIR}/${MODULE_NAME}PYTHON_wrap.cxx")
+
+    if(WRAPPER_LIBRARY_TYPE STREQUAL "OBJECT")
+      set_target_properties(${TARGET_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+      if(BINDING_GROUP STREQUAL "mujocoNative")
+        # Retain shared director RTTI and callbacks while making SWIG's
+        # per-wrapper external mutex definitions one C++17 inline variable.
+        set(SWIG_WRAPPER "${CMAKE_BINARY_DIR}/Basilisk/${MODULE_DIR}/${MODULE_NAME}PYTHON_wrap.cxx")
+        set(GROUPED_WRAPPER "${CMAKE_BINARY_DIR}/Basilisk/${MODULE_DIR}/${MODULE_NAME}PYTHON_grouped.cxx")
+        add_custom_command(OUTPUT "${GROUPED_WRAPPER}"
+          COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/cmake/prepareGroupedWrapper.py"
+            "${SWIG_WRAPPER}" "${GROUPED_WRAPPER}"
+          DEPENDS "${SWIG_WRAPPER}" "${CMAKE_SOURCE_DIR}/cmake/prepareGroupedWrapper.py"
+          COMMENT "Preparing ${MODULE_NAME} for the MuJoCo binding group" VERBATIM)
+        get_target_property(WRAPPER_SOURCES ${TARGET_NAME} SOURCES)
+        list(REMOVE_ITEM WRAPPER_SOURCES "${SWIG_WRAPPER}")
+        set_property(TARGET ${TARGET_NAME} PROPERTY SOURCES ${WRAPPER_SOURCES} "${GROUPED_WRAPPER}")
+        bsk_suppress_strict_warnings_for_sources("${GROUPED_WRAPPER}")
+      endif()
+      bsk_isolate_fsw_symbols("${MODULE_NAME}" ${WRAPPER_IMPLEMENTATION_FILES}
+        "${CMAKE_BINARY_DIR}/Basilisk/${MODULE_DIR}/${MODULE_NAME}PYTHON_wrap.cxx")
+      add_custom_target(${MODULE_NAME})
+      add_dependencies(${MODULE_NAME} ${BINDING_GROUP})
+    endif()
 
     if("${MODULE_DIR}" STREQUAL "ExternalModules")
       bsk_suppress_strict_warnings_for_sources(${C_FILES})
@@ -665,7 +732,7 @@ endif()
 
 
 # TODO: Remove the global link-libraries call
-find_package(Eigen3 CONFIG REQUIRED)
+find_package(Eigen3 CONFIG REQUIRED QUIET)
 # The following lines are necessary to prevent Xcode from issuing a warning about Eigen not being within the search
 # path. Related to Eigen being a header only library.
 if(DEFINED Eigen3_INCLUDE_DIRS_DEBUG)
@@ -701,6 +768,8 @@ if(USE_COVERAGE AND (CMAKE_COMPILER_IS_GNUC OR CMAKE_COMPILER_IS_GNUCXX))
   message(STATUS "CMAKE_LD_FLAGS : ${CMAKE_LD_FLAGS}")
 endif()
 
+option(BSK_STRICT_WARNINGS "Enable additional compiler warnings for Basilisk sources" ON)
+
 # Add platform specific compiler flags
 if(MSVC)
   set(CMAKE_CXX_STANDARD 17)
@@ -710,7 +779,9 @@ if(MSVC)
   add_definitions(/D _CRT_SECURE_NO_WARNINGS)
   add_definitions(/D _WINSOCK_DEPRECATED_NO_WARNINGS)
   add_definitions(/D _WIN32_WINNT=0x0501) # Targets Windows xp
-  add_definitions(/W3)
+  if(NOT BSK_STRICT_WARNINGS)
+    add_definitions(/W3)
+  endif()
   add_definitions(/wd"4913")
   add_definitions(/wd"4251")
   add_definitions(/wd"5208")
@@ -727,7 +798,10 @@ if(MSVC)
       string(REPLACE "/MD" "${CONAN_LINK_RUNTIME_MULTI}" "${flag}" "${${flag}}")
       string(REPLACE "/MT" "${CONAN_LINK_RUNTIME_MULTI}" "${flag}" "${${flag}}")
     endif()
-    set("${flag}" "${${flag}} /EHsc")
+    # C module calls can raise BasiliskError through the C++ logger. Remove
+    # CMake's default /EHc assumption that extern "C" functions never throw.
+    string(REPLACE "/EHsc" "/EHs" "${flag}" "${${flag}}")
+    set("${flag}" "${${flag}} /EHs")
   endforeach()
 elseif(APPLE)
   set(CMAKE_CXX_STANDARD 17)
@@ -760,8 +834,6 @@ endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register")
 endif()
-
-option(BSK_STRICT_WARNINGS "Enable additional compiler warnings for Basilisk sources" OFF)
 
 # Keep strict diagnostics focused on source maintained by Basilisk. Generated
 # wrappers, imported source, and external modules are excluded from the strict
@@ -830,7 +902,9 @@ if(BSK_STRICT_WARNINGS)
         $<$<COMPILE_LANGUAGE:CXX>:-Wshorten-64-to-32>)
     endif()
   elseif(MSVC)
-    add_compile_options(/W4 /w14267 /wd4100 /wd4458)
+    include(cmake/bskMsvcWarnings.cmake)
+    bsk_remove_msvc_default_warning_levels()
+    add_compile_options(/w14267 /wd4100 /wd4458)
   endif()
 endif()
 
@@ -842,7 +916,7 @@ endif()
 
 # TODO: Move the cspice library extension into a custom pyswice CMakeList.txt Manually create list of libraries
 # depending on system
-find_package(cspice REQUIRED CONFIG)
+find_package(cspice REQUIRED QUIET CONFIG)
 set(library_dependencies cspice::cspice)
 if(WIN32)
   set(CMAKE_MSVCIDE_RUN_PATH "${CMAKE_BINARY_DIR}/Basilisk")
@@ -1000,6 +1074,9 @@ generate_package_targets("${ORBIT_CONTROL_TARGETS}" "${ARCHITECTURE_LIBS};" "fsw
 generate_package_targets("${TRANS_DET_TARGETS}" "transDeterminationLib;ModuleIdGenerator" "fswAlgorithms")
 generate_package_targets("${VEH_CONFIG_TARGETS}" "${ARCHITECTURE_LIBS};" "fswAlgorithms")
 
+bsk_finalize_fsw_bindings()
+bsk_finalize_simulation_bindings()
+
 # Rust modules under fswAlgorithms/ -- see the "ARCHITECTURE" section above.
 find_rust_package_targets("${CMAKE_SOURCE_DIR}/fswAlgorithms" FSW_RUST_TARGETS)
 generate_rust_package_targets("${FSW_RUST_TARGETS}" "${ARCHITECTURE_LIBS};" "fswAlgorithms")
@@ -1061,6 +1138,12 @@ file(
   "${CMAKE_BINARY_DIR}/Basilisk/*")
 
 foreach(DIR ${DIST_DIRECTORIES})
+  # Messaging owns its initializer through a build-time generator. An empty
+  # configure-time placeholder would make that output appear up to date after
+  # cleaning and reconfiguring an existing build directory.
+  if(DIR STREQUAL "${CMAKE_BINARY_DIR}/Basilisk/architecture/messaging")
+    continue()
+  endif()
   if(IS_DIRECTORY ${DIR} AND NOT IS_SYMLINK ${DIR})
     file(
       GLOB DIST_DIR_FILES
@@ -1103,9 +1186,20 @@ if(BUILD_TESTING)
   if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/architecture/system_model/_UnitTest/CMakeLists.txt")
     add_subdirectory("architecture/system_model/_UnitTest")
   endif()
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/fswAlgorithms/orbitControl/lambertSolver/_UnitTest/CMakeLists.txt")
+    add_subdirectory("fswAlgorithms/orbitControl/lambertSolver/_UnitTest")
+  endif()
   add_subdirectory("simulation/dynamics/_GeneralModuleFiles/_UnitTestDynamics")
   # Source archives omit _UnitTest directories.
   if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/simulation/dynamics/Integrators/_UnitTest/CMakeLists.txt")
     add_subdirectory("simulation/dynamics/Integrators/_UnitTest")
   endif()
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/simulation/communication/linkBudget/_UnitTest/CMakeLists.txt")
+    add_subdirectory("simulation/communication/linkBudget/_UnitTest")
+  endif()
+endif()
+
+# Match the MSVC branch above; clang-cl uses Clang's warning options.
+if(MSVC AND BSK_STRICT_WARNINGS AND NOT CMAKE_CXX_COMPILER_ID MATCHES "AppleClang|Clang|GNU")
+  bsk_set_msvc_warning_levels("${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
