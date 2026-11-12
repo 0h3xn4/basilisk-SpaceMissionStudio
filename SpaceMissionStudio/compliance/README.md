@@ -61,7 +61,7 @@ ones supplied, and every requirement ID and text here comes from them.
 |---|---|
 | `ID` | ECSS: clause + letter (`5.2.2.1a`), the form ECSS-E-ST-40C Table R-1 uses; DRD contents add the DRD section (`D.2.1<5.2>a`). CCSDS: `CCSDS-502.0-B-3 <paragraph>`, and `ICS-<message>-<item>` for the Annex A conformance items. |
 | `clause` | clause or paragraph of the standard |
-| `requirement_text` | the text, abbreviated past 500 characters ("..."); the expected output appended for ECSS |
+| `requirement_text` | CCSDS: the text, abbreviated past 500 characters ("..."). ECSS: a reference, "<standard> <ID>: wording not reproduced (ECSS copyright); see the standard" (ECSS documents may not be reproduced without ESA's consent; `docs/legal/DATA_TERMS.md` D3) |
 | `type` | process / product / functional / documentation (also: deleted, table) -- first pass, rule-based |
 | `applicability` | first pass for the intended use and the proposed criticality category C; `basis` says which rule decided it |
 | `earm_id` | the ECSS EARM identifier (ECSS-E-ST-40C, -Q-ST-80C, -E-ST-10-04C) |

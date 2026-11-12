@@ -23,6 +23,14 @@ fixes bugs.
   starts the release build, so no terminal is needed (and the assistant
   can start it when asked). Publishing the draft stays a person's step.
 
+### Changed
+
+- **The compliance requirement lists no longer quote ECSS.** ECSS
+  documents may not be reproduced without ESA's consent, so the four ECSS
+  lists in `compliance/requirements/` and the compliance matrix now point
+  to each requirement (standard, clause, ID) instead of quoting it. No
+  verdict changed; the app and its outputs are not affected.
+
 ## 2.7.0 (2026-11-11)
 
 The 3D View becomes a real 3D renderer, and the app starts clean.

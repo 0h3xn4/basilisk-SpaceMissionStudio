@@ -20,7 +20,7 @@ decision). Sources are the ones named in the plan and in
 | R1 | Liability for the use of results | EUPL Articles 7 and 8 apply; no-warranty sentence (W2) in the READMEs, the manual and the About box; W3 rejected | none (owner's accepted risk) |
 | R2 | Export control | everything is public; no classification made | ask BAFA, or accept the risk |
 | R3 | Third-party data in the repository | terms read where reachable (D1 to D7) | D2 to D7 |
-| R4 | Standards text (ECSS, CCSDS) | ECSS forbids reproduction without consent | D3, D5 |
+| R4 | Standards text (ECSS, CCSDS) | ECSS wording replaced by references (D3, 2026-11-11); CCSDS terms not read | D5 |
 | R5 | Name and trademarks | no register search made | run the searches |
 | R6 | Personal data and secrets | scanned: no secret; one third-party address in test data | none required |
 | R7 | Privacy inside the app | no telemetry; two places store a user name or a path; P2 declined | none (owner's accepted risk) |
@@ -102,10 +102,25 @@ text. ECSS: "No ECSS document may be reproduced in any form without the
 explicit consent of ESA." The CCSDS terms were not read (the site was
 blocked).
 
-**Open.** D3 and D5. The options are to ask for consent, or to replace
-the quoted text with clause numbers and titles. A replacement changes
-the compliance tooling, so it waits for the owner's yes. Until then, this
-is an **owner's accepted risk**.
+**Done (D3, 2026-11-11, on the owner's "continue as recommended").**
+The four ECSS lists (`compliance/requirements/ECSS-*.csv`, 1,374 rows)
+and the compliance matrix built from them no longer quote ECSS: each
+row's `requirement_text` reads "<standard> <ID>: wording not reproduced
+(ECSS copyright); see the standard". The clause, the ECSS requirement
+identifier (EARM) and the audit's own columns (type, applicability,
+level, criticality, basis, status, evidence, gap) are kept, and no
+verdict changed. The clause titles were not added: they come from the
+standards, which are not in the repository. `extract_requirements.py`
+writes the reference itself, so a new extraction does not bring the
+wording back, and `tests/test_standards_text.py` fails if it returns.
+The earlier commits still contain the wording; removing it from the
+history would rewrite the repository's history, which only the owner
+can decide.
+
+**Open.** D5: the CCSDS terms were not read, so the CCSDS list
+(`compliance/requirements/CCSDS-502.0-B-3.csv`) still quotes CCSDS
+502.0-B-3. Until the terms are read, this is an **owner's accepted
+risk**.
 
 ## R5 Name and trademarks
 
@@ -293,5 +308,5 @@ Cancelled: no website, no hosting (Q7).
 3. ~~Decide D10, the Microsoft runtime (R11).~~ Done 2026-11-10: yes.
 4. ~~Decide P2, the author name and import paths (R7).~~ Done
    2026-11-10: declined.
-5. Optional: write to the data providers (D2 to D7), ask ECSS (D3), search
+5. Optional: write to the data providers (D2 to D7), read the CCSDS terms (D5), search
    the trademark registers (R5), and ask BAFA (R2).

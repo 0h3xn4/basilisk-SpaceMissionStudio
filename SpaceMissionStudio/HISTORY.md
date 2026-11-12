@@ -17604,6 +17604,25 @@ a chosen quality kept); `tests/gui/test_live_run_3d.py` (3: the Run page
 controls remembered, a real run at 1000× shown live then replaced, Cancel
 of a run at 1×). No earlier test changed.
 
+## ECSS wording out of the compliance lists (2026-11-11)
+
+The risk register's R4 (legal groundwork M4) found that
+`compliance/requirements/ECSS-*.csv` quoted 1,374 ECSS requirements word
+for word, and ECSS's terms say: "No ECSS document may be reproduced in
+any form without the explicit consent of ESA." The owner chose the
+recommended way out over asking ESA: each row's `requirement_text` now
+reads "<standard> <ID>: wording not reproduced (ECSS copyright); see the
+standard", in the four lists and in `compliance/compliance_matrix.csv`.
+Only that column changed (checked row by row: every other field, and
+every CCSDS row, is as before), so no verdict moved. Clause titles were
+not added, since they would come from the standards, which the
+repository does not hold. `extract_requirements.py` still reads the
+wording while extracting (to classify a row and find its level) but
+writes the reference, and `tests/test_standards_text.py` (3 tests) fails
+if the wording comes back. The CCSDS list keeps its text until the CCSDS
+terms are read (D5); earlier commits keep the ECSS wording, since
+removing it would rewrite the history.
+
 ## A release check before the tag (2026-11-11)
 
 2.7.0 took a day of detours: a tag on the wrong commit, deleted while its

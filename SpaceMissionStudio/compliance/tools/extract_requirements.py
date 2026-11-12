@@ -56,6 +56,17 @@ OUT_DIR = Path(__file__).resolve().parent.parent / "requirements"
 COLUMNS = ("ID", "clause", "requirement_text", "type", "applicability", "earm_id", "level",
            "crit_A", "crit_B", "crit_C", "crit_D", "basis", "page")
 MAX_TEXT = 500  # [chars] longer requirement texts are abbreviated (marked "...")
+# ECSS documents may not be reproduced without ESA's consent
+# (docs/legal/DATA_TERMS.md section 8, decision D3): an ECSS row keeps
+# the clause, the requirement's identifier and the audit's own columns,
+# and points to the standard instead of quoting it. The wording is read
+# only while extracting (to classify the row and find its level).
+ECSS_NOT_REPRODUCED = "{standard} {rid}: wording not reproduced (ECSS copyright); see the standard"
+
+
+def ecss_reference(standard: str, row: dict) -> str:
+    """What an ECSS row's ``requirement_text`` holds: a reference."""
+    return ECSS_NOT_REPRODUCED.format(standard=standard, rid=row["ID"])
 
 _DASHES = str.maketrans({"‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-",
                          " ": " ", "‘": "'", "’": "'", "“": '"', "”": '"'})
@@ -577,6 +588,8 @@ def main(text_dir: Path) -> int:
                 verdict, why = applicability_ccsds(row)
             row["applicability"], row["basis"] = verdict, why
             refine(row, short)
+            if stem.startswith("ECSS-"):
+                row["requirement_text"] = ecss_reference(stem, row)
         out = OUT_DIR / f"{stem.replace('_', '-')}.csv"
         with open(out, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, COLUMNS, extrasaction="ignore", lineterminator="\n")

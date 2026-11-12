@@ -3171,3 +3171,15 @@ what is open. Not legal advice.
 - **The author name and import paths in scenario files stay as they are**
   (proposal P2 in the register, declined by the owner on 2026-11-10). Why:
   changing them changes scenario files and CLI output.
+
+## ECSS wording out of the compliance lists (2026-11-11)
+
+- **Decision:** the ECSS requirement lists and the compliance matrix
+  point to each requirement (standard, clause, ID) instead of quoting it.
+  **Why:** "No ECSS document may be reproduced in any form without the
+  explicit consent of ESA" (DATA_TERMS D3); a reference keeps the audit
+  usable without a reproduction, and asking ESA was not wanted.
+- **Not done:** clause titles (they would come from the standards, which
+  are not in the repository); the CCSDS list (its terms are unread, D5);
+  the wording in earlier commits (removing it rewrites history, the
+  owner's call).
