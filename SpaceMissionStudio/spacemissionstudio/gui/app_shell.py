@@ -437,7 +437,7 @@ class StatusBarItems:
         _repolish(self.basilisk_label)
 
         files = reference_data.inventory() if files is None else files
-        problems = [f for f in files if f.status != "ok"]
+        problems = [f for f in files if reference_data.needs_attention(f)]
         self.data_button.setText(f"Reference data: {len(problems)} of {len(files)} need attention" if problems
                                  else f"Reference data: all {len(files)} OK")
         self.data_button.setProperty("state", "warning" if problems else "")

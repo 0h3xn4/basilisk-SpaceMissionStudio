@@ -2073,3 +2073,17 @@ station line of sight, reduced quality, theme change) and 6 in
 | `tests/gui/test_mission_view.py::test_without_a_run_the_view_says_what_to_do` | the play button and slider disabled | also the new Show button | One more control |
 | `tests/gui/test_mission_view.py::test_the_run_is_drawn_in_the_app_s_own_page` (page path) | the page's local path compared as a string | compared as a `Path` | On Windows Qt gives the path with `/`, `str(PAGE)` has `\\`: the same file; found by the Windows CI job |
 | `tests/gui/test_theme.py::test_every_icon_the_app_uses_is_bundled_with_its_licence` | the toolbar and step icons and the style sheet's glyphs | also every icon the GUI code names with `icon("...")` | Stricter: the Vizard removal deleted `sliders-horizontal.svg`, which the 3D View's Show button still used, and no test noticed (the button had no icon); the icon is restored |
+
+## A menu bar again (2026-11-12)
+
+The window has a menu bar again (`gui/menu_bar.py`), from the action
+registry; the owner asked for one. One test asserted its absence. New:
+`tests/gui/test_menu_bar.py` (14 tests: the menus, every command in one
+menu, the items' state, Edit > Settings, hiding the menu bar, Open
+Recent, the drop-down lists, optional reference files). No test was
+skipped or removed.
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_shell_reachability.py::test_the_menu_bar_is_gone_and_every_command_is_on_the_window` | renamed `test_the_menu_bar_holds_the_commands_and_every_command_is_on_the_window`; the window had no menu bar, or an empty one | the menu bar holds File, Edit, View, Go, Run, Tools, Help; no toolbar, and every command's action is on the window, as before | The menu bar is back by the owner's request; the shortcuts must still work with it hidden, so the window check stays |
+| `tests/gui/test_design_rules.py::test_the_shortcut_table_matches_the_registry` | unchanged | unchanged; `docs/DESIGN.md`'s table gained Edit > Settings... (`Ctrl+,`) | A new command with a shortcut |

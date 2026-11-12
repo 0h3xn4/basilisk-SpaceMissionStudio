@@ -17648,3 +17648,47 @@ passed with the workflow's own token (contents: write) and starts the
 release workflow for the tag (actions: write), since a tag pushed with
 that token starts no workflow itself. The release still ends as a draft,
 published by a person after its files are attached.
+
+## A menu bar, readable drop-down lists, optional reference files (2026-11-12)
+
+The owner, showing other programs' menu bars: "I am missing something like
+this in the tool". The UI overhaul's M2a (2026-10-21) had removed the menu
+bar for the navigation rail, the top bar and the command palette. It is
+back, beside them: `gui/menu_bar.py` lays out File, Edit, View, Go, Run,
+Tools and Help as lists of registry command ids, so each item is the
+command's own action (text, shortcut, enabled state shared with the
+buttons and the palette). File > Open Recent reads the recent list Home
+shows, on each opening, skipping files that have gone; a file's path is
+its action's data and one bound method of the window opens it (a lambda
+holding the window on a child's signal keeps it alive past close, the
+cause of an earlier exit segfault). Edit > Settings... (`Ctrl+,`) is new.
+View > Menu Bar hides the bar and the layout keeps the choice; Reset
+Layout shows it again. `tests/gui/test_menu_bar.py` checks every
+registered command is in exactly one menu, so a new command needs a
+place.
+
+Then: "the drop down menus are very cramped and tight and unintuitive to
+use, particularly if there are many entries". Measured: a combo box's
+list drew 24 px rows with Qt's menu-like delegate (the style sheet's row
+rules did not reach it), had no hover mark, and a 60-entry list opened
+over its field as tall as the screen, scrolling with two small arrows.
+`gui/theme/combo.py` fixes all 93 combo boxes in one place: `AppStyle`
+(Fusion underneath, set by `apply_theme`) prepares each combo box as Qt
+polishes it, with `QStyledItemDelegate` (32 px rows, padding, hover and
+selected marks from `qss.py`), 12 visible rows, the list below the field
+(`combobox-popup: 0`) with a scroll bar, as wide as its longest entry;
+from 12 entries a "Type to filter" field narrows the list as one types,
+the first match current, the arrows and Enter acting on the list. Menu
+rows grew from 28 to 32 px.
+
+And, showing the Reference data window's "R-REC-P.676-13-Part1.txt
+missing" in red: "why does this not work". It works: the ITU's server
+returned the 44 kB file (checked 2026-11-12), but the installers may not
+carry it (the ITU allows its reproduction only with permission), so it
+is fetched on request, as the Eros files are. Red "missing" and "3 of 19
+need attention" in the status bar on every new install said otherwise.
+`reference_data.NOT_DOWNLOADED` now marks an optional file not yet
+fetched, in grey, with a note saying what needs it and that Download...
+gets it, and `needs_attention` leaves it out of the counts. The
+reference-data guide said "the installers fetch it" for the ITU file;
+corrected.

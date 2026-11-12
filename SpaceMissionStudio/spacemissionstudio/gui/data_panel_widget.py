@@ -367,7 +367,8 @@ class DataPanelWidget(QWidget):
         self.retry_button.hide()
         self._files = files
         self.table.setRowCount(len(files))
-        tones = {"ok": "status.normal.text", "missing": "status.critical.text", "out of date": "status.caution.text"}
+        tones = {"ok": "status.normal.text", "missing": "status.critical.text", "out of date": "status.caution.text",
+                 reference_data.NOT_DOWNLOADED: "text.secondary"}
         for row, file in enumerate(files):
             values = [file.kind, file.name, file.status, file.covers,
                       file.sha256[:12] + ("..." if file.sha256 else ""), file.installed_utc[:10], file.source]
@@ -383,11 +384,14 @@ class DataPanelWidget(QWidget):
                     tint(item, tones.get(file.status, "text.primary"))
                     item.setToolTip(file.note)
                 self.table.setItem(row, column, item)
-        problems = [f for f in files if f.status != "ok"]
+        problems = [f for f in files if reference_data.needs_attention(f)]
+        optional = [f for f in files if f.status == reference_data.NOT_DOWNLOADED]
         self.status_label.setText(
             f"{len(files)} reference data file(s); " + (
                 f"{len(problems)} need attention: " + ", ".join(f"{f.name} ({f.status})" for f in problems)
-                if problems else "all present and current."))
+                if problems else "all present and current" if not optional else "the others present and current")
+            + (f"; {len(optional)} optional file(s) not downloaded (Download... gets them when needed)."
+               if optional else "."))
         self.refreshed.emit()
 
     # -- actions ----------------------------------------------------------

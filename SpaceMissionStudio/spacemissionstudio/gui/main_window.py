@@ -68,6 +68,7 @@ from ..schema.scenario import Scenario, ScenarioValidationError, load_scenario
 from . import autosave
 from . import export_log
 from .actions import ActionRegistry
+from .menu_bar import build_menu_bar
 from .app_shell import NoScenarioState, RunProgressStrip, StatusBarItems, StatusChip, TopBar, source_of
 from .feedback import StaleResultsBanner, report, show_toast
 from .icons import toolbar_icon
@@ -562,8 +563,9 @@ class MainWindow(QMainWindow):
     def _build_actions(self) -> None:
         """Every command of the window, in one registry: the command
         palette, the area headers, the top bar, the shortcut list and the
-        tooltips all come from it. The window owns the actions, so their
-        shortcuts work in every area; there is no menu bar."""
+        tooltips all come from it, and so does the menu bar
+        (gui.menu_bar). The window owns the actions, so their shortcuts work
+        in every area, with the menu bar shown or hidden."""
         self.commands = registry = ActionRegistry(self)
         add = registry.add
 
@@ -605,6 +607,9 @@ class MainWindow(QMainWindow):
         self.redo_action = add("edit.redo", "&Redo", self.on_redo, category="Edit", area="global",
                                shortcut=QKeySequence.StandardKey.Redo, tip="Redo the scenario edit just undone.")
         self._update_undo_actions()
+        add("edit.settings", "Se&ttings...", self._go_settings, category="Edit", area="settings",
+            shortcut="Ctrl+,", keywords=("preferences", "options"),
+            tip="Appearance, reference data, network, layout and keyboard: the Settings area.")
 
         # One Run (docs/ux-audit.md U-18, decision 3): Run starts the run
         # mode picked beside it -- a single run, a Monte Carlo batch, or a
@@ -713,6 +718,11 @@ class MainWindow(QMainWindow):
             action=self.problems_dock.toggleViewAction(), shortcut="Ctrl+J",
             tip="Show or hide the Problems panel: what does not validate.").triggered.connect(
                 self._on_dock_toggled)
+        self.menu_bar_action = add(
+            "view.menu_bar", "&Menu Bar", self._on_menu_bar_toggled, category="View", area="global",
+            checkable=True, checked=True, keywords=("menus", "File Edit View"),
+            tip="Show or hide the menu bar (File, Edit, View, Go, Run, Tools, Help). Hidden, every command "
+                "keeps its shortcut and stays in the command palette (Ctrl+K).")
         self.reset_layout_action = add("view.reset_layout", "&Reset Layout", self.reset_layout, category="View",
                                        area="settings", tip="Put the panels back where they start.")
         self.rail_collapse_action = add(
@@ -835,6 +845,8 @@ class MainWindow(QMainWindow):
         self.scenario_editor.mode_changed.connect(self._refresh_breadcrumbs)
         for tabs in (self.results_views, self.run_views):
             tabs.currentChanged.connect(self._refresh_breadcrumbs)
+        # The menu bar: the same commands, by menu (gui.menu_bar).
+        self.menus = build_menu_bar(self.menuBar(), self.commands, self._on_recent_menu)
         self.shell.show_area("home")  # a new user's first move is picking a template or a file
         self._refresh_breadcrumbs()
         self._on_run_mode_changed()  # the Run area's mode button has its text too
@@ -853,6 +865,26 @@ class MainWindow(QMainWindow):
 
     def _go_home(self) -> None:
         self.shell.show_area("home")
+
+    def _go_settings(self) -> None:
+        self.shell.show_area("settings")
+
+    def _on_menu_bar_toggled(self, shown: bool) -> None:
+        self.menuBar().setVisible(shown)
+
+    def _on_recent_menu(self, action) -> None:
+        """File > Open Recent: a file picked (its path is the action's
+        data), with the same unsaved-changes question as Open."""
+        path = action.data()
+        if not path:
+            return  # Clear the List, or the empty list's note
+        path = Path(path)
+        if not path.is_file():
+            report(self, f"{path} is missing: it was moved or deleted.", kind="warning")
+            return
+        if not self._confirm_discard_unsaved():
+            return
+        self.open_path(path)
 
     @property
     def scenario_open(self) -> bool:
@@ -1288,6 +1320,7 @@ class MainWindow(QMainWindow):
         settings.beginGroup(group)
         settings.setValue("state", self.saveState(_LAYOUT_VERSION))
         settings.setValue("rail_collapsed", self.shell.rail.collapsed)
+        settings.setValue("menu_bar", self.menu_bar_action.isChecked())
         for name, splitter in self._layout_splitters().items():
             settings.setValue(f"splitter_{name}", splitter.saveState())
         if group.startswith("project-"):
@@ -1303,6 +1336,7 @@ class MainWindow(QMainWindow):
                 return False
             self.restoreState(state, _LAYOUT_VERSION)
             self.rail_collapse_action.setChecked(settings.value("rail_collapsed", False, type=bool))
+            self.menu_bar_action.setChecked(settings.value("menu_bar", True, type=bool))
             for name, splitter in self._layout_splitters().items():
                 saved = settings.value(f"splitter_{name}")
                 if saved is not None:
@@ -1359,6 +1393,7 @@ class MainWindow(QMainWindow):
             dock.show()
         self._hide_default_panels()
         self.rail_collapse_action.setChecked(False)
+        self.menu_bar_action.setChecked(True)
 
     def _hide_default_panels(self) -> None:
         """The panels a new window starts without (G8): Problems, which a

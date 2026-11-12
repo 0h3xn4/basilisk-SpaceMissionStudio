@@ -22,6 +22,14 @@ fixes bugs.
   release" runs the same check, tags exactly the commit it passed and
   starts the release build, so no terminal is needed (and the assistant
   can start it when asked). Publishing the draft stays a person's step.
+- **A menu bar: File, Edit, View, Go, Run, Tools, Help.** Every command
+  is in a menu, with its shortcut, greyed out when it cannot run. File >
+  Open Recent lists the recent scenarios, and Edit > Settings...
+  (`Ctrl+,`) opens Settings. View > Menu Bar hides it for those who
+  prefer the rail and the command palette; the window remembers.
+- **Drop-down lists you can filter.** A list of 12 entries or more has a
+  "Type to filter" field: type while it is open and only the entries
+  containing the text stay; `Enter` picks the first, the arrows move.
 
 ### Changed
 
@@ -30,6 +38,18 @@ fixes bugs.
   lists in `compliance/requirements/` and the compliance matrix now point
   to each requirement (standard, clause, ID) instead of quoting it. No
   verdict changed; the app and its outputs are not affected.
+- **Roomier drop-down lists and menus.** Every drop-down list opens below
+  its field, at most 12 rows high with a scroll bar (a long list used to
+  fill the screen over the field and scroll with two small arrows), at
+  least as wide as its longest entry, with taller rows, a mark under the
+  pointer and the current entry highlighted. Menu rows are taller too.
+- **Optional reference files say "not downloaded".** The ITU-R P.676-13
+  file and the Eros files, fetched only on request, showed as a red
+  "missing" and counted as "need attention" in the status bar on every
+  new install. They now show "not downloaded" in grey, with what they are
+  for and how to get them, and need no attention until used. The
+  reference-data guide no longer says the installers fetch the ITU file:
+  they may not carry it.
 
 ## 2.7.0 (2026-11-11)
 

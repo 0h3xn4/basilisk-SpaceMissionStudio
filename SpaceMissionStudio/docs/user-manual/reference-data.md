@@ -16,7 +16,7 @@ disk on a machine without internet, and undo an update.
 | Solar-activity prediction | Drag after the observed record ends | NASA MSFC; bundled | small |
 | Earth orientation (IERS-based NAIF Earth PCKs) | Measured Earth rotation | NAIF | about 36 MB |
 | 433 Eros ephemeris and shape model | A run around Eros ([small bodies](small-body-navigation.md)) | NAIF and the Basilisk repository; downloaded on request | about 5 MB |
-| ITU-R P.676-13, data file Part 1 | The atmospheric gases' attenuation of the radio link, when a project chooses it (`link.atmospheric_loss`) | the ITU; the installers fetch it | 44 kB |
+| ITU-R P.676-13, data file Part 1 | The atmospheric gases' attenuation of the radio link, when a project chooses it (`link.atmospheric_loss`) | the ITU; downloaded on request (the installers may not carry it: the ITU allows its reproduction only with permission) | 44 kB |
 
 Runs never download anything. Space weather is always real data: the
 observed record, then MSFC's prediction. There is no synthetic profile.
@@ -24,8 +24,13 @@ observed record, then MSFC's prediction. There is no synthetic profile.
 ## Check what you have
 
 Open the **Reference data** window (**Check Reference Data** (the Run area), **Settings > Reference data**, or the reference data entry in the status bar). It lists every
-file with its status (ok, missing, out of date), the dates it covers,
-where it came from and its SHA-256. From the command line:
+file with its status (ok, missing, out of date, or not downloaded), the
+dates it covers, where it came from and its SHA-256. **Not downloaded**,
+in grey, is an optional file that is fetched only when you ask: the Eros
+files and the ITU-R P.676-13 file. Nothing needs it until a scenario runs
+around Eros or a project sets `link.atmospheric_loss: itu_r_p676`, so it
+does not count as needing attention; hover over its status to see what it
+is for, and **Download...** gets it. From the command line:
 
 ```bash
 spacemissionstudio kernels-status        # downloads any missing support file, then lists them

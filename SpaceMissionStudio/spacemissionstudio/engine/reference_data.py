@@ -41,7 +41,7 @@ SPACE_WEATHER_STALE_DAYS = 60  # [day] observed data older than this is flagged
 class ReferenceFile:
     kind: str  # "SPICE kernel", "gravity field", "magnetic model", "Earth orientation", ...
     name: str
-    status: str  # "ok", "missing", "out of date"
+    status: str  # "ok", "missing", "out of date", or NOT_DOWNLOADED (optional, on request)
     source: str = ""
     path: str = ""
     size_bytes: int | None = None
@@ -49,6 +49,19 @@ class ReferenceFile:
     installed_utc: str = ""
     covers: str = ""  # the dates the data covers, where it has any
     note: str = ""
+
+
+# An optional file the installers do not carry and nothing needs until a
+# scenario or project asks for it: absent, it is "not downloaded", which
+# needs no attention (the Eros files, ITU-R P.676-13). Download... or
+# Import file... in the Reference data dialog installs it.
+NOT_DOWNLOADED = "not downloaded"
+
+
+def needs_attention(file: ReferenceFile) -> bool:
+    """Whether ``file`` is a problem to show: anything but present and
+    current, or an optional file not downloaded."""
+    return file.status not in ("ok", NOT_DOWNLOADED)
 
 
 @dataclass
@@ -181,9 +194,10 @@ def _small_body_files() -> list[ReferenceFile]:
     for body in small_bodies.BODIES.values():
         kernel = small_bodies.installed(body.name)
         if kernel is None:
-            files.append(ReferenceFile("small-body ephemeris", body.spk_name, "missing", body.spk_url,
+            files.append(ReferenceFile("small-body ephemeris", body.spk_name, NOT_DOWNLOADED, body.spk_url,
                                        covers=body.spk_covers.replace("/", " to "),
-                                       note=f"needed for runs around {body.title}"))
+                                       note=f"Optional: needed only for runs around {body.title}. "
+                                            f"Download... > {DOWNLOADS['small_bodies'].title} installs it."))
         else:
             files.append(ReferenceFile("small-body ephemeris", Path(kernel.path).name, "ok", kernel.source,
                                        kernel.path, kernel.size_bytes, kernel.sha256, kernel.installed_utc,
@@ -194,8 +208,9 @@ def _small_body_files() -> list[ReferenceFile]:
             shape = None
         name = f"{body.shape_data_file}.tab"
         if shape is None:
-            files.append(ReferenceFile("shape model", name, "missing",
-                                       note=f"needed for polyhedral gravity around {body.title}"))
+            files.append(ReferenceFile("shape model", name, NOT_DOWNLOADED,
+                                       note=f"Optional: needed only for polyhedral gravity around {body.title}. "
+                                            f"Download... > {DOWNLOADS['small_bodies'].title} installs it."))
         else:
             files.append(ReferenceFile("shape model", name, "ok", "Basilisk support data", str(shape),
                                        shape.stat().st_size, _sha256(shape), _mtime_utc(shape),
@@ -208,8 +223,11 @@ def _itu_files() -> list[ReferenceFile]:
 
     found = gases.installed()
     if found is None:
-        return [ReferenceFile("ITU-R recommendation data", gases.PART1_NAME, "missing", gases.PART1_URL,
-                              note="needed for link.atmospheric_loss: itu_r_p676")]
+        return [ReferenceFile("ITU-R recommendation data", gases.PART1_NAME, NOT_DOWNLOADED, gases.PART1_URL,
+                              note="Optional: needed only when a project sets link.atmospheric_loss: itu_r_p676. "
+                                   "The installers cannot carry it (the ITU allows its reproduction only with "
+                                   f"permission). Download... > {DOWNLOADS['itu_p676'].title} fetches it "
+                                   "(44 kB, from the ITU).")]
     path = Path(found.path)
     matches = _sha256(path) == gases.PART1_SHA256
     return [ReferenceFile("ITU-R recommendation data", gases.PART1_NAME, "ok" if matches else "missing", found.source,

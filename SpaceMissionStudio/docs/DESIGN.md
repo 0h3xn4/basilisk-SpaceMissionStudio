@@ -330,8 +330,23 @@ bar and no toolbar:
   and the rail. The layout (docks, rail, the main splitters) is kept per
   scenario file, and for the window between sessions (`layout.ini`).
 - **Commands:** every command is in one registry (`gui/actions.py`):
-  the command palette, the area headers, the top bar, the shortcut list
-  and every tooltip ("Save (Ctrl+S)", then what it does) come from it.
+  the command palette, the menu bar, the area headers, the top bar, the
+  shortcut list and every tooltip ("Save (Ctrl+S)", then what it does)
+  come from it.
+- **Menu bar:** File, Edit, View, Go, Run, Tools and Help
+  (`gui/menu_bar.py`, `MENUS`), each item a registry command, so a menu
+  item, its shortcut and its buttons share one text and one enabled
+  state. Every command is in exactly one menu
+  (`tests/gui/test_menu_bar.py`). File > Open Recent reads the same list
+  as Home. View > Menu Bar hides it (kept with the layout); the
+  shortcuts and the palette work without it.
+- **Drop-down lists:** every combo box's list opens below the field,
+  12 rows high with a scroll bar, at least as wide as its longest entry,
+  with control-height rows, a hover mark and the current entry selected.
+  A list of 12 entries or more has a "Type to filter" field: typing
+  narrows the list, the arrows move in it, Enter picks
+  (`gui/theme/combo.py`, applied by the application style to every combo
+  box). Menus have 32 px rows.
 
 | Measure | Value | Where |
 |---|---|---|
@@ -473,7 +488,8 @@ Commands with a **standard key** take the platform's own key for it
 The table gives them as Qt binds them without a desktop theme (the CI's
 offscreen platform). Qt's documentation gives Ctrl+Shift+Z for Redo on
 GNOME and KDE. A command is named by its palette category and its
-label (there are no menus).
+label, which is also its menu's name and item in the menu bar (the
+Time Cursor commands are under Go > Time Cursor).
 
 | Command | Keys | Standard key |
 |---|---|---|
@@ -484,6 +500,7 @@ label (there are no menus).
 | File > Quit | none | Quit |
 | Edit > Undo | Ctrl+Z | Undo |
 | Edit > Redo | Ctrl+Y | Redo |
+| Edit > Settings... | Ctrl+, | - |
 | Run > Run | Ctrl+R | - |
 | Run > Cancel Run | Esc | - |
 | Run > Clear Time Cursor | Alt+Backspace | - |
