@@ -17761,3 +17761,16 @@ spacecraft, now one line with their number and the names in the
 tooltip; and the formation dialog's "a·δex [m]" rows ("the units make no
 sense here"): each element is named by what it does, its symbol after
 it, in three groups, with a line saying why they are distances.
+
+"This also is very noisy and unclear. maybe restructure in more dropdown
+levels", read as the Results plot catalog: 44 lines under seven topics,
+each "smallsat-1: Mean (first-order J2) Semi-Major Axis" and so on (the
+spacecraft repeated because the Sun's, Moon's and Earth's positions
+counted as a second "spacecraft"), and eleven code names under Other
+(`smallsat-1.disturbance.aero_torque`). `plot_categories.catalog_path`
+places each entry: topic, spacecraft (only when the run has several),
+group of related plots, plot by what is left of its title; disturbances
+go to Attitude and shading to Power with readable names, the Sun, Moon
+and planets under their own group. A group named as its topic, or of one
+plot, is no level. Groups open when one of their plots is shown, and a
+search opens what holds its matches.

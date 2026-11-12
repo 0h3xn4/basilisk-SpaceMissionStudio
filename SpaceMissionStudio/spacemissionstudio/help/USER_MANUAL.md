@@ -1239,11 +1239,16 @@ configuration. Type in its filter to find a value (`sha256`, `rng`,
 `J2000`); **Copy as JSON** copies the record as `provenance.json` holds
 it.
 
-* **The catalog** lists every plot by group (Orbit, Attitude, Power,
-  Link, Data, Thermal, Propellant, Sensors, Monte Carlo), by its title
-  (e.g. "Inertial Position (ECI)"; the spacecraft is named when the run
-  has several). **Search plots** filters it by title, code name or
-  group; Enter shows the first match. Hover an entry to see its code
+* **The catalog** lists every plot in levels: the topic (Orbit,
+  Attitude, Power, Link, Data, Thermal, Propellant, Sensors, Monte
+  Carlo), then the spacecraft when the run has several, then a group of
+  related plots (Osculating elements, Mean elements (first-order J2),
+  Station keeping, Disturbances, Array shading, Sun, Moon and planets),
+  then the plot, named by what its parents leave ("RAAN" under Mean
+  elements). Each level shows how many plots it holds; a group opens with
+  a click, and opens by itself when one of its plots is shown. **Search
+  plots** filters by title, code name or level and opens the levels that
+  hold a match; Enter shows the first match. Hover an entry to see its code
   name (e.g. `sat-1.position_N`), which is also its CSV file name.
   Click a name to show that plot in the selected cell; tick it to add it
   to the grid, clear the tick to take it out. With ground stations the

@@ -524,3 +524,65 @@ def shown(name: str, series: TimeSeries, recorded: bool = False) -> SeriesDispla
 def legacy_display(name: str, series: TimeSeries) -> SeriesDisplay:
     display_unit, factor = _LEGACY_UNIT_CONVERSIONS.get(series.units, (series.units, 1.0))
     return SeriesDisplay(title=name, y_label="", unit=display_unit, factor=factor, standalone_title=True)
+
+
+# -- the catalog's levels -------------------------------------------------------------
+#
+# The Results plot catalog nests its entries: topic (PLOT_GROUPS) >
+# spacecraft (only when the run has several) > a group of related plots
+# (osculating elements, mean elements, station keeping, disturbances, ...)
+# > the plot, named by what is left once its parents have said the rest.
+# A flat list of "smallsat-1: Mean (first-order J2) Semi-Major Axis" lines
+# read as noise (the owner, 2026-11-12: "restructure in more dropdown
+# levels").
+
+_SUBGROUPS = (  # (part of the series name, subgroup title, prefix the plot title drops)
+    (".orbit_elements_mean.", "Mean elements (first-order J2)", "Mean (first-order J2) "),
+    (".orbit_elements.", "Osculating elements", "Osculating "),
+    (".station_keeping.", "Station keeping", "Station-Keeping "),
+    (".disturbance.", "Disturbances", ""),
+    (".shading.", "Array shading", ""),
+    (".sensor.", "Sensors", ""),
+)
+_RAW_TITLES = {  # a series without a title of its own: the last part of its name
+    "aero_torque": "Aerodynamic torque", "srp_torque": "Solar pressure torque",
+    "gravity_gradient_torque": "Gravity-gradient torque", "magnetic_torque": "Magnetic torque",
+    "total_torque": "Total disturbance torque", "aero_force": "Aerodynamic force",
+    "srp_force": "Solar pressure force", "magnetic_field_body": "Magnetic field (body frame)",
+    "power": "Array power with shading",
+}
+_GROUP_OVERRIDES = ((".disturbance.", "Attitude"), (".shading.", "Power"))
+
+
+def _humanised(part: str) -> str:
+    if part in _RAW_TITLES:
+        return _RAW_TITLES[part]
+    if part.startswith("cells "):
+        return f"Cells shaded, {part[6:]} array"
+    text = part.replace("_", " ")
+    return text[:1].upper() + text[1:]
+
+
+def catalog_path(name: str, label: str, group: str) -> tuple[str, str | None, str | None, str]:
+    """``(topic, spacecraft, subgroup, plot)`` of a catalog entry: the
+    spacecraft its series belongs to (None for a run-wide one, such as the
+    Sun's position), the group of related plots it sits in (None alone),
+    and its title with the spacecraft and the group's prefix left out."""
+    if name.startswith("ephemeris."):
+        body = name.split(".")[1]
+        return group, None, "Sun, Moon and planets", f"{body.capitalize()} position (ECI)"
+    spacecraft, _sep, _rest = name.partition(".")
+    for part, topic in _GROUP_OVERRIDES:
+        if part in name:
+            group = topic
+    title = label
+    if title.startswith(f"{spacecraft}: "):
+        title = title[len(spacecraft) + 2:]
+    elif title == name:  # no title of its own
+        title = _humanised(name.rsplit(".", 1)[-1])
+    for part, subgroup, prefix in _SUBGROUPS:
+        if part in name:
+            if prefix and title.startswith(prefix):
+                title = title[len(prefix):]
+            return group, spacecraft, subgroup, title
+    return group, spacecraft, None, title

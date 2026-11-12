@@ -404,3 +404,48 @@ def test_a_live_run_reads_its_events_only_for_drawn_chunks(widget, monkeypatch):
     assert len(reads) == first
     widget.set_result(_result(), _EPOCH)  # drawn: fresh
     assert len(reads) > first
+
+
+def test_the_catalog_nests_topic_spacecraft_group_plot():
+    """The owner (2026-11-12): "restructure in more dropdown levels". A
+    plot sits under its topic, its spacecraft when the run has several, and
+    its group of related plots; its line says only what is left."""
+    from spacemissionstudio.plot_categories import catalog_path
+
+    assert catalog_path("sat-1.orbit_elements_mean.raan", "sat-1: Mean (first-order J2) RAAN", "Orbit") == (
+        "Orbit", "sat-1", "Mean elements (first-order J2)", "RAAN")
+    assert catalog_path("sat-1.orbit_elements.inclination", "Osculating Inclination", "Orbit") == (
+        "Orbit", "sat-1", "Osculating elements", "Inclination")
+    assert catalog_path("sat-1.disturbance.srp_torque", "sat-1.disturbance.srp_torque", "Other") == (
+        "Attitude", "sat-1", "Disturbances", "Solar pressure torque")
+    assert catalog_path("sat-1.shading.cells +y", "sat-1.shading.cells +y", "Other") == (
+        "Power", "sat-1", "Array shading", "Cells shaded, +y array")
+    assert catalog_path("ephemeris.moon.position_N", "ephemeris.moon.position_N", "Orbit") == (
+        "Orbit", None, "Sun, Moon and planets", "Moon position (ECI)")
+    assert catalog_path("sat-1.position_N", "Inertial Position (ECI)", "Orbit") == (
+        "Orbit", "sat-1", None, "Inertial Position (ECI)")
+
+
+def test_the_catalog_tree_has_its_levels(qtbot):
+    from spacemissionstudio.gui.plot_catalog import PlotCatalog
+
+    catalog = PlotCatalog()
+    qtbot.addWidget(catalog)
+    entries = [("a.orbit_elements.raan", "a: Osculating RAAN", "Orbit"),
+               ("a.orbit_elements.inclination", "a: Osculating Inclination", "Orbit"),
+               ("b.orbit_elements.raan", "b: Osculating RAAN", "Orbit"),
+               ("a.sensor.st-1", "a: Star Tracker Attitude: st-1", "Sensors"),
+               ("a.sensor.css-1", "a: Coarse Sun Sensor: css-1", "Sensors")]
+    catalog.set_entries(entries, ["b.orbit_elements.raan"])
+    orbit = catalog.tree.topLevelItem(0)
+    assert orbit.text(0) == "Orbit (3)" and [orbit.child(i).text(0) for i in range(2)] == ["a (2)", "b (1)"]
+    a_group = orbit.child(0).child(0)
+    assert a_group.text(0) == "Osculating elements (2)" and not a_group.isExpanded()  # nothing of it shown
+    assert [a_group.child(i).text(0) for i in range(2)] == ["RAAN", "Inclination"]
+    b_raan = orbit.child(1).child(0)
+    assert b_raan.text(0) == "RAAN"  # a group of one is no group
+    sensors = catalog.tree.topLevelItem(1).child(0)
+    assert sensors.text(0) == "a (2)" and sensors.child(0).text(0) == "Star Tracker Attitude: st-1"  # no Sensors > Sensors
+    assert catalog.label("a.orbit_elements.raan") == "a: Osculating RAAN"
+    catalog.search.setText("inclination")
+    assert catalog.visible_names() == ["a.orbit_elements.inclination"] and a_group.isExpanded()

@@ -37,7 +37,20 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import QLineEdit, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 
-from ..plot_categories import PLOT_GROUPS
+from ..plot_categories import PLOT_GROUPS, catalog_path
+
+def _leaf_names(item: QTreeWidgetItem) -> list[str]:
+    names = []
+    for index in range(item.childCount()):
+        child = item.child(index)
+        name = child.data(0, _NAME_ROLE)
+        names += [name] if name else _leaf_names(child)
+    return names
+
+
+def _leaf_count(item: QTreeWidgetItem) -> int:
+    return len(_leaf_names(item))
+
 
 ACCESS_TIMELINE = "@access_timeline"  # the catalog entry of the ground-station access timeline
 _NAME_ROLE = Qt.ItemDataRole.UserRole
@@ -78,31 +91,66 @@ class PlotCatalog(QWidget):
 
     def set_entries(self, entries: list[tuple], shown: list[str]) -> None:
         """``entries``: ``(name, label, group)`` in the order to list them
-        within a group; ``shown``: the names ticked."""
+        within a group; ``shown``: the names ticked. The entries nest by
+        :func:`plot_categories.catalog_path`: topic, spacecraft (when the run
+        has several), group of related plots, plot."""
         self._filling = True
         try:
             self.tree.clear()
             self._items = {}
-            groups: dict[str, QTreeWidgetItem] = {}
+            self._labels = {}
+            paths = [(name, label, catalog_path(name, label, group)) for name, label, group in entries]
+            several = len({path[1] for _name, _label, path in paths if path[1] is not None}) > 1
+            # A group named as its topic ("Sensors" under Sensors), or of one
+            # plot, adds a level and says nothing: its plots sit one up.
+            sizes: dict[tuple, int] = {}
+            for _name, _label, (topic, spacecraft, subgroup, _title) in paths:
+                sizes[(topic, spacecraft, subgroup)] = sizes.get((topic, spacecraft, subgroup), 0) + 1
+            paths = [(name, label, (topic, spacecraft,
+                                    None if subgroup in (None, topic) or sizes[(topic, spacecraft, subgroup)] < 2
+                                    else subgroup, title))
+                     for name, label, (topic, spacecraft, subgroup, title) in paths]
             order = {group: index for index, group in enumerate(PLOT_GROUPS)}
-            for name, label, group in sorted(entries, key=lambda entry: order.get(entry[2], len(order))):
-                parent = groups.get(group)
-                if parent is None:
-                    parent = QTreeWidgetItem(self.tree, [group])
-                    parent.setFlags(Qt.ItemFlag.ItemIsEnabled)
-                    font = parent.font(0)
-                    font.setBold(True)
-                    parent.setFont(0, font)
-                    groups[group] = parent
-                item = QTreeWidgetItem(parent, [label])
+            nodes: dict[tuple, QTreeWidgetItem] = {}
+            spacecraft_nodes: set = set()
+
+            def node(key: tuple, text: str, parent) -> QTreeWidgetItem:
+                item = nodes.get(key)
+                if item is None:
+                    item = QTreeWidgetItem(parent if parent is not None else self.tree, [text])
+                    item.setFlags(Qt.ItemFlag.ItemIsEnabled)
+                    nodes[key] = item
+                return item
+
+            for name, label, (topic, spacecraft, subgroup, title) in sorted(
+                    paths, key=lambda entry: order.get(entry[2][0], len(order))):
+                parent = node((topic,), topic, None)
+                key = (topic,)
+                if several and spacecraft is not None:
+                    key += (spacecraft,)
+                    parent = node(key, spacecraft, parent)
+                    spacecraft_nodes.add(key)
+                if subgroup is not None:
+                    key += (subgroup,)
+                    parent = node(key, subgroup, parent)
+                item = QTreeWidgetItem(parent, [title])
                 item.setData(0, _NAME_ROLE, name)
                 item.setToolTip(0, name if name != ACCESS_TIMELINE else "Every ground station's passes in one chart")
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsUserCheckable)
                 item.setCheckState(0, Qt.CheckState.Checked if name in shown else Qt.CheckState.Unchecked)
                 self._items[name] = item
-            for group, parent in groups.items():
-                parent.setText(0, f"{group} ({parent.childCount()})")
-            self.tree.expandAll()
+                self._labels[name] = label
+            for key, item in nodes.items():
+                count = _leaf_count(item)
+                item.setText(0, f"{item.text(0)} ({count})")
+                if len(key) == 1:
+                    font = item.font(0)
+                    font.setBold(True)
+                    item.setFont(0, font)
+                # Topics and spacecraft open; a group of related plots opens
+                # only when one of its plots is shown.
+                item.setExpanded(len(key) == 1 or key in spacecraft_nodes
+                                 or any(name in shown for name in _leaf_names(item)))
         finally:
             self._filling = False
         self._filter(self.search.text())
@@ -112,8 +160,8 @@ class PlotCatalog(QWidget):
         return list(self._items)
 
     def label(self, name: str) -> str:
-        item = self._items.get(name)
-        return item.text(0) if item is not None else name
+        """The plot's whole title (the tree shows only what its parents leave)."""
+        return getattr(self, "_labels", {}).get(name, name)
 
     def set_shown(self, shown: list[str]) -> None:
         """Tick exactly ``shown`` (no :attr:`toggled` signals)."""
@@ -135,17 +183,22 @@ class PlotCatalog(QWidget):
 
     def _filter(self, text: str) -> None:
         words = text.lower().split()
-        for index in range(self.tree.topLevelItemCount()):
-            group = self.tree.topLevelItem(index)
-            group_text = group.text(0).lower()
-            visible = 0
-            for child_index in range(group.childCount()):
-                child = group.child(child_index)
-                haystack = f"{child.text(0)} {child.data(0, _NAME_ROLE)} {group_text}".lower()
+
+        def visit(item: QTreeWidgetItem, context: str) -> int:
+            name = item.data(0, _NAME_ROLE)
+            if name:
+                haystack = f"{item.text(0)} {self.label(name)} {name} {context}".lower()
                 hidden = not all(word in haystack for word in words)
-                child.setHidden(hidden)
-                visible += not hidden
-            group.setHidden(visible == 0)
+                item.setHidden(hidden)
+                return 0 if hidden else 1
+            shown = sum(visit(item.child(i), f"{context} {item.text(0)}") for i in range(item.childCount()))
+            item.setHidden(shown == 0)
+            if words and shown:
+                item.setExpanded(True)  # a search shows where its matches are
+            return shown
+
+        for index in range(self.tree.topLevelItemCount()):
+            visit(self.tree.topLevelItem(index), "")
 
     def _on_search_entered(self) -> None:
         visible = self.visible_names()
@@ -155,7 +208,14 @@ class PlotCatalog(QWidget):
 
     def visible_names(self) -> list[str]:
         """The entries the search leaves shown."""
-        return [name for name, item in self._items.items() if not item.isHidden() and not item.parent().isHidden()]
+        def shown(item) -> bool:
+            while item is not None:
+                if item.isHidden():
+                    return False
+                item = item.parent()
+            return True
+
+        return [name for name, item in self._items.items() if shown(item)]
 
     # -- signals -----------------------------------------------------------
 

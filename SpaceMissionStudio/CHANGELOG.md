@@ -62,6 +62,12 @@ fixes bugs.
   The Inspector, Calculation and Problems panels step aside on Home and
   come back when it is left. The status bar shows only what needs
   attention (View > Status Bar: All Details shows every entry).
+- **The plot list in levels.** Results › Plots lists topic, then
+  spacecraft (when the run has several), then a group of related plots
+  (osculating elements, mean elements, station keeping, disturbances,
+  array shading, Sun, Moon and planets), then the plot by its short name;
+  groups fold. Disturbance torques and array shading, listed under Other
+  by their code names, are under Attitude and Power with readable names.
 - **Shorter notes in the 3D View.** A note shared by several spacecraft
   ("no attitude in this run") is said once, with their number; the names
   are in its tooltip.
