@@ -24,7 +24,7 @@ decision). Sources are the ones named in the plan and in
 | R5 | Name and trademarks | no register search made | run the searches |
 | R6 | Personal data and secrets | scanned: no secret; one third-party address in test data | none required |
 | R7 | Privacy inside the app | no telemetry; two places store a user name or a path; P2 declined | none (owner's accepted risk) |
-| R8 | Security and supply chain | `SECURITY.md`, signed provenance, hashes | switch on private reporting |
+| R8 | Security and supply chain | `SECURITY.md`, private vulnerability reporting on, signed provenance, hashes | none |
 | R9 | Contributions | sign-off checked for forks | none |
 | R10 | Repository presentation | non-affiliation sentence (W1) in the READMEs and the manual | none |
 | R11 | Third-party files in the installers | both gates fail on any gap; Microsoft runtime verified (D10) | none |
@@ -212,9 +212,9 @@ scenario file can carry the user's account name and home folder is an
   Authenticode certificates cost money, so this is proposed only, not
   adopted ("everything must remain completely free", Q7).
 
-**Open.** The owner switches on **private vulnerability reporting**
-(repository Settings › Code security). Until then, the link in
-`SECURITY.md` does not work.
+**Done.** **Private vulnerability reporting** is switched on
+(repository Settings › Code security; the owner confirmed it on
+2026-11-12), so the link in `SECURITY.md` works.
 
 ## R9 Contributions
 
@@ -302,7 +302,8 @@ Cancelled: no website, no hosting (Q7).
 
 ## Owner's to-do list
 
-1. Switch on private vulnerability reporting (R8).
+1. ~~Switch on private vulnerability reporting (R8).~~ Done: the owner
+   confirmed it is on (2026-11-12).
 2. ~~Approve, change or reject the wording drafts (R1, R10).~~ Done
    2026-11-10: W1 and W2 approved, W3 rejected.
 3. ~~Decide D10, the Microsoft runtime (R11).~~ Done 2026-11-10: yes.

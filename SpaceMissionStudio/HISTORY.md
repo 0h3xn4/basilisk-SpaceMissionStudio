@@ -17649,6 +17649,13 @@ release workflow for the tag (actions: write), since a tag pushed with
 that token starts no workflow itself. The release still ends as a draft,
 published by a person after its files are attached.
 
+## Private vulnerability reporting confirmed on (2026-11-12)
+
+The owner confirmed that private vulnerability reporting is switched on
+for the repository, so the "Report a vulnerability" link in `SECURITY.md`
+works. `docs/legal/RISK_REGISTER.md` marks R8's last open item done and
+crosses it off the owner's to-do list.
+
 ## A menu bar, readable drop-down lists, optional reference files (2026-11-12)
 
 The owner, showing other programs' menu bars: "I am missing something like
