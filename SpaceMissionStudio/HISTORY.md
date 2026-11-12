@@ -17622,3 +17622,29 @@ writes the reference, and `tests/test_standards_text.py` (3 tests) fails
 if the wording comes back. The CCSDS list keeps its text until the CCSDS
 terms are read (D5); earlier commits keep the ECSS wording, since
 removing it would rewrite the history.
+
+## A release check before the tag (2026-11-11)
+
+2.7.0 took a day of detours: a tag on the wrong commit, deleted while its
+run started; a publication from the web before any file existed; and a
+pillow advisory published between the release pull request's CI and the
+tag, which stopped the release run. Each would have been caught before
+tagging. The "SpaceMissionStudio release check" workflow, run from the
+Actions tab on `develop`, now does that: CI's result for the commit at
+the branch's head, the pip-audit step with that day's advisories, and
+`packaging/release_check.py` (the version files agree, the CHANGELOG's
+newest section is the version and is dated today, no Unreleased entries
+are left out, the tag does not exist yet, the notes render). It only
+reads, and its summary names the commit with the commands to tag it.
+`tests/test_release_check.py` (7 tests) covers each refusal and the
+ready case; run on `develop` today it refuses, rightly: 2.7.0 is tagged.
+
+The cloud sessions the assistant works in cannot push tags (their git
+connection refuses them), so every release so far needed the owner at a
+terminal or the website. "SpaceMissionStudio tag release" closes that
+gap: started with the version, it calls the release check as a reusable
+workflow, stops on any failure, and otherwise tags the commit the check
+passed with the workflow's own token (contents: write) and starts the
+release workflow for the tag (actions: write), since a tag pushed with
+that token starts no workflow itself. The release still ends as a draft,
+published by a person after its files are attached.

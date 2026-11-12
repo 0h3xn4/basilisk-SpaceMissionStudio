@@ -1,0 +1,116 @@
+# SpaceMissionStudio: is this commit ready to be tagged as a release?
+# Run it from Actions > "SpaceMissionStudio release check" > Run workflow,
+# on develop, before tagging (SpaceMissionStudio/docs/developer/releasing.md,
+# section 6). It changes nothing: it reads the repository and reports.
+#
+# It checks what made earlier releases go wrong:
+#   - CI ("SpaceMissionStudio") passed on this exact commit;
+#   - no known vulnerability in the pinned packages that is not accepted
+#     (the pip-audit step the release workflow runs, today's advisories);
+#   - the version files agree, the CHANGELOG's newest section is that
+#     version dated today, no Unreleased entries are left out, the tag
+#     does not exist yet, and the notes render
+#     (SpaceMissionStudio/packaging/release_check.py).
+# The summary names the commit and gives the commands to tag it.
+# "SpaceMissionStudio tag release" calls it first and tags only the commit
+# it passed (outputs sha and version).
+name: "SpaceMissionStudio release check"
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch to check (the commit at its head is the one to tag)"
+        required: true
+        default: develop
+        type: string
+  workflow_call:
+    inputs:
+      ref:
+        description: "Branch to check"
+        required: true
+        type: string
+    outputs:
+      sha:
+        description: "The commit checked (the one to tag)"
+        value: ${{ jobs.check.outputs.sha }}
+      version:
+        description: "The version its files state"
+        value: ${{ jobs.check.outputs.version }}
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+      version: ${{ steps.commit.outputs.version }}
+    defaults:
+      run:
+        working-directory: SpaceMissionStudio
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+      - name: The commit
+        id: commit
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "version=$(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml)" >> "$GITHUB_OUTPUT"
+      - name: CI passed on this commit
+        id: ci
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/spacemissionstudio.yml/runs?head_sha=$SHA&per_page=20" \
+            --jq '[.workflow_runs[] | {status, conclusion, html_url}]')
+          echo "$runs"
+          if echo "$runs" | python3 -c 'import json,sys; r=json.load(sys.stdin); sys.exit(0 if any(x["conclusion"]=="success" for x in r) else 1)'; then
+            echo "- PASS: CI passed on this commit." >> "$RUNNER_TEMP/ci.md"
+          else
+            echo "- **FAIL:** CI has not passed on this commit (none, still running, or failed). Wait for it, or fix it." >> "$RUNNER_TEMP/ci.md"
+            exit 1
+          fi
+      - name: Known vulnerabilities in the pinned packages (pip-audit)
+        id: audit
+        continue-on-error: true
+        run: |
+          python -m pip install --quiet -c packaging/constraints-dev.txt pip-audit
+          ignores=$(sed 's/#.*//' packaging/audit-exceptions.txt | awk 'NF { printf "--ignore-vuln %s ", $1 }')
+          if python -m pip_audit --no-deps --disable-pip --progress-spinner off \
+               -r packaging/constraints.txt -r packaging/constraints-dev.txt $ignores; then
+            echo "- PASS: No known vulnerability that is not accepted (pip-audit, today's advisories)." >> "$RUNNER_TEMP/audit.md"
+          else
+            echo "- **FAIL:** pip-audit found a vulnerability that packaging/audit-exceptions.txt does not accept: fix it (upgrade, or accept it with its reason) before tagging." >> "$RUNNER_TEMP/audit.md"
+            exit 1
+          fi
+      - name: Version, CHANGELOG, tag and notes
+        id: release
+        continue-on-error: true
+        run: |
+          python packaging/release_check.py --commit "${{ steps.commit.outputs.sha }}" \
+            --tags "$(git ls-remote --tags origin)" > "$RUNNER_TEMP/release.md"
+      - name: Summary
+        if: always()
+        run: |
+          {
+            cat "$RUNNER_TEMP/release.md"
+            echo
+            echo "## CI and security"
+            echo
+            cat "$RUNNER_TEMP/ci.md" "$RUNNER_TEMP/audit.md" 2>/dev/null
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.ci.outcome }}" != success ] || [ "${{ steps.audit.outcome }}" != success ] \
+             || [ "${{ steps.release.outcome }}" != success ]; then
+            echo "::error::Not ready to tag: see the summary."
+            exit 1
+          fi
