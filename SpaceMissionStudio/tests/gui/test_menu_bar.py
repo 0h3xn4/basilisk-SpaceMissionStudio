@@ -17,7 +17,7 @@
 #
 
 """The menu bar (gui.menu_bar), the drop-down lists of every combo box
-(gui.theme.combo), and the optional reference files that are not
+(gui.theme.combo), dialogs that fit their text (gui.theme.dialogs), and the optional reference files that are not
 downloaded (engine.reference_data)."""
 
 import pytest

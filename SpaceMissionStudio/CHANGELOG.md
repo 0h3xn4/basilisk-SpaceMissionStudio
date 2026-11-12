@@ -27,6 +27,13 @@ fixes bugs.
   Open Recent lists the recent scenarios, and Edit > Settings...
   (`Ctrl+,`) opens Settings. View > Menu Bar hides it for those who
   prefer the rail and the command palette; the window remembers.
+- **Values as tables, not lines of text.** The 3D model editor's mass
+  properties are a sheet (mass, centre of mass), the inertia a 3 x 3
+  matrix and the principal axes a table with each axis's moment,
+  direction and nearest body axis; its surface summary is a sheet too.
+  Switching the orbit type shows the orbit now, after converting and on
+  the new page side by side, one value a row with its unit. More of the
+  app follows.
 - **Drop-down lists you can filter.** A list of 12 entries or more has a
   "Type to filter" field: type while it is open and only the entries
   containing the text stay; `Enter` picks the first, the arrows move.
@@ -43,6 +50,9 @@ fixes bugs.
   fill the screen over the field and scroll with two small arrows), at
   least as wide as its longest entry, with taller rows, a mark under the
   pointer and the current entry highlighted. Menu rows are taller too.
+- **Dialogs no longer cut off their text.** A dialog with wrapped text
+  could show only the first line of each paragraph and clip its buttons
+  (the orbit-type switch did); every dialog now grows to fit its text.
 - **Optional reference files say "not downloaded".** The ITU-R P.676-13
   file and the Eros files, fetched only on request, showed as a red
   "missing" and counted as "need attention" in the status bar on every

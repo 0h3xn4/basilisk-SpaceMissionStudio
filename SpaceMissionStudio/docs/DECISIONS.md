@@ -3214,3 +3214,24 @@ what is open. Not legal advice.
   "missing", and does not count as needing attention. **Why:** every new
   install showed three red "missing" files and "3 need attention" for
   data nothing used.
+
+## Values as tables, and dialogs that fit their text (2026-11-12)
+
+- **Decision:** several values of one thing are shown as a
+  `ValueSheet` (name, value right-aligned in tabular figures, unit) or a
+  `ValueTable`, never as a sentence of numbers; a design rule in
+  `CLAUDE.md` and `docs/DESIGN.md`. **Why:** the owner: "raw text is
+  visually always like noise. make the information clear and
+  understandable. that applies to everything in the tool." First the 3D
+  model editor's mass and surface summaries and the orbit-type switch;
+  the rest by an audit of every screen, screen by screen.
+- **Decision:** the command line keeps its plain lines
+  (`model3d.principal_summary`); the editor's summary gives the same
+  text for copying. **Why:** a terminal has no table widget, and scripts
+  read those lines.
+- **Decision:** every `QDialog` gets a minimum height equal to what its
+  layout needs at its current width, on show and on each width change
+  (`gui/theme/dialogs.py`, from `AppStyle.polish`). **Why:** Qt does not
+  size a top-level window by its wrapped labels' height for width; the
+  orbit-type switch showed one line of each paragraph and clipped
+  buttons on the owner's desktop. One place fixes every dialog.

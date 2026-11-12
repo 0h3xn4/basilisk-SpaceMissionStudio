@@ -20,8 +20,10 @@
 
 Qt's own list for a styled combo box sat over the field, as tall as the
 screen for a long list, scrolled with two small arrows, with 24 px rows
-and no mark under the pointer. :class:`AppStyle`, the application's style
-(Fusion underneath), changes every :class:`QComboBox` as Qt polishes it:
+and no mark under the pointer. :func:`prepare`, called for every
+:class:`QComboBox` as Qt polishes it (:class:`theme.style.AppStyle`,
+which also answers ``SH_ComboBox_Popup`` with a list below the field),
+changes it:
 
 - its list draws its rows with :class:`QStyledItemDelegate`, so the style
   sheet's row rules apply (``QComboBox QAbstractItemView::item`` in
@@ -41,31 +43,12 @@ from __future__ import annotations
 
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer
 from PySide6.QtWidgets import (
-    QAbstractItemView, QApplication, QComboBox, QLineEdit, QListView, QProxyStyle, QStyle, QStyledItemDelegate,
-    QWidget,
+    QAbstractItemView, QApplication, QComboBox, QLineEdit, QListView, QStyledItemDelegate, QWidget,
 )
 
 MAX_VISIBLE = 12  # rows shown before the list scrolls
 FILTER_MIN = 12  # entries from which the list has a filter field
 _FILTER_NAME = "comboFilter"
-
-
-class AppStyle(QProxyStyle):
-    """Fusion, with every combo box's list made readable (module docstring)."""
-
-    def __init__(self) -> None:
-        super().__init__("Fusion")
-
-    def polish(self, arg):  # noqa: D401 -- Qt's overloads: QWidget, QPalette or QApplication
-        result = super().polish(arg)
-        if isinstance(arg, QComboBox):
-            prepare(arg)
-        return result
-
-    def styleHint(self, hint, option=None, widget=None, return_data=None):
-        if hint == QStyle.StyleHint.SH_ComboBox_Popup:
-            return 0  # a list below the field, not a menu over it
-        return super().styleHint(hint, option, widget, return_data)
 
 
 def prepare(combo: QComboBox) -> None:

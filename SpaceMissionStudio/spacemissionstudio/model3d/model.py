@@ -376,6 +376,34 @@ def obj_groups(derived: DerivedModel, visible_only: bool = True) -> list[obj_io.
             if p.mesh is not None and (p.visible or not visible_only)]
 
 
+@dataclass(frozen=True)
+class PrincipalAxis:
+    """One principal axis: its moment [kg m^2], unit direction in the body
+    frame, the body axis nearest to it ("+y", "-x", ...) and the angle
+    between them [deg]."""
+
+    moment_kg_m2: float
+    direction: tuple[float, float, float]
+    nearest_body_axis: str
+    off_axis_deg: float
+
+
+def principal_axes(props: mp.MassProperties) -> list[PrincipalAxis]:
+    """The principal axes of ``props``, smallest moment first."""
+    props = tidy(props)
+    moments, axes = props.principal()
+    axes = np.where(np.abs(axes) < 1.0e-9, 0.0, axes) + 0.0  # no "-0.0000"
+    result = []
+    for k in range(3):
+        axis = axes[:, k]
+        biggest = int(np.argmax(np.abs(axis)))
+        angle = math.degrees(math.acos(min(1.0, abs(float(axis[biggest])))))
+        sign = "+" if axis[biggest] >= 0.0 else "-"
+        result.append(PrincipalAxis(float(moments[k]), (float(axis[0]), float(axis[1]), float(axis[2])),
+                                    f"{sign}{'xyz'[biggest]}", angle))
+    return result
+
+
 def principal_summary(props: mp.MassProperties) -> list[str]:
     """Short lines describing mass properties, for the CLI and the editor."""
     props = tidy(props)

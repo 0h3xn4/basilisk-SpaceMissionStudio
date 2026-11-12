@@ -340,6 +340,10 @@ bar and no toolbar:
   (`tests/gui/test_menu_bar.py`). File > Open Recent reads the same list
   as Home. View > Menu Bar hides it (kept with the layout); the
   shortcuts and the palette work without it.
+- **Dialogs fit their text:** every dialog is at least as tall as its
+  layout needs at its width (`gui/theme/dialogs.py`, applied by the
+  application style), so a wrapped line or a button is never cut off,
+  whatever size the window manager gives it.
 - **Drop-down lists:** every combo box's list opens below the field,
   12 rows high with a scroll bar, at least as wide as its longest entry,
   with control-height rows, a hover mark and the current entry selected.
@@ -410,6 +414,8 @@ popovers, tooltips) are `bg.raised` with a 1 px border instead.
 | Time cursor | `time_cursor.TimeCursor`, `ResultsWidget.cursor_actions` | One time shared by the plots, the timeline, the dashboard and the output |
 | Command | `actions.ActionRegistry.add(id, text, handler, category=, area=, shortcut=, tip=)` | Every command of the window: its palette entry, header and top-bar buttons, tooltip ("Save (Ctrl+S)") and shortcut row come from it |
 | Area | `shell.Shell.register(id, icon, label, content, order)`, `AreaPage.add_command(action)` | A top-level area of the navigation rail, hosting a screen, with its commands in its header |
+| Value sheet | `value_sheet.ValueSheet(title, rows=[(name, value, unit)], note=, empty=)` | Several values of one thing, to be read: one row each, the number right-aligned in tabular figures beside its unit, a title and a note (frame, source). Never a sentence of numbers |
+| Value table | `value_sheet.ValueTable(title, headers, rows, numeric=)` | A matrix (an inertia tensor) or a few rows with several columns (principal axes); a long or sortable list is a `DataTable` |
 | Elided label | `app_shell.ElidedLabel` | One line that ends in "..." rather than widening the window; the whole text is its tooltip |
 | Event table | `EventTimelineWidget.table`, a `DataTable` over `event_timeline_widget._EventRows` | Events, sortable; Ctrl+C copies the selection as TSV |
 

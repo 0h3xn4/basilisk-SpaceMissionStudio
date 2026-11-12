@@ -2087,3 +2087,17 @@ skipped or removed.
 |---|---|---|---|
 | `tests/gui/test_shell_reachability.py::test_the_menu_bar_is_gone_and_every_command_is_on_the_window` | renamed `test_the_menu_bar_holds_the_commands_and_every_command_is_on_the_window`; the window had no menu bar, or an empty one | the menu bar holds File, Edit, View, Go, Run, Tools, Help; no toolbar, and every command's action is on the window, as before | The menu bar is back by the owner's request; the shortcuts must still work with it hidden, so the window check stays |
 | `tests/gui/test_design_rules.py::test_the_shortcut_table_matches_the_registry` | unchanged | unchanged; `docs/DESIGN.md`'s table gained Edit > Settings... (`Ctrl+,`) | A new command with a shortcut |
+
+## The orbit-type switch as tables (2026-11-12)
+
+`OrbitSwitchDialog` and `ask_orbit_switch` take the orbits (`OrbitIC`)
+instead of their one-line descriptions, and show each as a table of
+values. Two tests changed how they hand the orbits over; every assertion
+is kept. New: `test_the_question_shows_each_orbit_as_a_table_of_values`
+and `tests/gui/test_readable_values.py` (4 tests).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_orbit_switch.py` (the `answer` fixture) | recorded the strings it was asked with | records `describe_orbit` of the orbits it is asked with, the same strings | The question now receives the orbits |
+| `tests/gui/test_orbit_switch.py::test_switching_to_a_tle_says_why_it_is_not_converted` | the converted orbit was `""` | it is `None` | No conversion is no orbit, not an empty text |
+| `tests/gui/test_orbit_switch.py::test_the_question_offers_convert_only_when_there_is_a_conversion` | the dialog made with strings ("a ...", "r ...") | made with an orbit of classical elements and the converted Cartesian state | The dialog's arguments are orbits |

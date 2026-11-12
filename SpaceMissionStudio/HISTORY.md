@@ -17692,3 +17692,28 @@ fetched, in grey, with a note saying what needs it and that Download...
 gets it, and `needs_attention` leaves it out of the counts. The
 reference-data guide said "the installers fetch it" for the ITU file;
 corrected.
+
+The owner then sent the orbit-type switch, two screenshots ("more ugly,
+broken examples to be fixed"): each paragraph cut after its first line
+and the buttons clipped. Offscreen it laid out whole; on the owner's
+desktop the window manager gave it another width, and Qt does not size a
+window by its wrapped labels' height for width. `gui/theme/dialogs.py`
+fixes it for every dialog: on show and on each width change, the
+dialog's minimum height becomes what its layout needs at that width.
+`AppStyle` moved to `gui/theme/style.py`, preparing combo boxes and
+dialogs as Qt polishes them.
+
+"Raw text is visually always like noise. make the information clear and
+understandable. that applies to everything in the tool," with the 3D
+model editor's mass summary as the example (mass, centre of mass, six
+inertia terms and three principal axes as lines of numbers).
+`gui/value_sheet.py` adds `ValueSheet` (name, value right-aligned in
+tabular figures, unit; a title and a note) and `ValueTable` (a matrix or
+a few rows). The mass summary became a sheet, the inertia a 3 x 3
+matrix and the principal axes a table with each axis's moment, direction
+and nearest body axis (`model3d.principal_axes`); the surface summary a
+sheet of facets, total area and the area seen from each axis. The
+orbit-type switch shows the orbit now, after converting and on the new
+page side by side, one value a row, and says why when nothing converts.
+A design rule in `CLAUDE.md` and `docs/DESIGN.md`: never a sentence of
+numbers. The rest of the app follows, screen by screen.

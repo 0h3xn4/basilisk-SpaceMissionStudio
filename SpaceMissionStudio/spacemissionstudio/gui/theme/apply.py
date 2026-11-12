@@ -36,7 +36,7 @@ from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QApplication, QWidget
 
-from .combo import AppStyle
+from .style import AppStyle
 from . import state
 from .fonts import load_fonts, ui_font
 from .qss import stylesheet
@@ -145,7 +145,7 @@ def apply_theme(app: QApplication, theme: str | None = None) -> str:
     """Apply ``theme`` (``"light"`` or ``"dark"``; None: the theme
     setting) to ``app``, live. Returns the theme applied.
 
-    "Fusion" is the base style (:class:`theme.combo.AppStyle` on top): the one built-in Qt style that renders the
+    "Fusion" is the base style (:class:`theme.style.AppStyle` on top): the one built-in Qt style that renders the
     same on Linux and Windows and that style sheets restyle
     predictably. The sheet is cleared before the new one is set: Qt then
     builds the new rules once instead of diffing every widget against the
@@ -158,7 +158,7 @@ def apply_theme(app: QApplication, theme: str | None = None) -> str:
     # name() is empty: checked then, every switch set Fusion again, a second
     # restyle of every widget. The sheet only ever goes on top of Fusion.
     if not app.styleSheet() and not isinstance(app.style(), AppStyle):
-        app.setStyle(AppStyle())  # Fusion, with readable combo-box lists (theme/combo.py)
+        app.setStyle(AppStyle())  # Fusion, with readable combo-box lists and dialogs (theme/style.py)
     if UI_FONT_FAMILY in load_fonts() and app.font().family() != UI_FONT_FAMILY:
         app.setFont(ui_font())
     app.setPalette(_palette(app))

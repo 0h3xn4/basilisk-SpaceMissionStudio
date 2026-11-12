@@ -47,6 +47,12 @@ very few lines, colour only where it means something.
    header), right-aligned with tabular figures, consistent significant
    figures per quantity; timestamps ISO 8601 UTC with `Z`; values, IDs
    and table selections copyable.
+   **Never a sentence of numbers:** several values of one thing are a
+   `value_sheet.ValueSheet` (name, value, unit per row) or a
+   `ValueTable` (a matrix, a few rows), with a title saying what they
+   are; a long or sortable list is a `DataTable`. Raw text dumps
+   ("a 6928 km, e 0.0, i 97.59 deg, ...") read as noise (the owner,
+   2026-11-12).
 5. **Keyboard first:** Ctrl+K command palette, shortcuts for frequent
    actions shown in tooltips and menus, visible focus everywhere.
 6. **Never freeze:** nothing over about 50 ms on the GUI thread;
