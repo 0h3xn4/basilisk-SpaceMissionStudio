@@ -20,10 +20,10 @@
 #ifndef GROUND_LOCATION_H
 #define GROUND_LOCATION_H
 
-#include <cstdint>
-#include <memory>
 #include "architecture/_GeneralModuleFiles/sys_model.h"
 #include <Eigen/Dense>
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -59,8 +59,10 @@ class SpacecraftLocation : public SysModel
     double theta;           //!< [r] (optional) sensor/communication half-cone angle, must be set if shat_B is specified
     double theta_solar;     //!< [r] (optional) illumination half-cone angle, treating aHat_B as the surface normal
     double theta_view;      //!< [rad] (optional) maximum angle from the surface normal to the tracked spacecraft
-    double min_illumination_factor; //!< [] (optional) minimum amount of illumination due to eclipse necessary to observe
-    double min_shadow_factor;       //!< [] (DEPRECATED) Alias for min_illumination_factor. Use min_illumination_factor instead.
+    double
+        min_illumination_factor; //!< [] (optional) minimum amount of illumination due to eclipse necessary to observe
+    double
+        min_shadow_factor; //!< [] (DEPRECATED) Alias for min_illumination_factor. Use min_illumination_factor instead.
     double glareThreshold; //!< [-] minimum specular alignment classified as glare; defaults to 0.95
     bool useGlareConstraint; //!< [-] if true, detected glare prevents access; defaults to false
 
@@ -71,7 +73,7 @@ class SpacecraftLocation : public SysModel
     std::vector<Message<AccessMsgPayload>*> accessOutMsgs;      //!< vector of ground location access messages
     std::vector<ReadFunctor<SCStatesMsgPayload>> scStateInMsgs; //!< vector of other sc state input messages
     Eigen::Vector3d
-      r_LB_B; //!< [m]  position of the location relative to the spacecraft frame origin B, in B frame components
+        r_LB_B; //!< [m]  position of the location relative to the spacecraft frame origin B, in B frame components
 
     BSKLogger bskLogger; //!< -- BSK Logging
 
@@ -85,7 +87,6 @@ class SpacecraftLocation : public SysModel
 
     Eigen::Matrix3d dcm_PN; //!< Rotation matrix from inertial frame N to planet-centered to planet-fixed frame P
     Eigen::Vector3d r_PN_N; //!< [m] Planet to inertial frame origin vector.
-    Eigen::Vector3d r_BP_P; //!< primary spacecraft relative to planet
     Eigen::Vector3d r_BN_N; //!< primary spacecraft relative to inertial
     double zScale;          //!< ration of rEquator over rPolar, used for affine scaling to turn ellipsoid to sphere
     Eigen::Vector3d r_HN_N; //!< [m] sun position in inertial frame

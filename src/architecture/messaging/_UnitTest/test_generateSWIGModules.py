@@ -98,10 +98,15 @@ def test_package_init_uses_only_cmake_manifest_entries(tmp_path):
     )
     previous_manifest_path = tmp_path / "messagePayloads.previous.txt"
     expected = """\
+from ._load_messages import load_message_module as _load_message_module
+_load_message_module('messagingSupport')
 from Basilisk.architecture.messaging.messagingSupport import *
+_load_message_module('AlphaMsgPayload')
 from Basilisk.architecture.messaging.AlphaMsgPayload import *
+_load_message_module('ZuluMsgPayload')
 from Basilisk.architecture.messaging.ZuluMsgPayload import *
 from Basilisk.architecture.messagingBase import *
+del _load_message_module
 """
 
     output_path = tmp_path / "output"
@@ -117,6 +122,16 @@ from Basilisk.architecture.messagingBase import *
     assert previous_manifest_path.read_text(encoding="utf-8") == (
         "AlphaMsgPayload\nZuluMsgPayload\n"
     )
+    shims = [output_path / f"_{name}.py" for name in (
+        "messagingSupport", "AlphaMsgPayload", "ZuluMsgPayload",
+    )]
+    assert all(path.is_file() for path in shims)
+    original_times = {path: path.stat().st_mtime_ns for path in shims}
+    generatePackageInit.generate_package_init(output_path, manifest_path, previous_manifest_path)
+    assert {path: path.stat().st_mtime_ns for path in shims} == original_times
+    shims[-1].unlink()
+    generatePackageInit.generate_package_init(output_path, manifest_path, previous_manifest_path)
+    assert shims[-1].is_file()
 
 
 def test_package_init_rejects_duplicate_manifest_entries(tmp_path):
@@ -133,6 +148,31 @@ def test_package_init_rejects_duplicate_manifest_entries(tmp_path):
             manifest_path,
             tmp_path / "messagePayloads.previous.txt",
         )
+
+
+def test_package_init_retires_separate_native_libraries(tmp_path):
+    """An incremental upgrade removes old binaries while retaining wrappers."""
+    output_path = tmp_path / "messaging"
+    output_path.mkdir()
+    manifest_path = tmp_path / "messagePayloads.txt"
+    manifest_path.write_text("SCStatesMsgPayload\n", encoding="utf-8")
+    legacy_binaries = [
+        output_path / f"_{name}{suffix}"
+        for name in ("SCStatesMsgPayload", "messagingSupport")
+        for suffix in generatePackageInit.COMPILED_EXTENSION_SUFFIXES
+    ]
+    retained = [output_path / name for name in (
+        "SCStatesMsgPayload.py", "_messagingNative.so", "_messagingNative.pyd",
+        "_load_messages.py", "_UserExtension.so",
+    )]
+    for path in [*legacy_binaries, *retained]:
+        path.write_text("fixture", encoding="utf-8")
+
+    generatePackageInit.generate_package_init(
+        output_path, manifest_path, tmp_path / "messagePayloads.previous.txt",
+    )
+    assert all(not path.exists() for path in legacy_binaries)
+    assert all(path.read_text(encoding="utf-8") == "fixture" for path in retained)
 
 
 def test_package_init_rejects_invalid_manifest_entry(tmp_path):
@@ -172,6 +212,7 @@ def test_package_init_removes_only_stale_payload_artifacts(tmp_path):
     ))
     required_artifacts = {
         module_output_path / f"{removed_payload}.py",
+        module_output_path / f"_{removed_payload}.py",
         module_output_path / f"{removed_payload}PYTHON_wrap.cxx",
         module_output_path / f"_{removed_payload}.so",
         module_output_path / f"_{removed_payload}.pyd",
@@ -216,7 +257,7 @@ def _render_read_functor_namespace():
     """Render the generated ``ReadFunctor`` Python helpers for execution."""
 
     template = NEW_MESSAGING_TEMPLATE.read_text(encoding="utf-8")
-    start = template.index("            def subscribeTo(self, source):")
+    start = template.index("            def _install_keepalive(self, source):")
     end = template.index("        %}", start)
     read_functor_methods = template[start:end]
     read_functor_methods = read_functor_methods.replace("messageType ## _C", "CustomMsg_C")
@@ -227,7 +268,8 @@ def _render_read_functor_namespace():
     namespace = {}
     class_source = "\n".join([
         "class CustomMsg:",
-        "    pass",
+        "    def _storage_owner(self):",
+        "        return self",
         "",
         "class OtherMsg:",
         "    pass",
@@ -240,7 +282,7 @@ def _render_read_functor_namespace():
         "    def __subscribe_to(self, source):",
         "        self.subscribed_to = source",
         "",
-        "    def _install_keepalive(self, source):",
+        "    def _set_source_owner(self, source):",
         "        self.keepalive_source = source",
         "",
         "    def __is_subscribed_to(self, source):",
@@ -283,7 +325,7 @@ def test_generated_message_bindings_use_module_local_classes(tmp_path):
 def test_keepalive_callbacks_skip_python_finalization():
     """Keep-alive callbacks do not acquire the GIL while Python is finalizing."""
 
-    template = NEW_MESSAGING_TEMPLATE.read_text(encoding="utf-8")
+    template = (NEW_MESSAGING_TEMPLATE.parent / "pythonSourceOwner.ih").read_text(encoding="utf-8")
 
     finalizing_guard = (
         "#if PY_VERSION_HEX >= 0x030D0000 && "
@@ -292,9 +334,9 @@ def test_keepalive_callbacks_skip_python_finalization():
     assert finalizing_guard in template
     assert "if (Py_IsFinalizing()) return false;" in template
     assert "_bsk_python_shutting_down.load(std::memory_order_acquire)" in template
-    assert "_bsk_atexit.register(_bsk_mark_python_shutting_down)" in template
+    assert 'PyObject_CallMethod(atexit, "register", "O", callback)' in template
     assert template.count("if (!_bsk_python_runtime_is_usable()) return;") == 2
-    assert "_bsk_readfunctor_acquire(source);" in template
+    assert "_bsk_readfunctor_acquire(source);" in NEW_MESSAGING_TEMPLATE.read_text(encoding="utf-8")
 
 
 def test_generated_interface_hides_read_functor_ownership_operations(tmp_path):

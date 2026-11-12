@@ -18,13 +18,11 @@
  */
 #include "simulation/environment/ephemerisConverter/ephemerisConverter.h"
 #include "architecture/messaging/ownedMessage.h"
-#include "architecture/utilities/linearAlgebra.h"
 #include "architecture/utilities/avsEigenSupport.h"
+#include "architecture/utilities/linearAlgebra.h"
 #include "architecture/utilities/macroDefinitions.h"
 
-EphemerisConverter::EphemerisConverter()
-{
-}
+EphemerisConverter::EphemerisConverter() {}
 
 EphemerisConverter::~EphemerisConverter() = default;
 
@@ -42,13 +40,12 @@ void EphemerisConverter::Reset(uint64_t CurrenSimNanos [[maybe_unused]])
 /*!
  add a planet spice input message
  */
-void EphemerisConverter::addSpiceInputMsg(Message<SpicePlanetStateMsgPayload> *tmpMsg)
+void EphemerisConverter::addSpiceInputMsg(Message<SpicePlanetStateMsgPayload>* tmpMsg)
 {
     this->spiceInMsgs.push_back(tmpMsg->addSubscriber());
 
     /* setup output corresponding message */
     addOwnedMessage(this->ownedEphemOutMsgs, this->ephemOutMsgs);
-
 
     /* update input and output buffers*/
     SpicePlanetStateMsgPayload tmpSpice = {};
@@ -71,24 +68,21 @@ void EphemerisConverter::convertEphemData(uint64_t clockNow [[maybe_unused]])
     double omega_tilde_BN_B[3][3];
     double omega_tilde_BN_B_array[9];
 
-    for (long unsigned int c=0; c < this->spiceInMsgs.size(); c++) {
-        v3Copy(this->spiceInBuffers.at(c).PositionVector,
-               this->ephemOutBuffers.at(c).r_BdyZero_N);
+    for (long unsigned int c = 0; c < this->spiceInMsgs.size(); c++) {
+        v3Copy(this->spiceInBuffers.at(c).PositionVector, this->ephemOutBuffers.at(c).r_BdyZero_N);
 
-        v3Copy(this->spiceInBuffers.at(c).VelocityVector,
-               this->ephemOutBuffers.at(c).v_BdyZero_N);
+        v3Copy(this->spiceInBuffers.at(c).VelocityVector, this->ephemOutBuffers.at(c).v_BdyZero_N);
 
-        this->ephemOutBuffers.at(c).timeTag =
-            static_cast<double>(this->spiceInMsgs.at(c).timeWritten()) * NANO2SEC;
+        this->ephemOutBuffers.at(c).timeTag = static_cast<double>(this->spiceInMsgs.at(c).timeWritten()) * NANO2SEC;
 
         /* Compute sigma_BN */
         dcm_BN = cArray2EigenMatrix3d(*this->spiceInBuffers.at(c).J20002Pfix);
         sigma_BN = eigenC2MRP(dcm_BN);
-        eigenMRPd2CArray(sigma_BN, this->ephemOutBuffers.at(c).sigma_BN); //sigma_BN
+        eigenMRPd2CArray(sigma_BN, this->ephemOutBuffers.at(c).sigma_BN); // sigma_BN
 
         /* Compute omega_BN_B */
         dcm_BN_dot = cArray2EigenMatrix3d(*this->spiceInBuffers.at(c).J20002Pfix_dot);
-        omega_tilde_BN_B_eigen = -dcm_BN_dot*dcm_BN.transpose();
+        omega_tilde_BN_B_eigen = -dcm_BN_dot * dcm_BN.transpose();
         eigenMatrix3d2CArray(omega_tilde_BN_B_eigen, omega_tilde_BN_B_array);
         m33Copy(RECAST3X3 omega_tilde_BN_B_array, omega_tilde_BN_B);
         this->ephemOutBuffers.at(c).omega_BN_B[0] = omega_tilde_BN_B[2][1];
@@ -99,7 +93,7 @@ void EphemerisConverter::convertEphemData(uint64_t clockNow [[maybe_unused]])
 
 void EphemerisConverter::readInputMessages()
 {
-    for (long unsigned int c=0; c < this->spiceInMsgs.size(); c++) {
+    for (long unsigned int c = 0; c < this->spiceInMsgs.size(); c++) {
         this->spiceInBuffers.at(c) = this->spiceInMsgs.at(c)();
     }
 }
@@ -110,11 +104,10 @@ void EphemerisConverter::readInputMessages()
  */
 void EphemerisConverter::writeOutputMessages(uint64_t CurrentSimNanos)
 {
-    for (long unsigned int c=0; c < this->ephemOutMsgs.size(); c++) {
+    for (long unsigned int c = 0; c < this->ephemOutMsgs.size(); c++) {
         this->ephemOutMsgs.at(c)->write(&this->ephemOutBuffers.at(c), this->moduleID, CurrentSimNanos);
     }
 }
-
 
 /*!
     update module states

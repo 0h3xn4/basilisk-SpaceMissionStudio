@@ -25,6 +25,7 @@ or assertion fails.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -161,33 +162,52 @@ def run_build(
     return result.stdout
 
 
-def assert_package_configuration(source_dir: Path, build_dir: Path) -> None:
-    """Check header-only libraries and shared Custom.cmake discovery."""
+def configured_target_names(source_dir: Path, build_dir: Path) -> set[str]:
+    """List generated targets using the generator-independent CMake File API."""
 
-    help_command = [
-        cmake_executable(),
-        "--build",
-        str(build_dir),
-        "--target",
-        "help",
-    ]
-    help_result = subprocess.run(
-        help_command,
+    # Visual Studio and Xcode do not provide the Make/Ninja ``help`` target.
+    api_dir = build_dir / ".cmake/api/v1"
+    client = "client-bsk-incremental-test"
+    query_dir = api_dir / "query" / client
+    query_dir.mkdir(parents=True, exist_ok=True)
+    (query_dir / "codemodel-v2").touch()
+    result = subprocess.run(
+        [cmake_executable(), "-S", str(source_dir), "-B", str(build_dir)],
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
     )
-    if help_result.returncode:
-        raise IncrementalBuildError(
-            f"CMake target listing failed with exit status {help_result.returncode}.\n"
-            f"{help_result.stdout}"
-        )
+    if result.returncode:
+        raise IncrementalBuildError(f"CMake target query failed:\n{result.stdout}")
 
+    reply_dir = api_dir / "reply"
+    indexes = sorted(reply_dir.glob("index-*.json"))
+    if not indexes:
+        raise IncrementalBuildError("CMake did not generate a File API reply index.")
+    try:
+        index = json.loads(indexes[-1].read_text(encoding="utf-8"))
+        reply = index["reply"][client]["codemodel-v2"]
+        codemodel = json.loads((reply_dir / reply["jsonFile"]).read_text(encoding="utf-8"))
+        return {
+            target["name"]
+            for configuration in codemodel["configurations"]
+            for target in configuration["targets"]
+        }
+    except (KeyError, ValueError, OSError) as error:
+        raise IncrementalBuildError(
+            f"Could not read the CMake target query reply: {error}"
+        ) from error
+
+
+def assert_package_configuration(source_dir: Path, build_dir: Path) -> None:
+    """Check header-only libraries and shared Custom.cmake discovery."""
+
+    target_names = configured_target_names(source_dir, build_dir)
     unexpected_libraries = [
         library
         for library in ("communicationLib", "vizardLib")
-        if library in help_result.stdout
+        if library in target_names
     ]
     if unexpected_libraries:
         raise IncrementalBuildError(
@@ -201,8 +221,9 @@ def assert_package_configuration(source_dir: Path, build_dir: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="bsk-cmake-package-") as temporary_dir:
         custom_file_command = [
             cmake_executable(),
-            f"-DBSK_SOURCE_DIR={source_dir}",
-            f"-DTEST_ROOT={temporary_dir}",
+            # CMake compares these values with its forward-slash glob results.
+            f"-DBSK_SOURCE_DIR={source_dir.as_posix()}",
+            f"-DTEST_ROOT={Path(temporary_dir).as_posix()}",
             "-P",
             str(test_script),
         ]
@@ -329,6 +350,123 @@ def assert_no_compilation(
         )
 
 
+def assert_single_message_rebuild(
+    build_dir: Path,
+    targets: tuple[WrapperTarget, ...],
+    parallel: int,
+    configuration: Optional[str],
+) -> None:
+    """Require a message interface change to rebuild only its wrapper object."""
+
+    message_name = "AttRefMsgPayload"
+    interface = build_dir / "autoSource" / f"{message_name}.i"
+    messaging_dir = build_dir / "Basilisk/architecture/messaging"
+    libraries = [
+        path
+        for path in messaging_dir.glob("_messagingNative.*")
+        if path.suffix in {".so", ".pyd"}
+    ]
+    if len(libraries) != 1:
+        raise IncrementalBuildError(
+            f"Expected one combined messaging library, found {libraries}."
+        )
+    library = libraries[0]
+    require_files((interface, library))
+    before = compiled_artifacts(build_dir)
+    library_mtime = library.stat().st_mtime_ns
+    with temporarily_touch(interface, (library,)):
+        run_build(build_dir, targets, parallel, configuration)
+    after = compiled_artifacts(build_dir)
+    changed = [
+        path
+        for path in before.keys() | after.keys()
+        if before.get(path) != after.get(path)
+    ]
+    if len(changed) != 1 or changed[0].name not in {
+        f"{message_name}PYTHON_wrap.cxx.o",
+        f"{message_name}PYTHON_wrap.cxx.obj",
+        f"{message_name}PYTHON_wrap.obj",
+    }:
+        raise IncrementalBuildError(
+            "A single message interface change rebuilt unexpected objects: "
+            + ", ".join(str(path) for path in changed)
+        )
+    if library.stat().st_mtime_ns <= library_mtime:
+        raise IncrementalBuildError("The combined messaging library was not relinked.")
+    print("PASS: one message interface rebuilt only its object and relinked the library.")
+
+
+def assert_single_fsw_rebuild(
+    source_dir: Path,
+    build_dir: Path,
+    targets: tuple[WrapperTarget, ...],
+    parallel: int,
+    configuration: Optional[str],
+) -> None:
+    """Require one FSW edit to rebuild one object and relink the combined library."""
+
+    libraries = [
+        path
+        for path in (build_dir / "Basilisk/fswAlgorithms").glob("_fswCoreNative.*")
+        if path.suffix in {".so", ".pyd"}
+    ]
+    if not libraries:
+        return
+    if len(libraries) != 1:
+        raise IncrementalBuildError(f"Expected one combined FSW library, found {libraries}.")
+    library = libraries[0]
+    for suffix, object_names in (
+        ("c", {"mrpFeedback.c.o", "mrpFeedback.c.obj", "mrpFeedback.obj"}),
+        ("i", {"mrpFeedbackPYTHON_wrap.cxx.o", "mrpFeedbackPYTHON_wrap.cxx.obj",
+               "mrpFeedbackPYTHON_wrap.obj"}),
+    ):
+        source = source_dir / f"fswAlgorithms/attControl/mrpFeedback/mrpFeedback.{suffix}"
+        require_files((source, library))
+        before = compiled_artifacts(build_dir)
+        library_mtime = library.stat().st_mtime_ns
+        with temporarily_touch(source, (library,)):
+            run_build(build_dir, targets, parallel, configuration)
+        after = compiled_artifacts(build_dir)
+        changed = [path for path in before.keys() | after.keys()
+                   if before.get(path) != after.get(path)]
+        if len(changed) != 1 or changed[0].name not in object_names:
+            raise IncrementalBuildError(
+                f"A single FSW .{suffix} edit rebuilt unexpected objects: "
+                + ", ".join(str(path) for path in changed)
+            )
+        if library.stat().st_mtime_ns <= library_mtime:
+            raise IncrementalBuildError("The combined FSW library was not relinked.")
+        print(f"PASS: one FSW .{suffix} edit rebuilt only its object and relinked the library.")
+
+
+def assert_message_initializer_regenerated(
+    source_dir: Path,
+    build_dir: Path,
+    targets: tuple[WrapperTarget, ...],
+    parallel: int,
+    configuration: Optional[str],
+) -> None:
+    """Check that reconfiguration cannot mask a missing generated initializer."""
+
+    initializer = build_dir / "Basilisk/architecture/messaging/__init__.py"
+    initializer.unlink()
+    result = subprocess.run(
+        [cmake_executable(), "-S", str(source_dir), "-B", str(build_dir)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        raise IncrementalBuildError(f"CMake reconfiguration failed:\n{result.stdout}")
+    run_build(build_dir, targets, parallel, configuration)
+    if not initializer.read_text(encoding="utf-8").strip():
+        raise IncrementalBuildError(
+            "CMake left an empty messaging initializer after reconfiguration."
+        )
+    print("PASS: reconfiguring a cleaned package regenerated its messaging initializer.")
+
+
 def run_regression_test(args: argparse.Namespace) -> None:
     """Run positive, negative, and no-change incremental-build checks."""
 
@@ -357,6 +495,12 @@ def run_regression_test(args: argparse.Namespace) -> None:
     after_cpp = modification_times(targets)
     assert_wrappers_unchanged(before_cpp, after_cpp)
     print("PASS: an unrelated .cpp did not regenerate any wrapper.")
+
+    assert_single_message_rebuild(build_dir, targets, args.parallel, args.config)
+    assert_single_fsw_rebuild(source_dir, build_dir, targets, args.parallel, args.config)
+    assert_message_initializer_regenerated(
+        source_dir, build_dir, targets, args.parallel, args.config
+    )
 
     before_unchanged_wrappers = modification_times(targets)
     before_unchanged = compiled_artifacts(build_dir)

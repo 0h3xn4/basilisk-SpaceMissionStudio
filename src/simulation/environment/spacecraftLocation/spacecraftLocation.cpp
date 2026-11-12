@@ -42,7 +42,8 @@ SpacecraftLocation::SpacecraftLocation()
     this->theta_solar = -1.0;
     this->theta_view = -1.0; // [rad] negative disables the viewing-angle requirement
     this->min_illumination_factor = -1.0;
-    this->min_shadow_factor = -2.0;      // Initialize to -2 (different from min_illumination_factor to detect if user sets it
+    this->min_shadow_factor =
+        -2.0;                    // Initialize to -2 (different from min_illumination_factor to detect if user sets it
     this->glareThreshold = 0.95; // [-]
     this->useGlareConstraint = false;
 
@@ -58,11 +59,11 @@ SpacecraftLocation::SpacecraftLocation()
 SpacecraftLocation::~SpacecraftLocation() = default;
 
 /*! Resets the internal position to the specified initial position.*/
-void
-SpacecraftLocation::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
+void SpacecraftLocation::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
 {
     if (this->scStateInMsgs.size() == 0) {
-        bskLogger.bskError("SpacecraftLocation module must have at least one spacecraft added through `addSpacecraftToModel`");
+        bskLogger.bskError(
+            "SpacecraftLocation module must have at least one spacecraft added through `addSpacecraftToModel`");
     }
 
     if (!this->primaryScStateInMsg.isLinked()) {
@@ -102,15 +103,16 @@ SpacecraftLocation::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
     if (this->min_shadow_factor != -2.0) {
         // User set the old variable, so it is mapped to new one and a warning is printed to the user
         this->min_illumination_factor = this->min_shadow_factor;
-        bskLogger.bskLog(BSK_WARNING, "spacecraftLocation: min_shadow_factor is deprecated and will be removed by 12/31/2026. Please use min_illumination_factor.");
+        bskLogger.bskLog(BSK_WARNING,
+                         "spacecraftLocation: min_shadow_factor is deprecated and will be removed by 12/31/2026. "
+                         "Please use min_illumination_factor.");
     }
 }
 
 /*! Adds a scState message name to the vector of names to be subscribed to. Also creates a corresponding access message
  * output name.
  */
-void
-SpacecraftLocation::addSpacecraftToModel(Message<SCStatesMsgPayload>* tmpScMsg)
+void SpacecraftLocation::addSpacecraftToModel(Message<SCStatesMsgPayload>* tmpScMsg)
 {
     this->scStateInMsgs.push_back(tmpScMsg->addSubscriber());
 
@@ -118,14 +120,13 @@ SpacecraftLocation::addSpacecraftToModel(Message<SCStatesMsgPayload>* tmpScMsg)
     addOwnedMessage(this->ownedAccessOutMsgs, this->accessOutMsgs);
 
     /* expand the buffer vector */
-    AccessMsgPayload accMsg;
+    AccessMsgPayload accMsg{};
     this->accessMsgBuffer.push_back(accMsg);
 }
 
 /*! Read module messages
  */
-bool
-SpacecraftLocation::ReadMessages()
+bool SpacecraftLocation::ReadMessages()
 {
     SCStatesMsgPayload scMsg;
 
@@ -182,8 +183,7 @@ SpacecraftLocation::ReadMessages()
 
 /*! write module messages
  */
-void
-SpacecraftLocation::WriteMessages(uint64_t CurrentClock)
+void SpacecraftLocation::WriteMessages(uint64_t CurrentClock)
 {
     //! - write access message for each spacecraft
     for (long unsigned int c = 0; c < this->accessMsgBuffer.size(); c++) {
@@ -193,8 +193,7 @@ SpacecraftLocation::WriteMessages(uint64_t CurrentClock)
 
 /*! compute the spacecraft to spacecraft access messages
  */
-void
-SpacecraftLocation::computeAccess()
+void SpacecraftLocation::computeAccess()
 {
     Eigen::Vector3d r_LP_P; //!< [m] spacecraft Location relative to planet origin vector
 
@@ -212,12 +211,12 @@ SpacecraftLocation::computeAccess()
     r_LP_P = this->dcm_PN * (r_LN_N - this->r_PN_N);
 
     const double surfaceNormalTolerance = 1e-3; // [-]
-    const double vectorNormTolerance = 1e-12; // [m]
+    const double vectorNormTolerance = 1e-12;   // [m]
     // Allow for roundoff in normalization, reflection, and dot products.
     const double glareTolerance = 16.0 * std::numeric_limits<double>::epsilon(); // [-]
     const bool hasSurfaceNormal = this->aHat_B.norm() > surfaceNormalTolerance;
-    Eigen::Vector3d aHat_N;
-    Eigen::Vector3d sunHat_L_N;
+    Eigen::Vector3d aHat_N = Eigen::Vector3d::Zero();
+    Eigen::Vector3d sunHat_L_N = Eigen::Vector3d::Zero();
     double sunIncidenceAngle = 0.0; // [rad]
     if (hasSurfaceNormal) {
         aHat_N = (dcm_NB * this->aHat_B).normalized();
@@ -350,8 +349,7 @@ SpacecraftLocation::computeAccess()
  update module
  @param CurrentSimNanos
  */
-void
-SpacecraftLocation::UpdateState(uint64_t CurrentSimNanos)
+void SpacecraftLocation::UpdateState(uint64_t CurrentSimNanos)
 {
     this->ReadMessages();
     this->computeAccess();

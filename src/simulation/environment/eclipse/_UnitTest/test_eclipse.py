@@ -77,8 +77,10 @@ for these cases.
 The illumination factor obtained through the module is compared to the expected result, which is either trivial or \
 calculated, depending on the eclipse type. Full eclipse and no eclipse illumination factors are compared without the \
 need for computation, since they are just 0.0 and 1.0, respectively. The partial and annular eclipse illumination \
-factors, however, vary between 0.0 and 1.0, based on the cone dimensions, and are calculated using \
-MATLAB and Spice data.
+factors, however, vary between 0.0 and 1.0. The partial-eclipse references use 90-digit disk-overlap \
+calculations for the Spice geometry. In the annular cases the disk of the planet lies inside the solar disk, so the \
+truth value is the visible fraction :math:`1 - (b/a)^2` of the solar disk, where :math:`a` and :math:`b` are the \
+apparent radii of the Sun and the planet.
 
 
 **Test Parameters:**
@@ -257,7 +259,7 @@ def unitEclipse(show_plots, eclipseCondition, planet):
     errTol = 1E-12
     if planet == "earth":
         if eclipseCondition == "partial":
-            truthilluminationFactor = 0.62310760206735027
+            truthilluminationFactor = 0.6231076019959562  # [-]; 90-digit disk-overlap reference
             if not unitTestSupport.isDoubleEqual(eclipseData_0[-1], truthilluminationFactor, errTol):
                 testFailCount += 1
                 testMessages.append("Illumination Factor failed for Earth partial eclipse condition")
@@ -274,14 +276,14 @@ def unitEclipse(show_plots, eclipseCondition, planet):
                 testFailCount += 1
                 testMessages.append("Illumination Factor failed for Earth none eclipse condition")
         elif eclipseCondition == "annular":
-            truthilluminationFactor = 1.497253388113018e-04
+            truthilluminationFactor = 0.9998502746611887  # [-] 1 - (b/a)^2
             if not unitTestSupport.isDoubleEqual(eclipseData_0[-1], truthilluminationFactor, errTol):
                 testFailCount += 1
                 testMessages.append("Illumination Factor failed for Earth annular eclipse condition")
 
     elif planet == "mars":
         if eclipseCondition == "partial":
-            truthilluminationFactor = 0.18745025055615416
+            truthilluminationFactor = 0.1874502503910066  # [-]; 90-digit disk-overlap reference
             if not unitTestSupport.isDoubleEqual(eclipseData_0[-1], truthilluminationFactor, errTol):
                 testFailCount += 1
                 testMessages.append("Illumination Factor failed for Mars partial eclipse condition")
@@ -296,7 +298,7 @@ def unitEclipse(show_plots, eclipseCondition, planet):
                 testFailCount += 1
                 testMessages.append("Illumination Factor failed for Mars none eclipse condition")
         elif eclipseCondition == "annular":
-            truthilluminationFactor = 4.245137380531894e-05
+            truthilluminationFactor = 0.9999575486261947  # [-] 1 - (b/a)^2
             if not unitTestSupport.isDoubleEqual(eclipseData_0[-1], truthilluminationFactor, errTol):
                 testFailCount += 1
                 testMessages.append("Illumination Factor failed for Mars annular eclipse condition")
@@ -408,6 +410,210 @@ def unitEclipseCustom(show_plots):
 
     return [testFailCount, ''.join(testMessages)]
 
+def test_eclipse_uses_spacecraft_state_extrapolated_to_step_midpoint():
+    """
+**Test Description and Success Criteria**
+
+The spacecraft state message read by the module was written at the end of the previous step, so the
+illumination factor lags the interval it is applied to. The module therefore advances the spacecraft position
+with its velocity by half of the message age.
+
+A spacecraft is placed outside the Earth shadow, moving towards it fast enough that the position advanced
+by half a step is inside the shadow. The state is given to one module with its velocity, written at the start
+of the simulation and rewritten one step later, and to a second module as the already advanced position written at the current time. The two
+illumination factors must match, and both must differ from a static spacecraft that does not move.
+
+    """
+    stepSeconds = 10.0  # [s]
+    halfStepShift = np.array([0.0, -4.0e4, 0.0]) * stepSeconds / 2.0  # [m] v * dt / 2
+    rStart = np.array([-7.0e6, 6.50e6, 0.0])  # [m] outside the penumbra, which extends ~35 km beyond the Earth radius
+
+    scSim = SimulationBaseClass.SimBaseClass()
+    proc = scSim.CreateNewProcess("p")
+    proc.addTask(scSim.CreateNewTask("t", macros.sec2nano(stepSeconds)))
+
+    sunPayload = messaging.SpicePlanetStateMsgPayload()
+    sunPayload.PositionVector = [orbitalMotion.AU * 1000.0, 0.0, 0.0]  # [m]
+    sunMsg = messaging.SpicePlanetStateMsg().write(sunPayload)
+    planetPayload = messaging.SpicePlanetStateMsgPayload()
+    planetPayload.PlanetName = "earth"
+    planetMsg = messaging.SpicePlanetStateMsg().write(planetPayload)
+
+    rewrites = []  # (message, payload, [ns] time of the rewrite one step later)
+
+    def stateMsg(r, v, timeNanos):
+        payload = messaging.SCStatesMsgPayload()
+        payload.r_BN_N = r.tolist()
+        payload.v_BN_N = v.tolist()
+        msg = messaging.SCStatesMsg().write(payload, timeNanos)
+        rewrites.append((msg, payload, timeNanos + macros.sec2nano(stepSeconds)))
+        return msg
+
+    withVelocity = stateMsg(rStart, np.array([0.0, -4.0e4, 0.0]), 0)
+    advanced = stateMsg(rStart + halfStepShift, np.zeros(3), macros.sec2nano(stepSeconds))
+    static = stateMsg(rStart, np.zeros(3), 0)
+
+    recorders = []
+    for scMsg in (withVelocity, advanced, static):
+        module = eclipse.Eclipse()
+        module.setExtrapolateScStateToStepMidpoint(True)
+        module.addSpacecraftToModel(scMsg)
+        module.addPlanetToModel(planetMsg)
+        module.sunInMsg.subscribeTo(sunMsg)
+        scSim.AddModelToTask("t", module)
+        recorders.append(module.eclipseOutMsgs[0].recorder())
+        scSim.AddModelToTask("t", recorders[-1])
+
+    scSim.InitializeSimulation()
+    scSim.ConfigureStopTime(macros.sec2nano(stepSeconds))
+    scSim.ExecuteSimulation()
+    # the spacecraft rewrites its state one step later, so that the module observes the spacecraft task period
+    for msg, payload, timeNanos in rewrites:
+        msg.write(payload, timeNanos)
+    scSim.ConfigureStopTime(macros.sec2nano(2 * stepSeconds))
+    scSim.ExecuteSimulation()
+
+    factorVelocity, factorAdvanced, factorStatic = (r.illuminationFactor[-1] for r in recorders)
+    assert factorStatic == pytest.approx(1.0)
+    assert factorAdvanced < 1.0
+    assert factorVelocity == pytest.approx(factorAdvanced, abs=1e-12)
+
+
+@pytest.mark.parametrize("boundaryFraction", [0.0, 0.999])  # [-]
+@pytest.mark.parametrize("distanceBehindEarth", [1.5e9, 1.0e10])  # [m]
+def test_annularEclipseIlluminationFactor(distanceBehindEarth, boundaryFraction):
+    """
+**Test Description and Success Criteria**
+
+A spacecraft is placed beyond the tip of the umbra, which extends about 1.39e9 m behind the Earth,
+so that the disk of the Earth lies entirely inside the solar disk. The spacecraft is either on the
+Earth shadow axis or displaced laterally until the Earth disk nearly touches the edge of the solar disk,
+which checks the annular branch selection just inside the annular/partial boundary. The Sun,
+Earth and spacecraft states are written directly to messages, which makes the truth value independent
+of Spice. Before running the simulation, the test asserts that the setup is annular, i.e. :math:`a > b` and
+:math:`c < a - b`, where :math:`c` is the apparent angular separation of the Sun and Earth centers.
+
+The illumination factor must equal the visible fraction of the solar disk, :math:`1 - (b/a)^2`, where
+:math:`a` and :math:`b` are the apparent radii of the Sun and the Earth seen from the spacecraft, and not
+the occulted fraction :math:`(b/a)^2`.
+
+**Test Parameters:**
+
+- ``distanceBehindEarth``: [m]
+  distance of the spacecraft from the Earth along the shadow axis
+- ``boundaryFraction``: [-]
+  target value of :math:`c / (a - b)`, where 0 places the spacecraft on the shadow axis and values
+  close to 1 place it just inside the annular/partial boundary
+
+**Description of Variables Being Tested**
+
+The ``illuminationFactor`` of the eclipse output message is compared to the analytic truth value.
+
+    """
+    sunDistance = orbitalMotion.AU * 1000.0  # [m]
+    r_HN_N = np.array([sunDistance, 0.0, 0.0])  # [m]
+    # small-angle lateral offset giving c = boundaryFraction * (a - b), with c ~ h * AU / (d * (AU + d))
+    aAxis = np.arcsin(orbitalMotion.REQ_SUN * 1000.0 / (sunDistance + distanceBehindEarth))  # [rad]
+    bAxis = np.arcsin(orbitalMotion.REQ_EARTH * 1000.0 / distanceBehindEarth)  # [rad]
+    lateralOffset = (boundaryFraction * (aAxis - bAxis) * distanceBehindEarth
+                     * (sunDistance + distanceBehindEarth) / sunDistance)  # [m]
+    r_BN_N = np.array([-distanceBehindEarth, lateralOffset, 0.0])  # [m]
+
+    # verify that the setup produces an annular eclipse before testing the illumination factor
+    earthRadius = orbitalMotion.REQ_EARTH * 1000.0  # [m]
+    r_HB_N = r_HN_N - r_BN_N  # [m]
+    a = np.arcsin(orbitalMotion.REQ_SUN * 1000.0 / np.linalg.norm(r_HB_N))  # [rad]
+    b = np.arcsin(earthRadius / np.linalg.norm(r_BN_N))  # [rad]
+    c = np.arccos(np.clip(np.dot(-r_BN_N, r_HB_N) / (np.linalg.norm(r_BN_N) * np.linalg.norm(r_HB_N)),
+                          -1.0, 1.0))  # [rad]
+    assert a > b, "the apparent solar disk must be larger than the apparent Earth disk"
+    assert c < a - b, "the apparent Earth disk must lie entirely inside the apparent solar disk"
+    if boundaryFraction > 0.0:
+        assert c > 0.99 * (a - b), "the apparent Earth disk must lie close to the edge of the apparent solar disk"
+
+    scSim = SimulationBaseClass.SimBaseClass()
+    proc = scSim.CreateNewProcess("p")
+    proc.addTask(scSim.CreateNewTask("t", macros.sec2nano(1.0)))
+
+    sunPayload = messaging.SpicePlanetStateMsgPayload()
+    sunPayload.PositionVector = r_HN_N.tolist()  # [m]
+    sunMsg = messaging.SpicePlanetStateMsg().write(sunPayload)
+    planetPayload = messaging.SpicePlanetStateMsgPayload()
+    planetPayload.PlanetName = "earth"
+    planetMsg = messaging.SpicePlanetStateMsg().write(planetPayload)
+    scPayload = messaging.SCStatesMsgPayload()
+    scPayload.r_BN_N = r_BN_N.tolist()  # [m]
+    scMsg = messaging.SCStatesMsg().write(scPayload)
+
+    module = eclipse.Eclipse()
+    module.addSpacecraftToModel(scMsg)
+    module.addPlanetToModel(planetMsg)
+    module.sunInMsg.subscribeTo(sunMsg)
+    scSim.AddModelToTask("t", module)
+    dataLog = module.eclipseOutMsgs[0].recorder()
+    scSim.AddModelToTask("t", dataLog)
+
+    scSim.InitializeSimulation()
+    scSim.ConfigureStopTime(0)
+    scSim.ExecuteSimulation()
+
+    truthIlluminationFactor = 1.0 - (b / a) ** 2  # [-]
+
+    illuminationFactor = dataLog.illuminationFactor[-1]
+    assert illuminationFactor == pytest.approx(truthIlluminationFactor, abs=1e-12)
+
+
+@pytest.mark.parametrize("planet_position, expected", [
+    ([999993679.4706187, 3601992.8113699565, 0.0], 0.9527438872831191),
+    ([999989586.6835788, 4599984.544014549, 0.0], 0.9774618756925696),
+    ([999984497.9029931, 5597971.695056517, 0.0], 0.9999977010514973),
+    ([217392071.00718537, 2000.0070533225326, 0.0], 0.0012732393325285839),
+    ([217389771.01232973, 1000000.0, 0.0], 0.6089977810442294),
+    ([217382889.43943638, 1997978.917539052, 0.0], 0.9999620450256266),
+    ([416572.5417065085, 998098.1231553757, 0.0], 5.377317289458809e-05),
+    ([411986.0992195054, 1000000.0000000001, 0.0], 0.5004136231731278),
+    ([407390.9739575249, 1001880.801436999, 0.0], 0.9999464357937793),
+])  # Planet position [m], visible fraction [-].
+@pytest.mark.parametrize("perturbation", [-1, 0, 1])
+def test_partial_eclipse_disk_overlap(planet_position, expected, perturbation):
+    """Check disk overlap against 90-digit references without SPICE.
+
+    Apparent planet radii of 0.001, 0.0046, and 1.18 rad bracket the Sun's
+    0.0046 rad radius. Each set samples 0.1%, 50%, and 99.9% of the partial
+    eclipse interval between internal and external tangency. References use
+    the exact binary64 positions below and the disk-intersection area formula
+    evaluated with 90-digit arithmetic. Moving the position components by one
+    representable step must preserve the visible fraction to absolute 5e-13.
+    """
+    sun_position = [151087489356.38785, 0.0, 0.0]  # [m]
+    position = np.asarray(planet_position)
+    if perturbation:
+        position = np.nextafter(position, np.copysign(np.inf, perturbation))
+    sun_payload = messaging.SpicePlanetStateMsgPayload()
+    sun_payload.PositionVector = sun_position
+    sun_msg = messaging.SpicePlanetStateMsg().write(sun_payload)
+    planet_payload = messaging.SpicePlanetStateMsgPayload()
+    planet_payload.PlanetName = "custom"
+    planet_payload.PositionVector = position.tolist()
+    planet_msg = messaging.SpicePlanetStateMsg().write(planet_payload)
+    spacecraft_msg = messaging.SCStatesMsg().write(messaging.SCStatesMsgPayload())
+
+    module = eclipse.Eclipse()
+    module.rEqCustom = 1.0e6  # [m]
+    module.addSpacecraftToModel(spacecraft_msg)
+    module.addPlanetToModel(planet_msg)
+    module.sunInMsg.subscribeTo(sun_msg)
+    recorder = module.eclipseOutMsgs[0].recorder()
+    module.Reset(0)
+    recorder.Reset(0)
+    module.UpdateState(0)
+    recorder.UpdateState(0)
+
+    actual = recorder.illuminationFactor[-1]
+    assert 0.0 <= actual <= 1.0
+    assert actual == pytest.approx(expected, rel=0.0, abs=5e-13)
+
+
 def test_shadow_vs_illumination_alias_and_deprecation_behavior():
     """
     Check aliasing and deprecation behavior for EclipseMsgPayload.
@@ -447,5 +653,6 @@ def test_shadow_vs_illumination_alias_and_deprecation_behavior():
 
 if __name__ == "__main__":
     unitEclipse(False, "annular", "mars")
+    test_annularEclipseIlluminationFactor(1.5e9, 0.0)  # [m], [-]
     unitEclipseCustom(False)
     test_shadow_vs_illumination_alias_and_deprecation_behavior()

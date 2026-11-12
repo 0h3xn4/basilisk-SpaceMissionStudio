@@ -53,11 +53,7 @@ void ArrayMotorTorqueToSingleActuators::Reset(uint64_t CurrentSimNanos)
     for (uint32_t i = 0; i < this->numActuators; ++i) {
 
         outPayload.input = 0.0;
-        this->actuatorOutMsgs[i].write(
-            &outPayload,
-            this->moduleID,
-            CurrentSimNanos
-        );
+        this->actuatorOutMsgs[i].write(&outPayload, this->moduleID, CurrentSimNanos);
     }
 }
 
@@ -66,13 +62,8 @@ void ArrayMotorTorqueToSingleActuators::UpdateState(uint64_t CurrentSimNanos)
     ArrayMotorTorqueMsgPayload inPayload = this->torqueInMsg();
     SingleActuatorMsgPayload outPayload = {};
 
-    for (uint32_t i = 0; i < this->numActuators; ++i)
-    {
+    for (uint32_t i = 0; i < this->numActuators; ++i) {
         outPayload.input = inPayload.motorTorque[i];
-        this->actuatorOutMsgs[i].write(
-            &outPayload,
-            this->moduleID,
-            CurrentSimNanos
-        );
+        this->actuatorOutMsgs[i].write(&outPayload, this->moduleID, CurrentSimNanos);
     }
 }

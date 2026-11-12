@@ -21,8 +21,9 @@
 #include "architecture/messaging/ownedMessage.h"
 #include "architecture/utilities/avsEigenSupport.h"
 #include "architecture/utilities/rigidBodyKinematics.h"
-#include <string>
+#include <cassert>
 #include <cmath>
+#include <string>
 
 /*! This is the constructor, setting variables to default values */
 LinearTranslationNDOFStateEffector::LinearTranslationNDOFStateEffector()
@@ -46,7 +47,8 @@ uint64_t LinearTranslationNDOFStateEffector::effectorID = 1;
 /*! This is the destructor, releasing the per body output messages */
 LinearTranslationNDOFStateEffector::~LinearTranslationNDOFStateEffector() = default;
 
-void TranslatingBody::setMass(double mass) {
+void TranslatingBody::setMass(double mass)
+{
     if (std::isfinite(mass) && mass >= 0.0)
         this->mass = mass;
     else {
@@ -54,16 +56,17 @@ void TranslatingBody::setMass(double mass) {
     }
 }
 
-void TranslatingBody::setFHat_P(Eigen::Vector3d fHat_P) {
+void TranslatingBody::setFHat_P(Eigen::Vector3d fHat_P)
+{
     if (fHat_P.allFinite() && fHat_P.stableNorm() > 0.01) {
         this->fHat_P = (fHat_P / fHat_P.cwiseAbs().maxCoeff()).normalized();
-    }
-    else {
+    } else {
         this->bskLogger.bskError("Norm of fHat must exceed 0.01 and all components must be finite.");
     }
 }
 
-void TranslatingBody::setK(double k) {
+void TranslatingBody::setK(double k)
+{
     if (std::isfinite(k) && k >= 0.0)
         this->k = k;
     else {
@@ -71,7 +74,8 @@ void TranslatingBody::setK(double k) {
     }
 }
 
-void TranslatingBody::setC(double c) {
+void TranslatingBody::setC(double c)
+{
     if (std::isfinite(c) && c >= 0.0)
         this->c = c;
     else {
@@ -92,7 +96,8 @@ void LinearTranslationNDOFStateEffector::Reset(uint64_t CurrentClock [[maybe_unu
  *
  * @param[in] newBody Translating-body configuration to add.
  */
-void LinearTranslationNDOFStateEffector::addTranslatingBody(const std::shared_ptr<TranslatingBody> newBody) {
+void LinearTranslationNDOFStateEffector::addTranslatingBody(const std::shared_ptr<TranslatingBody> newBody)
+{
     this->requireMutableTopology("LinearTranslationNDOFStateEffector::addTranslatingBody");
     // Pushback new body
     translatingBodyVec.push_back(newBody);
@@ -104,9 +109,9 @@ void LinearTranslationNDOFStateEffector::addTranslatingBody(const std::shared_pt
     this->translatingBodyRefInMsgs.push_back(ReadFunctor<LinearTranslationRigidBodyMsgPayload>());
 
     // resize A B and C
-    this->ARho.conservativeResize(this->ARho.rows()+1, 3);
-    this->BRho.conservativeResize(this->BRho.rows()+1, 3);
-    this->CRho.conservativeResize(this->CRho.rows()+1);
+    this->ARho.conservativeResize(this->ARho.rows() + 1, 3);
+    this->BRho.conservativeResize(this->BRho.rows() + 1, 3);
+    this->CRho.conservativeResize(this->CRho.rows() + 1);
 
     const std::string bodySuffix = this->propertyNameIndex + "_" + std::to_string(this->N);
     newBody->nameOfInertialPositionProperty = "linearTranslationInertialPosition" + bodySuffix;
@@ -119,8 +124,9 @@ void LinearTranslationNDOFStateEffector::addTranslatingBody(const std::shared_pt
  *
  * @param[in] index Zero-based body index.
  */
-std::shared_ptr<TranslatingBody> LinearTranslationNDOFStateEffector::getTranslatingBody(uint64_t index) {
-    assert(("Index must be less than the number of translating body axes", index < static_cast<uint64_t>(this->N)));
+std::shared_ptr<TranslatingBody> LinearTranslationNDOFStateEffector::getTranslatingBody(uint64_t index)
+{
+    assert(index < static_cast<uint64_t>(this->N) && "Index must be less than the number of translating body axes");
 
     return this->translatingBodyVec.at(index);
 }
@@ -133,7 +139,7 @@ void LinearTranslationNDOFStateEffector::readInputMessages()
         ArrayMotorForceMsgPayload incomingCmdBuffer;
         incomingCmdBuffer = this->motorForceInMsg();
         size_t i = 0;
-        for(auto& translatingBody: this->translatingBodyVec) {
+        for (auto& translatingBody : this->translatingBodyVec) {
             translatingBody->u = incomingCmdBuffer.motorForce[i];
             i++;
         }
@@ -144,15 +150,16 @@ void LinearTranslationNDOFStateEffector::readInputMessages()
         ArrayEffectorLockMsgPayload incomingLockBuffer;
         incomingLockBuffer = this->motorLockInMsg();
         size_t i = 0;
-        for(auto& translatingBody: this->translatingBodyVec) {
+        for (auto& translatingBody : this->translatingBodyVec) {
             translatingBody->isAxisLocked = incomingLockBuffer.effectorLockFlag[i];
             i++;
         }
     }
 
     size_t translatingBodyIndex = 0;
-    for(auto& translatingBody: this->translatingBodyVec) {
-        if (this->translatingBodyRefInMsgs[translatingBodyIndex].isLinked() && this->translatingBodyRefInMsgs[translatingBodyIndex].isWritten()) {
+    for (auto& translatingBody : this->translatingBodyVec) {
+        if (this->translatingBodyRefInMsgs[translatingBodyIndex].isLinked() &&
+            this->translatingBodyRefInMsgs[translatingBodyIndex].isWritten()) {
             LinearTranslationRigidBodyMsgPayload incomingRefBuffer;
             incomingRefBuffer = this->translatingBodyRefInMsgs[translatingBodyIndex]();
             translatingBody->rhoRef = incomingRefBuffer.rho;
@@ -174,7 +181,7 @@ void LinearTranslationNDOFStateEffector::writeOutputStateMessages(uint64_t Curre
     size_t i = 0;
     LinearTranslationRigidBodyMsgPayload translatingBodyBuffer;
     SCStatesMsgPayload configLogMsg;
-    for(auto& translatingBody: this->translatingBodyVec) {
+    for (auto& translatingBody : this->translatingBodyVec) {
         if (this->translatingBodyOutMsgs[i]->isLinked()) {
             translatingBodyBuffer = this->translatingBodyOutMsgs[i]->zeroMsgPayload;
             translatingBodyBuffer.rho = translatingBody->rho;
@@ -210,15 +217,13 @@ void LinearTranslationNDOFStateEffector::linkInStates(DynParamManager& states)
 
 /*! This method runs every configuration check. Spacecraft initialization always reaches it through
  registerStates(), whereas Reset() runs only when the effector is also added to a task */
-void
-LinearTranslationNDOFStateEffector::validateConfiguration()
+void LinearTranslationNDOFStateEffector::validateConfiguration()
 {
     for (auto& translatingBody : this->translatingBodyVec) {
         if (translatingBody->fHat_P.allFinite() && translatingBody->fHat_P.stableNorm() > 0.0) {
-            translatingBody->fHat_P = (translatingBody->fHat_P /
-                                      translatingBody->fHat_P.cwiseAbs().maxCoeff()).normalized();
-        }
-        else {
+            translatingBody->fHat_P =
+                (translatingBody->fHat_P / translatingBody->fHat_P.cwiseAbs().maxCoeff()).normalized();
+        } else {
             bskLogger.bskError("Norm of fHat must be greater than 0. fHat may not have been set by the user.");
         }
     }
@@ -228,8 +233,7 @@ LinearTranslationNDOFStateEffector::validateConfiguration()
 }
 
 /*! This method checks each translating body's user set frame and inertia */
-void
-LinearTranslationNDOFStateEffector::checkBodyConfiguration()
+void LinearTranslationNDOFStateEffector::checkBodyConfiguration()
 {
     if (this->translatingBodyVec.empty()) {
         bskLogger.bskError("LinearTranslationNDOFStateEffector: at least one translating body is required.");
@@ -257,9 +261,9 @@ LinearTranslationNDOFStateEffector::checkBodyConfiguration()
             bskLogger.bskError("LinearTranslationNDOFStateEffector: IPntFc_F must contain only finite values.");
         }
         if (!eigenIsRotationMatrix(translatingBody->dcm_FP)) {
-            bskLogger.bskError(
-              "LinearTranslationNDOFStateEffector: a translating body's dcm_FP is not a valid rotation matrix; it must "
-              "be orthogonal and right-handed. It may not have been set properly by the user.");
+            bskLogger.bskError("LinearTranslationNDOFStateEffector: a translating body's dcm_FP is not a valid "
+                               "rotation matrix; it must "
+                               "be orthogonal and right-handed. It may not have been set properly by the user.");
         }
         // a massless body legitimately carries a zero inertia tensor, so only check when its mass > 0
         if (translatingBody->mass > 0.0 && !eigenIsValidInertiaMatrix(translatingBody->IPntFc_F)) {
@@ -270,8 +274,7 @@ LinearTranslationNDOFStateEffector::checkBodyConfiguration()
 }
 
 /*! This method checks that the joint mass matrix the equations of motion invert is not singular */
-void
-LinearTranslationNDOFStateEffector::checkJointMassMatrix()
+void LinearTranslationNDOFStateEffector::checkJointMassMatrix()
 {
     // the axes are fixed in their parents and a translating body does not rotate, so the matrix
     // never changes during the integration and the equations of motion can build it here
@@ -303,12 +306,12 @@ void LinearTranslationNDOFStateEffector::registerStates(DynParamManager& statesI
     // Register the rho states
     this->rhoState = statesIn.registerState(static_cast<uint32_t>(N), 1, this->nameOfRhoState);
     this->rhoDotState = statesIn.registerState(static_cast<uint32_t>(N), 1, this->nameOfRhoDotState);
-    Eigen::MatrixXd RhoInitMatrix(N,1);
-    Eigen::MatrixXd RhoDotInitMatrix(N,1);
+    Eigen::MatrixXd RhoInitMatrix(N, 1);
+    Eigen::MatrixXd RhoDotInitMatrix(N, 1);
     int i = 0;
-    for(const auto& translatingBody: this->translatingBodyVec) {
-        RhoInitMatrix(i,0) = translatingBody->rhoInit;
-        RhoDotInitMatrix(i,0) = translatingBody->rhoDotInit;
+    for (const auto& translatingBody : this->translatingBodyVec) {
+        RhoInitMatrix(i, 0) = translatingBody->rhoInit;
+        RhoDotInitMatrix(i, 0) = translatingBody->rhoDotInit;
         i++;
     }
     this->rhoState->setState(RhoInitMatrix);
@@ -321,8 +324,7 @@ void LinearTranslationNDOFStateEffector::registerStates(DynParamManager& statesI
 
  @param newDynamicEffector the dynamic effector to be attached
  @param segment the translating body to attach to, counting outward from the hub starting at 1 */
-void
-LinearTranslationNDOFStateEffector::addDynamicEffector(DynamicEffector* newDynamicEffector, int segment)
+void LinearTranslationNDOFStateEffector::addDynamicEffector(DynamicEffector* newDynamicEffector, int segment)
 {
     if (segment <= 0 || segment > this->N) {
         bskLogger.bskError("LinearTranslationNDOFStateEffector: specifying attachment to a "
@@ -339,8 +341,7 @@ LinearTranslationNDOFStateEffector::addDynamicEffector(DynamicEffector* newDynam
  manager and links them into dependent dynamic effectors
 
  @param states the dynamic parameter manager holding the published properties */
-void
-LinearTranslationNDOFStateEffector::registerProperties(DynParamManager& states)
+void LinearTranslationNDOFStateEffector::registerProperties(DynParamManager& states)
 {
     const Eigen::Vector3d stateInit = Eigen::Vector3d::Zero();
     for (auto& translatingBody : this->translatingBodyVec) {
@@ -348,7 +349,7 @@ LinearTranslationNDOFStateEffector::registerProperties(DynParamManager& states)
         translatingBody->v_FN_N = states.createProperty(translatingBody->nameOfInertialVelocityProperty, stateInit);
         translatingBody->sigma_FN = states.createProperty(translatingBody->nameOfInertialAttitudeProperty, stateInit);
         translatingBody->omega_FN_F =
-          states.createProperty(translatingBody->nameOfInertialAngVelocityProperty, stateInit);
+            states.createProperty(translatingBody->nameOfInertialAngVelocityProperty, stateInit);
 
         for (auto& dynEffector : translatingBody->dynEffectors) {
             dynEffector->linkInProperties(states);
@@ -370,7 +371,7 @@ void LinearTranslationNDOFStateEffector::updateEffectorMassProps(double integTim
     this->effProps.IEffPrimePntB_B = Eigen::Matrix3d::Zero();
 
     int i = 0;
-    for(auto& translatingBody: this->translatingBodyVec) {
+    for (auto& translatingBody : this->translatingBodyVec) {
         const size_t bodyIndex = static_cast<size_t>(i);
         if (translatingBody->isAxisLocked) {
             auto rhoDotVector = this->rhoDotState->getState();
@@ -390,10 +391,9 @@ void LinearTranslationNDOFStateEffector::updateEffectorMassProps(double integTim
             translatingBody->fHat_B = translatingBody->fHat_P;
         } else {
             const size_t previousBodyIndex = bodyIndex - 1;
-            translatingBody->dcm_FB = translatingBody->dcm_FP
-                * this->translatingBodyVec[previousBodyIndex]->dcm_FB;
-            translatingBody->fHat_B = this->translatingBodyVec[previousBodyIndex]->dcm_FB.transpose()
-                * translatingBody->fHat_P;
+            translatingBody->dcm_FB = translatingBody->dcm_FP * this->translatingBodyVec[previousBodyIndex]->dcm_FB;
+            translatingBody->fHat_B =
+                this->translatingBodyVec[previousBodyIndex]->dcm_FB.transpose() * translatingBody->fHat_P;
         }
         translatingBody->r_FF0_B = translatingBody->rho * translatingBody->fHat_B;
 
@@ -406,19 +406,20 @@ void LinearTranslationNDOFStateEffector::updateEffectorMassProps(double integTim
             translatingBody->r_FB_B = translatingBody->r_FP_B;
         } else {
             const size_t previousBodyIndex = bodyIndex - 1;
-            translatingBody->r_F0P_B = this->translatingBodyVec[previousBodyIndex]->dcm_FB.transpose()
-                * translatingBody->r_F0P_P;
+            translatingBody->r_F0P_B =
+                this->translatingBodyVec[previousBodyIndex]->dcm_FB.transpose() * translatingBody->r_F0P_P;
             translatingBody->r_FP_B = translatingBody->r_F0P_B + translatingBody->r_FF0_B;
-            translatingBody->r_FB_B = translatingBody->r_FP_B
-                + this->translatingBodyVec[previousBodyIndex]->r_FB_B;
+            translatingBody->r_FB_B = translatingBody->r_FP_B + this->translatingBodyVec[previousBodyIndex]->r_FB_B;
         }
         translatingBody->r_FcB_B = translatingBody->r_FcF_B + translatingBody->r_FB_B;
         this->effProps.rEff_CB_B += translatingBody->mass * translatingBody->r_FcB_B;
 
         // Find the inertia of the bodies about point B
         translatingBody->rTilde_FcB_B = eigenTilde(translatingBody->r_FcB_B);
-        translatingBody->IPntFc_B = translatingBody->dcm_FB.transpose() * translatingBody->IPntFc_F * translatingBody->dcm_FB;
-        this->effProps.IEffPntB_B += translatingBody->IPntFc_B - translatingBody->mass * translatingBody->rTilde_FcB_B * translatingBody->rTilde_FcB_B;
+        translatingBody->IPntFc_B =
+            translatingBody->dcm_FB.transpose() * translatingBody->IPntFc_F * translatingBody->dcm_FB;
+        this->effProps.IEffPntB_B += translatingBody->IPntFc_B - translatingBody->mass * translatingBody->rTilde_FcB_B *
+                                                                     translatingBody->rTilde_FcB_B;
 
         // Find rPrime_FcB_B
         translatingBody->rPrime_FcF_B = Eigen::Vector3d::Zero();
@@ -427,8 +428,8 @@ void LinearTranslationNDOFStateEffector::updateEffectorMassProps(double integTim
         if (i == 0) {
             translatingBody->rPrime_FB_B = translatingBody->rPrime_FP_B;
         } else {
-            translatingBody->rPrime_FB_B = translatingBody->rPrime_FP_B
-                + this->translatingBodyVec[bodyIndex - 1]->rPrime_FB_B;
+            translatingBody->rPrime_FB_B =
+                translatingBody->rPrime_FP_B + this->translatingBodyVec[bodyIndex - 1]->rPrime_FB_B;
         }
         translatingBody->rPrime_FcB_B = translatingBody->rPrime_FcF_B + translatingBody->rPrime_FB_B;
         this->effProps.rEffPrime_CB_B += translatingBody->mass * translatingBody->rPrime_FcB_B;
@@ -436,7 +437,9 @@ void LinearTranslationNDOFStateEffector::updateEffectorMassProps(double integTim
         // Find the body-frame time derivative of the inertia of each arm and the entire spacecraft
         translatingBody->IPrimePntFc_B = Eigen::Matrix3d::Zero();
         Eigen::Matrix3d rPrimeTilde_FcB_B = eigenTilde(translatingBody->rPrime_FcB_B);
-        this->effProps.IEffPrimePntB_B += translatingBody->IPrimePntFc_B - translatingBody->mass * (rPrimeTilde_FcB_B * translatingBody->rTilde_FcB_B + translatingBody->rTilde_FcB_B * rPrimeTilde_FcB_B);
+        this->effProps.IEffPrimePntB_B += translatingBody->IPrimePntFc_B -
+                                          translatingBody->mass * (rPrimeTilde_FcB_B * translatingBody->rTilde_FcB_B +
+                                                                   translatingBody->rTilde_FcB_B * rPrimeTilde_FcB_B);
 
         i++;
     }
@@ -453,7 +456,11 @@ void LinearTranslationNDOFStateEffector::updateEffectorMassProps(double integTim
  * @param[in] omega_BN_B [rad/s] Hub angular velocity expressed in body-frame components.
  * @param[in] g_N [m/s^2] Gravitational acceleration expressed in inertial-frame components.
  */
-void LinearTranslationNDOFStateEffector::updateContributions(double integTime, BackSubMatrices & backSubContr, Eigen::MRPd sigma_BN, Eigen::Vector3d omega_BN_B, Eigen::Vector3d g_N)
+void LinearTranslationNDOFStateEffector::updateContributions(double integTime,
+                                                             BackSubMatrices& backSubContr,
+                                                             Eigen::MRPd sigma_BN,
+                                                             Eigen::Vector3d omega_BN_B,
+                                                             Eigen::Vector3d g_N)
 {
     // Find the DCM from N to B frames
     this->sigma_BN = sigma_BN;
@@ -494,8 +501,7 @@ void LinearTranslationNDOFStateEffector::updateContributions(double integTime, B
 
  @param backSubContr the Backsubstitution contributions this effector adds to the hub
  @param integTime the integration time the attached effectors evaluate their loads at */
-void
-LinearTranslationNDOFStateEffector::computeDependentEffectors(BackSubMatrices& backSubContr, double integTime)
+void LinearTranslationNDOFStateEffector::computeDependentEffectors(BackSubMatrices& backSubContr, double integTime)
 {
     for (auto& translatingBody : this->translatingBodyVec) {
         translatingBody->extForce_B.setZero();
@@ -510,7 +516,7 @@ LinearTranslationNDOFStateEffector::computeDependentEffectors(BackSubMatrices& b
 
         backSubContr.vecTrans += translatingBody->extForce_B;
         backSubContr.vecRot +=
-          translatingBody->extTorquePntF_B + translatingBody->r_FB_B.cross(translatingBody->extForce_B);
+            translatingBody->extTorquePntF_B + translatingBody->r_FB_B.cross(translatingBody->extForce_B);
     }
 }
 
@@ -520,18 +526,18 @@ LinearTranslationNDOFStateEffector::computeDependentEffectors(BackSubMatrices& b
  */
 void LinearTranslationNDOFStateEffector::computeMRho(Eigen::MatrixXd& MRho)
 {
-    for (int n = 0; n<this->N; n++) {
+    for (int n = 0; n < this->N; n++) {
         const size_t nIndex = static_cast<size_t>(n);
-        for (int i = 0; i<this->N; i++) {
+        for (int i = 0; i < this->N; i++) {
             const size_t iIndex = static_cast<size_t>(i);
-            MRho(n,i) = 0.0;
-            if ((this->translatingBodyVec[nIndex]->isAxisLocked
-                 || this->translatingBodyVec[iIndex]->isAxisLocked) && n != i)
+            MRho(n, i) = 0.0;
+            if ((this->translatingBodyVec[nIndex]->isAxisLocked || this->translatingBodyVec[iIndex]->isAxisLocked) &&
+                n != i)
                 continue;
-            for (int j = (i<=n) ? n : i; j<this->N; j++) {
-                MRho(n,i) += this->translatingBodyVec[nIndex]->fHat_B.transpose()
-                    * this->translatingBodyVec[static_cast<size_t>(j)]->mass
-                    * this->translatingBodyVec[iIndex]->fHat_B;
+            for (int j = (i <= n) ? n : i; j < this->N; j++) {
+                MRho(n, i) += this->translatingBodyVec[nIndex]->fHat_B.transpose() *
+                              this->translatingBodyVec[static_cast<size_t>(j)]->mass *
+                              this->translatingBodyVec[iIndex]->fHat_B;
             }
         }
     }
@@ -541,16 +547,15 @@ void LinearTranslationNDOFStateEffector::computeMRho(Eigen::MatrixXd& MRho)
  *
  * @param[out] ARhoStar A-rho-star Backsubstitution matrix.
  */
-void
-LinearTranslationNDOFStateEffector::computeARhoStar(Eigen::MatrixX3d& ARhoStar)
+void LinearTranslationNDOFStateEffector::computeARhoStar(Eigen::MatrixX3d& ARhoStar)
 {
-    for (int n = 0; n<this->N; n++) {
+    for (int n = 0; n < this->N; n++) {
         const size_t nIndex = static_cast<size_t>(n);
         if (this->translatingBodyVec[nIndex]->isAxisLocked)
             continue;
-        for (int i = n; i<this->N; i++) {
-            ARhoStar.row(n) -= this->translatingBodyVec[nIndex]->fHat_B.transpose()
-                * this->translatingBodyVec[static_cast<size_t>(i)]->mass;
+        for (int i = n; i < this->N; i++) {
+            ARhoStar.row(n) -= this->translatingBodyVec[nIndex]->fHat_B.transpose() *
+                               this->translatingBodyVec[static_cast<size_t>(i)]->mass;
         }
     }
 }
@@ -559,19 +564,18 @@ LinearTranslationNDOFStateEffector::computeARhoStar(Eigen::MatrixX3d& ARhoStar)
  *
  * @param[out] BRhoStar B-rho-star Backsubstitution matrix.
  */
-void
-LinearTranslationNDOFStateEffector::computeBRhoStar(Eigen::MatrixX3d& BRhoStar)
+void LinearTranslationNDOFStateEffector::computeBRhoStar(Eigen::MatrixX3d& BRhoStar)
 {
-    for (int n = 0; n<this->N; n++) {
+    for (int n = 0; n < this->N; n++) {
         const size_t nIndex = static_cast<size_t>(n);
         if (this->translatingBodyVec[nIndex]->isAxisLocked)
             continue;
-        for (int i = n; i<this->N; i++) {
+        for (int i = n; i < this->N; i++) {
             const size_t iIndex = static_cast<size_t>(i);
             Eigen::Vector3d r_FciB_B = this->translatingBodyVec[iIndex]->r_FcB_B;
 
-            BRhoStar.row(n) += this->translatingBodyVec[iIndex]->mass
-                                * this->translatingBodyVec[nIndex]->fHat_B.cross(r_FciB_B).transpose();
+            BRhoStar.row(n) += this->translatingBodyVec[iIndex]->mass *
+                               this->translatingBodyVec[nIndex]->fHat_B.cross(r_FciB_B).transpose();
         }
     }
 }
@@ -581,34 +585,34 @@ LinearTranslationNDOFStateEffector::computeBRhoStar(Eigen::MatrixX3d& BRhoStar)
  * @param[out] CRhoStar C-rho-star Backsubstitution vector.
  * @param[in] g_N [m/s^2] Gravitational acceleration expressed in inertial-frame components.
  */
-void LinearTranslationNDOFStateEffector::computeCRhoStar(Eigen::VectorXd& CRhoStar,
-                                                      const Eigen::Vector3d& g_N)
+void LinearTranslationNDOFStateEffector::computeCRhoStar(Eigen::VectorXd& CRhoStar, const Eigen::Vector3d& g_N)
 {
     // Map gravity to body frame
     Eigen::Vector3d g_B;
     g_B = this->dcm_BN * g_N;
     Eigen::Vector3d F_g = Eigen::Vector3d::Zero().transpose();
 
-    for (int n = 0; n<this->N; n++) {
+    for (int n = 0; n < this->N; n++) {
         const size_t nIndex = static_cast<size_t>(n);
         if (this->translatingBodyVec[nIndex]->isAxisLocked)
             continue;
-        CRhoStar(n, 0) = this->translatingBodyVec[nIndex]->u
-                           - this->translatingBodyVec[nIndex]->k * (this->translatingBodyVec[nIndex]->rho -
-                           this->translatingBodyVec[nIndex]->rhoRef) - this->translatingBodyVec[nIndex]->c *
-                           (this->translatingBodyVec[nIndex]->rhoDot - this->translatingBodyVec[nIndex]->rhoDotRef);
-        for (int i = n; i<this->N; i++) {
+        CRhoStar(n, 0) = this->translatingBodyVec[nIndex]->u -
+                         this->translatingBodyVec[nIndex]->k *
+                             (this->translatingBodyVec[nIndex]->rho - this->translatingBodyVec[nIndex]->rhoRef) -
+                         this->translatingBodyVec[nIndex]->c *
+                             (this->translatingBodyVec[nIndex]->rhoDot - this->translatingBodyVec[nIndex]->rhoDotRef);
+        for (int i = n; i < this->N; i++) {
             const size_t iIndex = static_cast<size_t>(i);
             Eigen::Vector3d r_FciB_B = this->translatingBodyVec[iIndex]->r_FcB_B;
             Eigen::Vector3d rPrime_FciB_B = this->translatingBodyVec[iIndex]->rPrime_FcB_B;
 
             F_g = this->translatingBodyVec[iIndex]->mass * g_B;
             // a torque does no work through a prismatic joint, so only the force reaches this equation
-            CRhoStar(n, 0) += this->translatingBodyVec[nIndex]->fHat_B.transpose()
-                * (F_g + this->translatingBodyVec[iIndex]->extForce_B
-                       - this->translatingBodyVec[iIndex]->mass *
-                              (this->omega_BN_B.cross(this->omega_BN_B.cross(r_FciB_B))
-                               + 2 * this->omega_BN_B.cross(rPrime_FciB_B)));
+            CRhoStar(n, 0) +=
+                this->translatingBodyVec[nIndex]->fHat_B.transpose() *
+                (F_g + this->translatingBodyVec[iIndex]->extForce_B -
+                 this->translatingBodyVec[iIndex]->mass * (this->omega_BN_B.cross(this->omega_BN_B.cross(r_FciB_B)) +
+                                                           2 * this->omega_BN_B.cross(rPrime_FciB_B)));
         }
     }
 }
@@ -619,21 +623,24 @@ void LinearTranslationNDOFStateEffector::computeCRhoStar(Eigen::VectorXd& CRhoSt
  */
 void LinearTranslationNDOFStateEffector::computeBackSubContributions(BackSubMatrices& backSubContr) const
 {
-    for (int i = 0; i<this->N; i++) {
+    for (int i = 0; i < this->N; i++) {
         const size_t iIndex = static_cast<size_t>(i);
         Eigen::Vector3d r_FciB_B = this->translatingBodyVec[iIndex]->r_FcB_B;
         Eigen::Vector3d rPrime_FciB_B = this->translatingBodyVec[iIndex]->rPrime_FcB_B;
-        backSubContr.vecRot -= this->translatingBodyVec[iIndex]->mass
-                               * this->omega_BN_B.cross(r_FciB_B.cross(rPrime_FciB_B));
+        backSubContr.vecRot -=
+            this->translatingBodyVec[iIndex]->mass * this->omega_BN_B.cross(r_FciB_B.cross(rPrime_FciB_B));
         for (int j = i; j < this->N; j++) {
             const size_t jIndex = static_cast<size_t>(j);
-            Eigen::Vector3d rCrossFHat_B = this->translatingBodyVec[jIndex]->r_FcB_B.cross(
-                this->translatingBodyVec[iIndex]->fHat_B);
+            Eigen::Vector3d rCrossFHat_B =
+                this->translatingBodyVec[jIndex]->r_FcB_B.cross(this->translatingBodyVec[iIndex]->fHat_B);
 
             // Translation contributions
-            backSubContr.matrixA += this->translatingBodyVec[jIndex]->mass *  this->translatingBodyVec[iIndex]->fHat_B * this->ARho.row(i);
-            backSubContr.matrixB += this->translatingBodyVec[jIndex]->mass *  this->translatingBodyVec[iIndex]->fHat_B * this->BRho.row(i);
-            backSubContr.vecTrans -= this->translatingBodyVec[jIndex]->mass * this->translatingBodyVec[iIndex]->fHat_B * this->CRho.row(i);
+            backSubContr.matrixA +=
+                this->translatingBodyVec[jIndex]->mass * this->translatingBodyVec[iIndex]->fHat_B * this->ARho.row(i);
+            backSubContr.matrixB +=
+                this->translatingBodyVec[jIndex]->mass * this->translatingBodyVec[iIndex]->fHat_B * this->BRho.row(i);
+            backSubContr.vecTrans -=
+                this->translatingBodyVec[jIndex]->mass * this->translatingBodyVec[iIndex]->fHat_B * this->CRho.row(i);
 
             // Rotation contributions
             backSubContr.matrixC += this->translatingBodyVec[jIndex]->mass * rCrossFHat_B * this->ARho.row(i);
@@ -650,7 +657,10 @@ void LinearTranslationNDOFStateEffector::computeBackSubContributions(BackSubMatr
  * @param[in] omegaDot_BN_B [rad/s^2] Hub angular acceleration expressed in body-frame components.
  * @param[in] sigma_BN Hub attitude relative to the inertial frame.
  */
-void LinearTranslationNDOFStateEffector::computeDerivatives(double integTime [[maybe_unused]], Eigen::Vector3d rDDot_BN_N, Eigen::Vector3d omegaDot_BN_B, Eigen::MRPd sigma_BN [[maybe_unused]])
+void LinearTranslationNDOFStateEffector::computeDerivatives(double integTime [[maybe_unused]],
+                                                            Eigen::Vector3d rDDot_BN_N,
+                                                            Eigen::Vector3d omegaDot_BN_B,
+                                                            Eigen::MRPd sigma_BN [[maybe_unused]])
 {
     // Find rDDotLoc_BN_B
     const Eigen::Vector3d& rDDotLocal_BN_N = rDDot_BN_N;
@@ -662,7 +672,8 @@ void LinearTranslationNDOFStateEffector::computeDerivatives(double integTime [[m
     this->rhoDotState->setDerivative(rhoDDot);
 }
 
-/*! This method is for calculating the contributions of the TB state effector to the energy and momentum of the spacecraft
+/*! This method is for calculating the contributions of the TB state effector to the energy and momentum of the
+ * spacecraft
  *
  * @param[in] integTime [s] Current integration time.
  * @param[in,out] rotAngMomPntCContr_B [kg*m^2/s] Rotational angular momentum contribution.
@@ -670,8 +681,8 @@ void LinearTranslationNDOFStateEffector::computeDerivatives(double integTime [[m
  * @param[in] omega_BN_B [rad/s] Hub angular velocity expressed in body-frame components.
  */
 void LinearTranslationNDOFStateEffector::updateEnergyMomContributions(double integTime [[maybe_unused]],
-                                                                      Eigen::Vector3d & rotAngMomPntCContr_B,
-                                                                      double & rotEnergyContr,
+                                                                      Eigen::Vector3d& rotAngMomPntCContr_B,
+                                                                      double& rotEnergyContr,
                                                                       Eigen::Vector3d omega_BN_B)
 {
     this->omega_BN_B = omega_BN_B;
@@ -679,20 +690,20 @@ void LinearTranslationNDOFStateEffector::updateEnergyMomContributions(double int
     rotAngMomPntCContr_B = Eigen::Vector3d::Zero();
     rotEnergyContr = 0.0;
 
-    for(auto& translatingBody: this->translatingBodyVec) {
+    for (auto& translatingBody : this->translatingBodyVec) {
         // Compute rDot_FcB_B, noting that the F frame shares the hub angular velocity
-        translatingBody->rDot_FcB_B = translatingBody->rPrime_FcB_B
-                                      + this->omega_BN_B.cross(translatingBody->r_FcB_B);
+        translatingBody->rDot_FcB_B = translatingBody->rPrime_FcB_B + this->omega_BN_B.cross(translatingBody->r_FcB_B);
 
         // Find rotational angular momentum contribution from hub
-        rotAngMomPntCContr_B += translatingBody->IPntFc_B * this->omega_BN_B
-                                + translatingBody->mass * translatingBody->r_FcB_B.cross(translatingBody->rDot_FcB_B);
+        rotAngMomPntCContr_B += translatingBody->IPntFc_B * this->omega_BN_B +
+                                translatingBody->mass * translatingBody->r_FcB_B.cross(translatingBody->rDot_FcB_B);
 
         // Find rotational energy contribution from the hub
-        rotEnergyContr += 1.0 / 2.0 * this->omega_BN_B.dot(translatingBody->IPntFc_B * this->omega_BN_B)
-                        + 1.0 / 2.0 * translatingBody->mass * translatingBody->rDot_FcB_B.dot(translatingBody->rDot_FcB_B)
-                        + 1.0 / 2.0 * translatingBody->k * (translatingBody->rho - translatingBody->rhoRef) *
-                        (translatingBody->rho - translatingBody->rhoRef);
+        rotEnergyContr +=
+            1.0 / 2.0 * this->omega_BN_B.dot(translatingBody->IPntFc_B * this->omega_BN_B) +
+            1.0 / 2.0 * translatingBody->mass * translatingBody->rDot_FcB_B.dot(translatingBody->rDot_FcB_B) +
+            1.0 / 2.0 * translatingBody->k * (translatingBody->rho - translatingBody->rhoRef) *
+                (translatingBody->rho - translatingBody->rhoRef);
     }
 }
 
@@ -703,10 +714,10 @@ void LinearTranslationNDOFStateEffector::computeTranslatingBodyInertialStates()
     const Eigen::MRPd sigmaHub_BN(this->hubSigmaState->stateView().data());
     this->dcm_BN = sigmaHub_BN.toRotationMatrix().transpose();
 
-    const Eigen::Vector3d r_BN_N = (Eigen::Vector3d)*this->inertialPositionProperty;
-    const Eigen::Vector3d v_BN_N = (Eigen::Vector3d)*this->inertialVelocityProperty;
+    const Eigen::Vector3d r_BN_N = (Eigen::Vector3d) * this->inertialPositionProperty;
+    const Eigen::Vector3d v_BN_N = (Eigen::Vector3d) * this->inertialVelocityProperty;
 
-    for(auto& translatingBody: this->translatingBodyVec) {
+    for (auto& translatingBody : this->translatingBodyVec) {
         // Compute the rotational properties, noting that F does not rotate relative to B
         const Eigen::Matrix3d dcm_FN = translatingBody->dcm_FB * this->dcm_BN;
         *translatingBody->sigma_FN = eigenC2MRP(dcm_FN).coeffs();
@@ -719,8 +730,8 @@ void LinearTranslationNDOFStateEffector::computeTranslatingBodyInertialStates()
 
         *translatingBody->r_FN_N = r_BN_N + this->dcm_BN.transpose() * translatingBody->r_FB_B;
         *translatingBody->v_FN_N =
-          v_BN_N +
-          this->dcm_BN.transpose() * (translatingBody->rPrime_FB_B + this->omega_BN_B.cross(translatingBody->r_FB_B));
+            v_BN_N +
+            this->dcm_BN.transpose() * (translatingBody->rPrime_FB_B + this->omega_BN_B.cross(translatingBody->r_FB_B));
     }
 }
 

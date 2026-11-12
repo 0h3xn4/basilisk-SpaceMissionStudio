@@ -28,14 +28,12 @@ void MJEquality::setActive(bool active)
     data->eq_active[this->getId()] = active;
 }
 
-bool
-MJEquality::isActive() const
+bool MJEquality::isActive() const
 {
     return this->spec.getMujocoData()->eq_active[this->getId()] != 0;
 }
 
-void
-MJEquality::setSolref(double val1, double val2)
+void MJEquality::setSolref(double val1, double val2)
 {
     this->mjsObject->solref[0] = val1;
     this->mjsObject->solref[1] = val2;
@@ -44,8 +42,7 @@ MJEquality::setSolref(double val1, double val2)
     model->eq_solref[this->getId() * mjNREF + 1] = val2;
 }
 
-void
-MJEquality::setSolimp(double d0, double dwidth, double width, double midpoint, double power)
+void MJEquality::setSolimp(double d0, double dwidth, double width, double midpoint, double power)
 {
     this->mjsObject->solimp[0] = d0;
     this->mjsObject->solimp[1] = dwidth;

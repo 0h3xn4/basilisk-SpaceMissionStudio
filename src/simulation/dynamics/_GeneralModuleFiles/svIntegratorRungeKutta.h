@@ -49,7 +49,9 @@
  *     -----
  *       b
  */
-template <size_t numberStages> struct RKCoefficients {
+template<size_t numberStages>
+struct RKCoefficients
+{
 
     /** Array with size = numberStages */
     using StageSizedArray = std::array<double, numberStages>;
@@ -80,7 +82,9 @@ template <size_t numberStages> struct RKCoefficients {
  * rollback. Derived adaptive methods reuse the stage machinery but manage accepted
  * internal steps separately.
  */
-template <size_t numberStages> class svIntegratorRungeKutta : public StateVecIntegrator {
+template<size_t numberStages>
+class svIntegratorRungeKutta : public StateVecIntegrator
+{
   public:
     static_assert(numberStages > 0, "One cannot declare Runge Kutta integrators of stage 0");
 
@@ -129,18 +133,18 @@ template <size_t numberStages> class svIntegratorRungeKutta : public StateVecInt
     const RKCoefficients<numberStages> coefficients;
 
   protected:
-    FlatStateBinding flatBinding; ///< Owns descriptors and borrows finalized registry storage.
-    Eigen::VectorXd baseState; ///< Accepted base for stage construction and fixed-step rollback.
-    Eigen::VectorXd candidateState; ///< Candidate scratch when live-buffer construction is unavailable.
+    FlatStateBinding flatBinding;       ///< Owns descriptors and borrows finalized registry storage.
+    Eigen::VectorXd baseState;          ///< Accepted base for stage construction and fixed-step rollback.
+    Eigen::VectorXd candidateState;     ///< Candidate scratch when live-buffer construction is unavailable.
     Eigen::VectorXd combinedDerivative; ///< Weighted drift used by policy-aware candidate construction.
-    Eigen::MatrixXd kStorage; ///< Derivative scalars by RK stage, with each stage contiguous.
+    Eigen::MatrixXd kStorage;           ///< Derivative scalars by RK stage, with each stage contiguous.
 };
 
 template<size_t numberStages>
 svIntegratorRungeKutta<numberStages>::svIntegratorRungeKutta(DynamicObject* dynIn,
                                                              const RKCoefficients<numberStages>& coefficients)
-  : StateVecIntegrator(dynIn)
-  , coefficients(coefficients)
+    : StateVecIntegrator(dynIn)
+    , coefficients(coefficients)
 {
     const auto requireFinite = [](double value) {
         if (!std::isfinite(value)) {
@@ -162,8 +166,7 @@ svIntegratorRungeKutta<numberStages>::svIntegratorRungeKutta(DynamicObject* dynI
 }
 
 template<size_t numberStages>
-void
-svIntegratorRungeKutta<numberStages>::integrateImpl(double currentTime, double timeStep)
+void svIntegratorRungeKutta<numberStages>::integrateImpl(double currentTime, double timeStep)
 {
     this->gatherStates(this->baseState);
 
@@ -191,16 +194,16 @@ svIntegratorRungeKutta<numberStages>::integrateImpl(double currentTime, double t
         }
         // A single Euclidean buffer is already a contiguous candidate buffer.
         const bool candidateIsLive =
-          this->flatBinding.updatesAreAllEuclidean() && this->flatBinding.objects().size() == 1;
+            this->flatBinding.updatesAreAllEuclidean() && this->flatBinding.objects().size() == 1;
         Eigen::Map<Eigen::VectorXd> candidate(candidateIsLive ? this->flatBinding.objects().front().stateData
                                                               : this->candidateState.data(),
                                               this->baseState.size());
         for (size_t stageIndex = 0; stageIndex < numberStages; ++stageIndex) {
             const auto& stageCoefficients = this->coefficients.aMatrix.at(stageIndex);
             const bool reuseGatheredBase =
-              stageIndex == 0 && std::none_of(stageCoefficients.cbegin(),
-                                              stageCoefficients.cend(),
-                                              [](double coefficient) { return coefficient != 0.0; });
+                stageIndex == 0 && std::none_of(stageCoefficients.cbegin(),
+                                                stageCoefficients.cend(),
+                                                [](double coefficient) { return coefficient != 0.0; });
             if (!reuseGatheredBase) {
                 this->buildFlatCandidate(timeStep, stageCoefficients, stageIndex, candidate);
                 if (!candidateIsLive) {
@@ -224,8 +227,7 @@ svIntegratorRungeKutta<numberStages>::integrateImpl(double currentTime, double t
 }
 
 template<size_t numberStages>
-void
-svIntegratorRungeKutta<numberStages>::bindFlatStorage()
+void svIntegratorRungeKutta<numberStages>::bindFlatStorage()
 {
     if (this->flatBinding.isBound() && this->flatBinding.objects().size() == this->dynamics().size()) {
         this->validateFlatBinding();
@@ -249,15 +251,13 @@ svIntegratorRungeKutta<numberStages>::bindFlatStorage()
 }
 
 template<size_t numberStages>
-void
-svIntegratorRungeKutta<numberStages>::validateFlatBinding() const
+void svIntegratorRungeKutta<numberStages>::validateFlatBinding() const
 {
     this->flatBinding.validate(this->dynamics());
 }
 
 template<size_t numberStages>
-void
-svIntegratorRungeKutta<numberStages>::resetFlatStorage() noexcept
+void svIntegratorRungeKutta<numberStages>::resetFlatStorage() noexcept
 {
     this->flatBinding.reset();
     Eigen::VectorXd().swap(this->baseState);
@@ -267,8 +267,7 @@ svIntegratorRungeKutta<numberStages>::resetFlatStorage() noexcept
 }
 
 template<size_t numberStages>
-void
-svIntegratorRungeKutta<numberStages>::gatherStates(Eigen::VectorXd& output) const
+void svIntegratorRungeKutta<numberStages>::gatherStates(Eigen::VectorXd& output) const
 {
     if (output.size() != this->baseState.size()) {
         throw std::invalid_argument("Flat Runge-Kutta state buffer has an invalid size.");
@@ -277,8 +276,7 @@ svIntegratorRungeKutta<numberStages>::gatherStates(Eigen::VectorXd& output) cons
 }
 
 template<size_t numberStages>
-void
-svIntegratorRungeKutta<numberStages>::scatterStates(const Eigen::VectorXd& input) const
+void svIntegratorRungeKutta<numberStages>::scatterStates(const Eigen::VectorXd& input) const
 {
     if (input.size() != this->baseState.size()) {
         throw std::invalid_argument("Flat Runge-Kutta state buffer has an invalid size.");
@@ -287,19 +285,17 @@ svIntegratorRungeKutta<numberStages>::scatterStates(const Eigen::VectorXd& input
 }
 
 template<size_t numberStages>
-void
-svIntegratorRungeKutta<numberStages>::gatherDerivatives(size_t stageIndex)
+void svIntegratorRungeKutta<numberStages>::gatherDerivatives(size_t stageIndex)
 {
     auto stage = this->kStorage.col(static_cast<Eigen::Index>(stageIndex));
     this->flatBinding.gatherDerivatives(stage.data(), stage.size());
 }
 
 template<size_t numberStages>
-void
-svIntegratorRungeKutta<numberStages>::buildFlatCandidate(double timeStep,
-                                                         const std::array<double, numberStages>& stageCoefficients,
-                                                         size_t maxStage,
-                                                         Eigen::Ref<Eigen::VectorXd> output)
+void svIntegratorRungeKutta<numberStages>::buildFlatCandidate(double timeStep,
+                                                              const std::array<double, numberStages>& stageCoefficients,
+                                                              size_t maxStage,
+                                                              Eigen::Ref<Eigen::VectorXd> output)
 {
     if (output.size() != this->baseState.size()) {
         throw std::invalid_argument("Flat Runge-Kutta candidate buffer has an invalid size.");
@@ -329,10 +325,7 @@ svIntegratorRungeKutta<numberStages>::buildFlatCandidate(double timeStep,
         output = this->baseState + this->combinedDerivative * timeStep;
         return;
     }
-    this->flatBinding.writeDriftCandidate(this->baseState,
-                                          this->combinedDerivative,
-                                          timeStep,
-                                          output);
+    this->flatBinding.writeDriftCandidate(this->baseState, this->combinedDerivative, timeStep, output);
 }
 
 #endif /* svIntegratorRungeKutta_h */

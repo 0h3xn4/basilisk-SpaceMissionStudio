@@ -19,10 +19,10 @@
 
 /// \cond DO_NOT_DOCUMENT
 
-#include <stdio.h>
+#include "architecture/utilities/bskLogging.h"
 #include <stdarg.h>
 #include <stdexcept>
-#include "architecture/utilities/bskLogging.h"
+#include <stdio.h>
 
 logLevel_t LogLevel = BSK_DEBUG;
 
@@ -55,13 +55,8 @@ logLevel_t getDefaultLogLevel()
 /*! This method prints the default logging verbosity */
 void printDefaultLogLevel()
 {
-    std::map<int, const char*> logLevelMap
-    {
-        {0, "BSK_DEBUG"},
-        {1, "BSK_INFORMATION"},
-        {2, "BSK_WARNING"},
-        {3, "BSK_ERROR"},
-        {4, "BSK_SILENT"}
+    std::map<int, const char*> logLevelMap{
+        { 0, "BSK_DEBUG" }, { 1, "BSK_INFORMATION" }, { 2, "BSK_WARNING" }, { 3, "BSK_ERROR" }, { 4, "BSK_SILENT" }
     };
     const char* defaultLevelStr = logLevelMap[LogLevel];
     printf("Default Logging Level: %s\n", defaultLevelStr);
@@ -70,7 +65,7 @@ void printDefaultLogLevel()
 /*! The constructor initialises the logger for a module and uses default verbostiy level for logging */
 BSKLogger::BSKLogger()
 {
-    //Default print verbosity
+    // Default print verbosity
     this->_logLevel = getDefaultLogLevel();
 }
 
@@ -102,8 +97,8 @@ int BSKLogger::getLogLevel()
     return this->_logLevel;
 }
 
-/*! This method logs information. The current behavior is to simply print out the message and the targeted logging level.
-    This should be the main method called in user code.
+/*! This method logs information. The current behavior is to simply print out the message and the targeted logging
+   level. This should be the main method called in user code.
     @param targetLevel
     @param info
 */
@@ -111,21 +106,18 @@ void BSKLogger::bskLog(logLevel_t targetLevel, const char* info, ...)
 {
     const char* targetLevelStr = this->logLevelMap[targetLevel];
     va_list args;
-    va_start (args, info);
+    va_start(args, info);
     std::string formatMessage = formatLogMessage(info, args);
     va_end(args);
 
     // Raise an error that swig can pipe to python
-    if(targetLevel == BSK_ERROR)
-    {
+    if (targetLevel == BSK_ERROR) {
         throw BasiliskError(formatMessage);
     }
     // Otherwise, print the message accordingly
-    if(targetLevel >= this->_logLevel)
-    {
+    if (targetLevel >= this->_logLevel) {
         printf("%s: %s\n", targetLevelStr, formatMessage.c_str());
-        if(targetLevel >= BSK_WARNING)
-        {
+        if (targetLevel >= BSK_WARNING) {
             // Warnings (and above) are alerts, so flush immediately. When stdout
             // is not a terminal (redirected to a file or pipe, or captured by a
             // test harness) it is fully buffered, so a warning would otherwise sit
@@ -144,7 +136,7 @@ void BSKLogger::bskLog(logLevel_t targetLevel, const char* info, ...)
 BSK_NORETURN void BSKLogger::bskError(const char* info, ...)
 {
     va_list args;
-    va_start (args, info);
+    va_start(args, info);
     std::string formatMessage = formatLogMessage(info, args);
     va_end(args);
 
@@ -177,8 +169,8 @@ EXTERN void _setLogLevel(BSKLogger* bskLogger, logLevel_t logLevel)
     bskLogger->setLogLevel(logLevel);
 }
 
-/*! This method logs information. The current behavior is to simply print out the message and the targeted logging level.
-    This should be the main method called in user code.
+/*! This method logs information. The current behavior is to simply print out the message and the targeted logging
+   level. This should be the main method called in user code.
 */
 EXTERN void _bskLog(BSKLogger* bskLogger, logLevel_t logLevel, const char* info)
 {

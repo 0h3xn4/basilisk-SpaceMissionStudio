@@ -37,8 +37,7 @@
 namespace {
 using integrator_step_test::stepIntegrator;
 
-uint64_t
-doubleBits(double value)
+uint64_t doubleBits(double value)
 {
     uint64_t bits = 0;
     std::memcpy(&bits, &value, sizeof(bits));
@@ -108,8 +107,7 @@ class BasicStochasticDynamics final : public DynamicObject
 };
 
 template<typename FlatIntegrator>
-void
-expectZeroDurationAndRollback()
+void expectZeroDurationAndRollback()
 {
     BasicStochasticDynamics dynamics;
     FlatIntegrator integrator(&dynamics);
@@ -135,8 +133,7 @@ expectZeroDurationAndRollback()
 }
 
 template<typename FlatIntegrator>
-void
-expectNoAllocationsAfterBind()
+void expectNoAllocationsAfterBind()
 {
     BasicStochasticDynamics dynamics;
     FlatIntegrator integrator(&dynamics);
@@ -144,13 +141,12 @@ expectNoAllocationsAfterBind()
     stepIntegrator(integrator, 0.0, 0.0);
 
     const auto observed =
-      integrator_allocation_test::trackAllocations([&]() { stepIntegrator(integrator, 0.0, 0.125); });
+        integrator_allocation_test::trackAllocations([&]() { stepIntegrator(integrator, 0.0, 0.125); });
     EXPECT_EQ(observed.allocationCalls(), 0U);
 }
 
 template<typename FlatIntegrator>
-void
-expectRegistrationOrderInvariant()
+void expectRegistrationOrderInvariant()
 {
     BasicStochasticDynamics forward(2, false);
     BasicStochasticDynamics reverse(2, true);

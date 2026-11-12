@@ -95,7 +95,7 @@ bool isLeapYear(int year)
 */
 int daysInMonth(int year, int month)
 {
-    static const int days[13] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    static const int days[13] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
     if (month < 1 || month > 12) {
         return 0;
     }
@@ -132,7 +132,7 @@ SpaceWeatherData::SpaceWeatherData()
 }
 
 /*! Destructor. Frees every output message owned by this module.
-*/
+ */
 SpaceWeatherData::~SpaceWeatherData() = default;
 
 /*! Reset the module to its initial state.
@@ -155,7 +155,7 @@ void SpaceWeatherData::Reset(uint64_t CurrentSimNanos)
     std::array<double, numSwMessages> probe = {};
     if (!this->computeSwState(CurrentSimNanos, probe)) {
         this->bskLogger.bskError("SpaceWeatherData: simulation start date is not covered by the loaded table. "
-            "Check the epoch and the date range of the loaded file.");
+                                 "Check the epoch and the date range of the loaded file.");
     }
 
     this->publishZeroState(CurrentSimNanos);
@@ -176,8 +176,9 @@ void SpaceWeatherData::UpdateState(uint64_t CurrentSimNanos)
     std::array<double, numSwMessages> swState = {};
 
     if (!this->computeSwState(CurrentSimNanos, swState)) {
-        this->bskLogger.bskLog(BSK_WARNING, "Failed to retrieve a state. Publishing the last available data."
-            "\nThis can happen if the date is not in the file or if the file is empty.");
+        this->bskLogger.bskLog(BSK_WARNING,
+                               "Failed to retrieve a state. Publishing the last available data."
+                               "\nThis can happen if the date is not in the file or if the file is empty.");
         return;
     }
 
@@ -220,9 +221,8 @@ void SpaceWeatherData::loadSpaceWeatherFile(const std::string& fileName)
     };
     for (const auto& columnName : requiredColumns) {
         if (findHeaderIndex(headerColumns, columnName) < 0) {
-            this->bskLogger.bskError("Space-weather file missing required column '%s': %s",
-                                   columnName.c_str(),
-                                   fileName.c_str());
+            this->bskLogger.bskError(
+                "Space-weather file missing required column '%s': %s", columnName.c_str(), fileName.c_str());
         }
     }
 
@@ -238,9 +238,8 @@ void SpaceWeatherData::loadSpaceWeatherFile(const std::string& fileName)
             continue;
         }
 
-        this->bskLogger.bskLog(BSK_WARNING,
-                               "Stopped reading space-weather table at first invalid row: %s",
-                               line.c_str());
+        this->bskLogger.bskLog(
+            BSK_WARNING, "Stopped reading space-weather table at first invalid row: %s", line.c_str());
         break;
     }
 
@@ -250,12 +249,10 @@ void SpaceWeatherData::loadSpaceWeatherFile(const std::string& fileName)
 
     for (size_t rowIndex = 1; rowIndex < loadedData.size(); rowIndex++) {
         if (loadedData[rowIndex - 1].dayNumber == loadedData[rowIndex].dayNumber) {
-            this->bskLogger.bskError("Duplicate DATE row found in space-weather table '%s'.",
-                                   fileName.c_str());
+            this->bskLogger.bskError("Duplicate DATE row found in space-weather table '%s'.", fileName.c_str());
         }
         if (loadedData[rowIndex - 1].dayNumber > loadedData[rowIndex].dayNumber) {
-            this->bskLogger.bskError("Space-weather DATE rows must be sorted in ascending order: %s",
-                                   fileName.c_str());
+            this->bskLogger.bskError("Space-weather DATE rows must be sorted in ascending order: %s", fileName.c_str());
         }
     }
 
@@ -304,10 +301,11 @@ void SpaceWeatherData::getEpochState(double CurrentSimSeconds, int64_t& currentD
     double seconds = epochMsg.seconds;
 
     const int64_t epochDay = civilToUnixDayNumber(year, static_cast<unsigned>(month), static_cast<unsigned>(day));
-    const double epochSecondsOfDay = static_cast<double>(hours) * 3600.0 + static_cast<double>(minutes) * 60.0 + seconds; // [s]
-    const double totalSecondsFromEpoch = epochSecondsOfDay + CurrentSimSeconds; // [s]
+    const double epochSecondsOfDay =
+        static_cast<double>(hours) * 3600.0 + static_cast<double>(minutes) * 60.0 + seconds;     // [s]
+    const double totalSecondsFromEpoch = epochSecondsOfDay + CurrentSimSeconds;                  // [s]
     const int64_t dayOffset = static_cast<int64_t>(std::floor(totalSecondsFromEpoch / 86400.0)); // [day]
-    secondsOfDay = totalSecondsFromEpoch - static_cast<double>(dayOffset) * 86400.0; // [s]
+    secondsOfDay = totalSecondsFromEpoch - static_cast<double>(dayOffset) * 86400.0;             // [s]
     secondsOfDay = std::max(0.0, secondsOfDay); // guard against negative FP residual at midnight
     currentDay = epochDay + dayOffset;
 }
@@ -330,14 +328,16 @@ bool SpaceWeatherData::computeSwState(uint64_t CurrentSimNanos, std::array<doubl
     }
 
     const double simTimeSeconds = static_cast<double>(CurrentSimNanos) * 1e-9; // [s]
-    int64_t currentDay = 0; // [day]
-    double secondsOfDay = 0.0; // [s]
+    int64_t currentDay = 0;                                                    // [day]
+    double secondsOfDay = 0.0;                                                 // [s]
     this->getEpochState(simTimeSeconds, currentDay, secondsOfDay);
 
     auto getDayEntry = [&](int64_t dayNumber, DailySpaceWeather& output) -> bool {
-        const auto iterator = std::lower_bound(
-            this->weatherData.begin(), this->weatherData.end(), dayNumber,
-            [](const DailySpaceWeather& candidate, int64_t key) { return candidate.dayNumber < key; });
+        const auto iterator =
+            std::lower_bound(this->weatherData.begin(),
+                             this->weatherData.end(),
+                             dayNumber,
+                             [](const DailySpaceWeather& candidate, int64_t key) { return candidate.dayNumber < key; });
         if (iterator == this->weatherData.end() || iterator->dayNumber != dayNumber) {
             return false;
         }
@@ -345,15 +345,15 @@ bool SpaceWeatherData::computeSwState(uint64_t CurrentSimNanos, std::array<doubl
         return true;
     };
 
-    const double currentDayHours = secondsOfDay / 3600.0; // [hr]
+    const double currentDayHours = secondsOfDay / 3600.0;                         // [hr]
     const int currentApBin = static_cast<int>(std::floor(currentDayHours / 3.0)); // [count]
 
     DailySpaceWeather day0 = {};
     DailySpaceWeather dayMinus1 = {};
     DailySpaceWeather dayMinus2 = {};
     DailySpaceWeather dayMinus3 = {};
-    if (!getDayEntry(currentDay, day0) || !getDayEntry(currentDay - 1, dayMinus1)
-        || !getDayEntry(currentDay - 2, dayMinus2)) {
+    if (!getDayEntry(currentDay, day0) || !getDayEntry(currentDay - 1, dayMinus1) ||
+        !getDayEntry(currentDay - 2, dayMinus2)) {
         return false;
     }
     /* D-3 is only needed when the 20-step look-back crosses a third day boundary,
@@ -364,10 +364,7 @@ bool SpaceWeatherData::computeSwState(uint64_t CurrentSimNanos, std::array<doubl
     }
 
     const std::array<std::array<double, numApPerDay>, 4> apByDay = {
-        day0.ap3Hr,
-        dayMinus1.ap3Hr,
-        dayMinus2.ap3Hr,
-        dayMinus3.ap3Hr
+        day0.ap3Hr, dayMinus1.ap3Hr, dayMinus2.ap3Hr, dayMinus3.ap3Hr
     };
 
     /* MSIS channel mapping uses AP_AVG for ap_24_0 and then 20 AP samples spaced 3 hours apart
@@ -383,8 +380,7 @@ bool SpaceWeatherData::computeSwState(uint64_t CurrentSimNanos, std::array<doubl
         if (dayOffset > 3 || apBin >= static_cast<int>(numApPerDay)) {
             return false;
         }
-        swState[static_cast<size_t>(1 + apIndex)] =
-            apByDay[static_cast<size_t>(dayOffset)][static_cast<size_t>(apBin)];
+        swState[static_cast<size_t>(1 + apIndex)] = apByDay[static_cast<size_t>(dayOffset)][static_cast<size_t>(apBin)];
     }
     swState[21] = day0.f107ObsCenter81;
     swState[22] = dayMinus1.f107Obs;
@@ -408,9 +404,9 @@ int64_t SpaceWeatherData::civilToUnixDayNumber(int year, unsigned month, unsigne
 {
     year -= (month <= 2U);
     const int era = (year >= 0 ? year : year - 399) / 400;
-    const unsigned yoe = static_cast<unsigned>(year - era * 400);                  // [year] year-of-era
+    const unsigned yoe = static_cast<unsigned>(year - era * 400); // [year] year-of-era
     const unsigned doy = (153U * (month + (month > 2U ? static_cast<unsigned>(-3) : 9U)) + 2U) / 5U + day - 1U; // [day]
-    const unsigned doe = yoe * 365U + yoe / 4U - yoe / 100U + doy;                 // [day] day-of-era
+    const unsigned doe = yoe * 365U + yoe / 4U - yoe / 100U + doy; // [day] day-of-era
     return static_cast<int64_t>(era) * 146097 + static_cast<int64_t>(doe) - 719468;
 }
 

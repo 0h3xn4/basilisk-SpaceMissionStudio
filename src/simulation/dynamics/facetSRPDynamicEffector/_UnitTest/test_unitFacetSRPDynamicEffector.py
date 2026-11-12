@@ -490,8 +490,8 @@ def computeFacetSRPForceTorque(index,
                                r_SN_N):
     # Define required constants
     speedLight = 299792458.0  # [m/s] Speed of light
-    AstU = 149597870700.0  # [m] Astronomical unit
-    solarRadFlux = 1368.0  # [W/m^2] Solar radiation flux at 1 AU
+    AstU = 149597870693.0  # [m] Astronomical unit, AU2M of astroConstants.h
+    solarRadFlux = 1361.0  # [W/m^2] Solar radiation flux at 1 AU
 
     # Compute Sun direction relative to point B in B frame components
     dcm_BN = rbk.MRP2C(sigma_BN)

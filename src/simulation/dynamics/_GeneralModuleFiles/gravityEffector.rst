@@ -54,3 +54,29 @@ Each gravity body data object can be created using::
 
 Note that the ``simIncludeGradBody.py`` helper file contains a gravity body factor class to facilitate
 setting up gravity bodies.
+
+Spherical Harmonics Reference Radius and Gravitational Parameter
+----------------------------------------------------------------
+``useSphericalHarmonicsGravityModel(file, maxDeg)`` loads the reference radius and the gravitational parameter of the
+first row of the coefficient file into ``spherHarm.radEquator`` and ``spherHarm.muBody``. When the body is
+initialized:
+
+- The field keeps the reference radius of the file, since the normalized coefficients are only valid with the
+  reference radius of their model. ``radEquator`` of the ``GravBodyData`` is used only if ``spherHarm.radEquator``
+  is not positive, for example when the coefficients were set directly instead of being loaded from a file. To
+  evaluate the field with a different reference radius, set ``spherHarm.radEquator``.
+- The gravitational parameter of the field is replaced by ``mu`` of the ``GravBodyData``, so that the field and
+  gravity-gradient torque use the same value. Body initialization raises ``BasiliskError`` if ``mu`` is not
+  finite and positive, even when the file supplies a valid GM. To use the file GM, explicitly set
+  ``planet.mu = planet.spherHarm.muBody`` after loading the file and before initializing the simulation.
+  No warning is given when a valid body GM differs from the gravitational parameter of the file.
+
+Planet Orientation
+------------------
+The planet orientation is read from ``planetBodyInMsg`` together with its time derivative ``J20002Pfix_dot``. Between
+message updates the orientation is advanced as a rotation about the planet angular velocity, which keeps the
+orientation matrix orthonormal at every integrator stage. A first-order update of the matrix elements would scale the
+evaluated field by a relative error of order :math:`(\omega\,\Delta t)^2`.
+The advanced orientation and its time derivative at the same epoch are stored as the state-engine properties
+``[planetName].J20002Pfix`` and ``[planetName].J20002Pfix_dot``, both in the :math:`[PN]` convention of the
+planet state message.

@@ -26,26 +26,25 @@
 /** @brief Method workspace allocated after state binding. */
 struct svStochasticIntegratorRKMil::FlatStorage
 {
-    Eigen::VectorXd drift; ///< Drift evaluated at the step-entry state.
-    Eigen::VectorXd zeroDrift; ///< Zero drift for candidates perturbed only by diffusion.
+    Eigen::VectorXd drift;           ///< Drift evaluated at the step-entry state.
+    Eigen::VectorXd zeroDrift;       ///< Zero drift for candidates perturbed only by diffusion.
     Eigen::VectorXd firstDiffusions; ///< Packed diffusions evaluated at the step-entry state.
     Eigen::VectorXd ggPrime; ///< Packed diffusion directional-derivative approximation for the Milstein correction.
-    Eigen::VectorXd kState; ///< Diffusion support state used to estimate the Milstein correction.
-    Eigen::VectorXd intermediateState; ///< Scratch candidate for composing the final update.
-    Eigen::VectorXd zeroPseudoSteps; ///< Zero noise weights for a drift-only candidate.
-    Eigen::VectorXd supportPseudoSteps; ///< Noise weights used to construct diffusion support states.
+    Eigen::VectorXd kState;  ///< Diffusion support state used to estimate the Milstein correction.
+    Eigen::VectorXd intermediateState;   ///< Scratch candidate for composing the final update.
+    Eigen::VectorXd zeroPseudoSteps;     ///< Zero noise weights for a drift-only candidate.
+    Eigen::VectorXd supportPseudoSteps;  ///< Noise weights used to construct diffusion support states.
     Eigen::VectorXd milsteinPseudoSteps; ///< Per-source weights for the Milstein correction.
 };
 
 svStochasticIntegratorRKMil::svStochasticIntegratorRKMil(DynamicObject* dynIn)
-  : StochasticRKIntegratorBase(dynIn)
+    : StochasticRKIntegratorBase(dynIn)
 {
 }
 
 svStochasticIntegratorRKMil::~svStochasticIntegratorRKMil() noexcept = default;
 
-void
-svStochasticIntegratorRKMil::bindFlatStorage()
+void svStochasticIntegratorRKMil::bindFlatStorage()
 {
     auto storage = std::make_unique<FlatStorage>();
     const auto stateSize = this->stochasticAcceptedState().size();
@@ -65,13 +64,12 @@ svStochasticIntegratorRKMil::bindFlatStorage()
     this->flatStorage = std::move(storage);
 }
 
-void
-svStochasticIntegratorRKMil::applyCandidate(const Eigen::VectorXd& base,
-                                            const Eigen::VectorXd& drift,
-                                            double timeStep,
-                                            const Eigen::VectorXd& diffusions,
-                                            const Eigen::VectorXd& pseudoSteps,
-                                            Eigen::VectorXd& output)
+void svStochasticIntegratorRKMil::applyCandidate(const Eigen::VectorXd& base,
+                                                 const Eigen::VectorXd& drift,
+                                                 double timeStep,
+                                                 const Eigen::VectorXd& diffusions,
+                                                 const Eigen::VectorXd& pseudoSteps,
+                                                 Eigen::VectorXd& output)
 {
     const auto& localNoiseSlots = this->stochasticLocalNoiseSlots();
     const auto& packedOffsets = this->stochasticLocalNoisePackedOffsets();
@@ -85,20 +83,19 @@ svStochasticIntegratorRKMil::applyCandidate(const Eigen::VectorXd& base,
                 const size_t globalSlot = localNoiseSlots.at(localIndex);
                 const size_t offset = packedOffsets.at(localIndex);
                 state +=
-                  descriptor.diffusionView(diffusions, offset) * pseudoSteps(static_cast<Eigen::Index>(globalSlot));
+                    descriptor.diffusionView(diffusions, offset) * pseudoSteps(static_cast<Eigen::Index>(globalSlot));
             }
         } else {
             this->buildStochasticDriftCandidate(
-              descriptor, descriptor.stateView(base), descriptor.derivativeView(drift), timeStep, state);
+                descriptor, descriptor.stateView(base), descriptor.derivativeView(drift), timeStep, state);
             this->applyStochasticNoiseInLocalOrder(
-              descriptor, state, diffusions, pseudoSteps, 0, this->globalNoiseCount());
+                descriptor, state, diffusions, pseudoSteps, 0, this->globalNoiseCount());
         }
         std::copy_n(state.data(), descriptor.stateCount, descriptor.state->stateView().data());
     }
 }
 
-void
-svStochasticIntegratorRKMil::integrateImpl(double currentTime, double timeStep)
+void svStochasticIntegratorRKMil::integrateImpl(double currentTime, double timeStep)
 {
     if (timeStep == 0.0) {
         return;

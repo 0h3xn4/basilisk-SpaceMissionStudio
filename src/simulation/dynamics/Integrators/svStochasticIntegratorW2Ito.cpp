@@ -21,14 +21,13 @@
 
 #include <algorithm>
 #include <cmath>
-svStochasticIntegratorW2Ito::svStochasticIntegratorW2Ito(DynamicObject* dyn,
-                                                         const W2ItoCoefficients& coefficients)
-    : StochasticRKIntegratorBase(dyn), coefficients(coefficients)
+svStochasticIntegratorW2Ito::svStochasticIntegratorW2Ito(DynamicObject* dyn, const W2ItoCoefficients& coefficients)
+    : StochasticRKIntegratorBase(dyn)
+    , coefficients(coefficients)
 {
 }
 
-void
-svStochasticIntegratorW2Ito::bindMethodStorage()
+void svStochasticIntegratorW2Ito::bindMethodStorage()
 {
     const size_t noiseCount = this->globalNoiseCount();
     const auto derivativeSize = this->stochasticPackedDerivatives().size();
@@ -57,23 +56,20 @@ svStochasticIntegratorW2Ito::bindMethodStorage()
     this->pseudoSteps.swap(newPseudoSteps);
 }
 
-void
-svStochasticIntegratorW2Ito::gatherDerivativeStage(size_t stageIndex)
+void svStochasticIntegratorW2Ito::gatherDerivativeStage(size_t stageIndex)
 {
     auto stage = this->derivativeStages.col(static_cast<Eigen::Index>(stageIndex));
     this->gatherStochasticDerivatives(stage.data(), stage.size());
 }
 
-void
-svStochasticIntegratorW2Ito::gatherAllDiffusionStages(size_t stageIndex)
+void svStochasticIntegratorW2Ito::gatherAllDiffusionStages(size_t stageIndex)
 {
     for (size_t globalNoiseIndex = 0; globalNoiseIndex < this->globalNoiseCount(); ++globalNoiseIndex) {
         this->gatherDiffusionStage(globalNoiseIndex, stageIndex);
     }
 }
 
-void
-svStochasticIntegratorW2Ito::gatherDiffusionStage(size_t globalNoiseIndex, size_t stageIndex)
+void svStochasticIntegratorW2Ito::gatherDiffusionStage(size_t globalNoiseIndex, size_t stageIndex)
 {
     const auto& slot = this->stochasticNoiseSlots().at(globalNoiseIndex);
     const size_t bindingEnd = slot.bindingBegin + slot.bindingCount;
@@ -84,21 +80,20 @@ svStochasticIntegratorW2Ito::gatherDiffusionStage(size_t globalNoiseIndex, size_
                                     static_cast<Eigen::Index>(stageIndex),
                                     static_cast<Eigen::Index>(binding.scalarCount),
                                     1) =
-          Eigen::Map<const Eigen::VectorXd>(binding.liveData, static_cast<Eigen::Index>(binding.scalarCount));
+            Eigen::Map<const Eigen::VectorXd>(binding.liveData, static_cast<Eigen::Index>(binding.scalarCount));
     }
 }
 
-void
-svStochasticIntegratorW2Ito::combineDrifts(const std::vector<double>& factors, size_t length)
+void svStochasticIntegratorW2Ito::combineDrifts(const std::vector<double>& factors, size_t length)
 {
     for (const auto& descriptor : this->stochasticStateDescriptors()) {
         const auto offset = static_cast<Eigen::Index>(descriptor.derivativeOffset);
         Eigen::Map<Eigen::MatrixXd> combined(
-          this->combinedDerivative.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
+            this->combinedDerivative.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
         Eigen::Map<Eigen::MatrixXd> scaled(
-          this->scaledDerivative.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
+            this->scaledDerivative.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
         const Eigen::Map<const Eigen::MatrixXd> first(
-          this->derivativeStages.col(0).data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
+            this->derivativeStages.col(0).data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
         combined = first * factors.at(0);
         for (size_t stageIndex = 1; stageIndex < length; ++stageIndex) {
             const double factor = factors.at(stageIndex);
@@ -106,19 +101,18 @@ svStochasticIntegratorW2Ito::combineDrifts(const std::vector<double>& factors, s
                 continue;
             }
             const Eigen::Map<const Eigen::MatrixXd> stage(
-              this->derivativeStages.col(static_cast<Eigen::Index>(stageIndex)).data() + offset,
-              descriptor.derivativeRows,
-              descriptor.derivativeColumns);
+                this->derivativeStages.col(static_cast<Eigen::Index>(stageIndex)).data() + offset,
+                descriptor.derivativeRows,
+                descriptor.derivativeColumns);
             scaled = stage * factor;
             combined += scaled;
         }
     }
 }
 
-void
-svStochasticIntegratorW2Ito::combineDiffusion(size_t globalNoiseIndex,
-                                              const std::vector<double>& factors,
-                                              size_t length)
+void svStochasticIntegratorW2Ito::combineDiffusion(size_t globalNoiseIndex,
+                                                   const std::vector<double>& factors,
+                                                   size_t length)
 {
     const auto& slot = this->stochasticNoiseSlots().at(globalNoiseIndex);
     const size_t bindingEnd = slot.bindingBegin + slot.bindingCount;
@@ -129,11 +123,11 @@ svStochasticIntegratorW2Ito::combineDiffusion(size_t globalNoiseIndex,
         const auto& descriptor = descriptors.at(binding.boundStateIndex);
         const auto offset = static_cast<Eigen::Index>(binding.packedOffset);
         Eigen::Map<Eigen::MatrixXd> combined(
-          this->combinedDiffusion.data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
+            this->combinedDiffusion.data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
         Eigen::Map<Eigen::MatrixXd> scaled(
-          this->scaledDiffusion.data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
+            this->scaledDiffusion.data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
         const Eigen::Map<const Eigen::MatrixXd> first(
-          this->diffusionStages.col(0).data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
+            this->diffusionStages.col(0).data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
         combined = first * factors.at(0);
         for (size_t stageIndex = 1; stageIndex < length; ++stageIndex) {
             const double factor = factors.at(stageIndex);
@@ -141,17 +135,16 @@ svStochasticIntegratorW2Ito::combineDiffusion(size_t globalNoiseIndex,
                 continue;
             }
             const Eigen::Map<const Eigen::MatrixXd> stage(
-              this->diffusionStages.col(static_cast<Eigen::Index>(stageIndex)).data() + offset,
-              descriptor.diffusionRows,
-              descriptor.diffusionColumns);
+                this->diffusionStages.col(static_cast<Eigen::Index>(stageIndex)).data() + offset,
+                descriptor.diffusionRows,
+                descriptor.diffusionColumns);
             scaled = stage * factor;
             combined += scaled;
         }
     }
 }
 
-void
-svStochasticIntegratorW2Ito::integrateImpl(double currentTime, double timeStep)
+void svStochasticIntegratorW2Ito::integrateImpl(double currentTime, double timeStep)
 {
     if (timeStep == 0.0) {
         return;
@@ -234,7 +227,7 @@ svStochasticIntegratorW2Ito::integrateImpl(double currentTime, double timeStep)
             this->combineDiffusion(k, c.beta0, s);
         }
         this->buildStochasticCandidateInPlace(
-          this->stochasticAcceptedState(), this->combinedDerivative, timeStep, this->combinedDiffusion, this->weakDW);
+            this->stochasticAcceptedState(), this->combinedDerivative, timeStep, this->combinedDiffusion, this->weakDW);
         for (size_t k = 0; k < m; k++) {
             this->combineDiffusion(k, c.beta1, s);
         }

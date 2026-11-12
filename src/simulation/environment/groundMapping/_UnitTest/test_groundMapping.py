@@ -121,5 +121,238 @@ def groundMappingTestFunction(maxRange):
     return [testFailCount, "".join(testMessages)]
 
 
+def _skew(v):
+    """Return the skew-symmetric cross-product matrix of a 3-vector."""
+    return np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+
+
+def _dcm_LP(lat, lon):
+    """Return the planet-fixed to SEZ rotation matrix for a latitude and longitude [rad]."""
+    return np.array([
+        [np.sin(lat) * np.cos(lon), np.sin(lat) * np.sin(lon), -np.cos(lat)],
+        [-np.sin(lon), np.cos(lon), 0.0],
+        [np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)]])
+
+
+def _azEl(r_L):
+    """Return azimuth and elevation [rad] of an SEZ position, using the module's azimuth convention."""
+    return np.arctan2(r_L[1], -r_L[0]), np.arctan2(r_L[2], np.hypot(r_L[0], r_L[1]))
+
+
+def _runMappingPoints(tilt_deg, v_PN_N, r_PN_N, v_rel_P, latLon_deg):
+    """
+    Run groundMapping for one step and return the access message records, the expected SEZ position and velocity
+    of the spacecraft for each point, together with the planet-fixed spacecraft position.
+
+    :param tilt_deg: [deg] angle between the planet spin axis and the inertial 3-axis
+    :param v_PN_N: [m/s] planet velocity relative to the inertial frame origin, in N components
+    :param r_PN_N: [m] planet position relative to the inertial frame origin, in N components
+    :param v_rel_P: [m/s] spacecraft velocity relative to the planet-fixed frame, in P components
+    :param latLon_deg: list of [lat, lon] pairs [deg] of the mapping points
+    :return: access message records, expected r_BL_L list, expected v_BL_L list, ground state message records,
+             expected (rHat_LP_N, r_LP_N, r_LN_N) list
+    """
+    radius = 6378136.3  # [m] planet radius
+    omega = 7.2921159e-5  # [rad/s] planet spin rate
+    tilt = np.radians(tilt_deg)  # [rad] angle between the planet spin axis and the inertial 3-axis
+
+    c, s = np.cos(tilt), np.sin(tilt)
+    dcm_PN = np.array([[c, 0.0, -s], [0.0, 1.0, 0.0], [s, 0.0, c]])  # [-] N to P, the P 3-axis is the spin axis
+    w_PN_P = np.array([0.0, 0.0, omega])  # [rad/s] angular velocity of P relative to N, in P components
+    w_PN_N = dcm_PN.T @ w_PN_P  # [rad/s] same vector in N components
+    dcm_PN_dot = -_skew(w_PN_P) @ dcm_PN  # [1/s] time derivative of the N to P DCM
+
+    planetPayload = messaging.SpicePlanetStateMsgPayload()
+    planetPayload.PositionVector = list(r_PN_N)
+    planetPayload.VelocityVector = list(v_PN_N)
+    planetPayload.J20002Pfix = dcm_PN.tolist()
+    planetPayload.J20002Pfix_dot = dcm_PN_dot.tolist()
+    planetMsg = messaging.SpicePlanetStateMsg().write(planetPayload)
+
+    r_BP_P = np.array([radius + 600e3, 3.0e5, 1.0e6])  # [m] spacecraft position relative to the planet, in P
+    r_BP_N = dcm_PN.T @ r_BP_P  # [m]
+    scPayload = messaging.SCStatesMsgPayload()
+    scPayload.r_BN_N = (np.array(r_PN_N) + r_BP_N).tolist()
+    # velocity in N: planet translation + rotation of the point + velocity relative to P rotated into N
+    v_BN_N = np.array(v_PN_N) + np.cross(w_PN_N, r_BP_N) + dcm_PN.T @ np.array(v_rel_P)  # [m/s]
+    scPayload.v_BN_N = v_BN_N.tolist()
+    scMsg = messaging.SCStatesMsg().write(scPayload)
+
+    scSim = SimulationBaseClass.SimBaseClass()
+    scSim.CreateNewProcess("simProcess").addTask(scSim.CreateNewTask("simTask", macros.sec2nano(1.0)))
+    groundMap = groundMapping.GroundMapping()
+    groundMap.ModelTag = "groundMapping"
+    groundMap.minimumElevation = -np.pi / 2
+    groundMap.nHat_B = [0, 1, 0]
+    groundMap.halfFieldOfView = np.radians(22.5)
+    groundMap.planetInMsg.subscribeTo(planetMsg)
+    groundMap.scStateInMsg.subscribeTo(scMsg)
+
+    expected_r = []
+    expected_v = []
+    logs = []
+    stateLogs = []
+    for lat_deg, lon_deg in latLon_deg:
+        lat, lon = np.radians(lat_deg), np.radians(lon_deg)  # [rad]
+        r_LP_P = radius * np.array([np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)])  # [m]
+        groundMap.addPointToModel(r_LP_P.tolist())
+        dcm_LP = _dcm_LP(lat, lon)
+        expected_r.append(dcm_LP @ (r_BP_P - r_LP_P))
+        # evaluate the rotation correction entirely in P, independent of the module's N-frame route
+        v_BL_P = dcm_PN @ (v_BN_N - np.array(v_PN_N)) - np.cross(w_PN_P, r_BP_P)  # [m/s]
+        expected_v.append(dcm_LP @ v_BL_P)
+    scSim.AddModelToTask("simTask", groundMap)
+    for idx in range(len(latLon_deg)):
+        logs.append(groundMap.accessOutMsgs[idx].recorder())
+        scSim.AddModelToTask("simTask", logs[idx])
+        stateLogs.append(groundMap.currentGroundStateOutMsgs[idx].recorder())
+        scSim.AddModelToTask("simTask", stateLogs[idx])
+
+    scSim.InitializeSimulation()
+    scSim.TotalSim.SingleStepProcesses()
+    # expected ground state: position, surface normal in N components
+    expected_state = []
+    for lat_deg, lon_deg in latLon_deg:
+        lat, lon = np.radians(lat_deg), np.radians(lon_deg)  # [rad]
+        rHat_P = np.array([np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)])  # [-]
+        r_LP_N = dcm_PN.T @ (radius * rHat_P)  # [m]
+        expected_state.append((dcm_PN.T @ rHat_P, r_LP_N, np.array(r_PN_N) + r_LP_N))
+    return logs, expected_r, expected_v, stateLogs, expected_state
+
+
+def _assertGroundState(stateLogs, expected_state):
+    """
+    Check the ground state message records against the expected surface normal and positions.
+
+    :param stateLogs: ground state message records, one per mapping point
+    :param expected_state: list of expected (rHat_LP_N, r_LP_N, r_LN_N) tuples, one per mapping point
+    :return:
+    """
+    for stateLog, (rHat_exp, r_LP_exp, r_LN_exp) in zip(stateLogs, expected_state):
+        np.testing.assert_allclose(stateLog.rHat_LP_N[0], rHat_exp, atol=1e-12)  # [-]
+        np.testing.assert_allclose(stateLog.r_LP_N[0], r_LP_exp, rtol=1e-12)  # [m]
+        np.testing.assert_allclose(stateLog.r_LN_N[0], r_LN_exp, rtol=1e-12)  # [m]
+
+
+POINTS_LAT_LON = [[10.0, 20.0], [-35.0, 140.0], [60.0, -75.0]]  # [deg] mapping point latitude and longitude
+
+
+@pytest.mark.parametrize("tilt_deg", [0.0, 30.0, 60.0])
+@pytest.mark.parametrize("v_PN_N", [[0.0, 0.0, 0.0], [3.0e4, -1.0e3, 2.0e3]])  # [m/s]
+def test_planetFixedSpacecraftZeroRates(tilt_deg, v_PN_N):
+    """
+    Tests that a spacecraft fixed in the planet frame has zero relative velocity and zero range, azimuth and
+    elevation rates for several mapping points at different latitudes and longitudes, with a tilted planet spin axis,
+    a moving planet and a planet displaced from the inertial origin.
+
+    :param tilt_deg: [deg] angle between the planet spin axis and the inertial 3-axis
+    :param v_PN_N: [m/s] planet velocity relative to the inertial frame origin, in N components
+    :return:
+    """
+    logs, expected_r, _, stateLogs, expected_state = _runMappingPoints(tilt_deg, v_PN_N, [1.5e11, -2.0e10, 5.0e9], [0., 0., 0.],
+                                               POINTS_LAT_LON)
+    for log, r_exp in zip(logs, expected_r):
+        np.testing.assert_allclose(log.r_BL_L[0], r_exp, rtol=1e-9, atol=1e-3)  # [m]
+        np.testing.assert_allclose(log.v_BL_L[0], np.zeros(3), atol=1e-6)  # [m/s]
+        assert log.range_dot[0] == pytest.approx(0.0, abs=1e-6)  # [m/s]
+        assert log.az_dot[0] == pytest.approx(0.0, abs=1e-11)  # [rad/s]
+        assert log.el_dot[0] == pytest.approx(0.0, abs=1e-11)  # [rad/s]
+    _assertGroundState(stateLogs, expected_state)
+
+
+@pytest.mark.parametrize("tilt_deg", [0.0, 30.0, 60.0])
+@pytest.mark.parametrize("v_PN_N", [[0.0, 0.0, 0.0], [3.0e4, -1.0e3, 2.0e3]])  # [m/s]
+def test_nonzeroRelativeVelocity(tilt_deg, v_PN_N):
+    """
+    Tests the SEZ position, SEZ velocity and the range, azimuth and elevation rates of a spacecraft moving relative
+    to the planet for several mapping points. The expected velocity is evaluated entirely in the P frame and the
+    angular rates are obtained by central finite differences of the SEZ geometry.
+
+    :param tilt_deg: [deg] angle between the planet spin axis and the inertial 3-axis
+    :param v_PN_N: [m/s] planet velocity relative to the inertial frame origin, in N components
+    :return:
+    """
+    v_rel_P = np.array([-1.2e3, 6.5e3, 3.0e3])  # [m/s] spacecraft velocity relative to P, in P components
+    logs, expected_r, expected_v, stateLogs, expected_state = _runMappingPoints(
+        tilt_deg, v_PN_N, [1.5e11, -2.0e10, 5.0e9], v_rel_P, POINTS_LAT_LON)
+    dt = 1e-3  # [s] finite difference step
+    for log, r_exp, v_exp in zip(logs, expected_r, expected_v):
+        np.testing.assert_allclose(log.r_BL_L[0], r_exp, rtol=1e-9, atol=1e-3)  # [m]
+        np.testing.assert_allclose(log.v_BL_L[0], v_exp, rtol=1e-9, atol=1e-6)  # [m/s]
+        assert np.linalg.norm(v_exp) > 1e3  # the case must exercise a nonzero relative velocity
+
+        r_plus, r_minus = r_exp + v_exp * dt, r_exp - v_exp * dt  # [m]
+        az_p, el_p = _azEl(r_plus)
+        az_m, el_m = _azEl(r_minus)
+        assert log.range_dot[0] == pytest.approx((np.linalg.norm(r_plus) - np.linalg.norm(r_minus)) / (2 * dt),
+                                                 rel=1e-6)  # [m/s]
+        assert log.az_dot[0] == pytest.approx((az_p - az_m) / (2 * dt), rel=1e-5, abs=1e-10)  # [rad/s]
+        assert log.el_dot[0] == pytest.approx((el_p - el_m) / (2 * dt), rel=1e-5, abs=1e-10)  # [rad/s]
+    _assertGroundState(stateLogs, expected_state)
+
+
+@pytest.mark.parametrize("tilt_deg", [0.0, 30.0, 60.0])
+@pytest.mark.parametrize("v_PN_N", [[0.0, 0.0, 0.0], [3.0e4, -1.0e3, 2.0e3]])  # [m/s]
+def test_overheadSpacecraft(tilt_deg, v_PN_N):
+    """
+    Tests that a spacecraft exactly overhead of a mapping point, with a tilted planet frame, a planet far from the
+    inertial origin and a nonzero relative velocity, gets zero azimuth, azimuth rate and elevation rate despite the
+    floating-point round-off left in the horizontal components of the SEZ position.
+
+    :param tilt_deg: [deg] angle between the planet spin axis and the inertial 3-axis
+    :param v_PN_N: [m/s] planet velocity relative to the inertial frame origin, in N components
+    :return:
+    """
+    radius = 6378136.3  # [m] planet radius
+    altitude = 600e3  # [m] spacecraft altitude above the mapping point
+    omega = 7.2921159e-5  # [rad/s] planet spin rate
+    r_PN_N = np.array([1.5e11, -2.0e10, 5.0e9])  # [m] planet position relative to the inertial origin
+    lat, lon = np.radians(35.0), np.radians(-70.0)  # [rad] mapping point latitude and longitude
+    tilt = np.radians(tilt_deg)  # [rad]
+    c, s = np.cos(tilt), np.sin(tilt)
+    dcm_PN = np.array([[c, 0.0, -s], [0.0, 1.0, 0.0], [s, 0.0, c]])  # [-] N to P
+    w_PN_P = np.array([0.0, 0.0, omega])  # [rad/s]
+
+    planetPayload = messaging.SpicePlanetStateMsgPayload()
+    planetPayload.PositionVector = list(r_PN_N)
+    planetPayload.VelocityVector = list(v_PN_N)
+    planetPayload.J20002Pfix = dcm_PN.tolist()
+    planetPayload.J20002Pfix_dot = (-_skew(w_PN_P) @ dcm_PN).tolist()
+    planetMsg = messaging.SpicePlanetStateMsg().write(planetPayload)
+
+    rHat_P = np.array([np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)])  # [-]
+    r_LP_P = radius * rHat_P  # [m]
+    r_BP_N = dcm_PN.T @ ((radius + altitude) * rHat_P)  # [m] exactly overhead
+    # spacecraft moves relative to the planet, so the overhead singularity is hit with a nonzero velocity
+    v_BN_N = np.array(v_PN_N) + np.cross(dcm_PN.T @ w_PN_P, r_BP_N) + dcm_PN.T @ np.array([1.0e3, -2.0e3, 5.0e2])  # [m/s]
+    scPayload = messaging.SCStatesMsgPayload()
+    scPayload.r_BN_N = (r_PN_N + r_BP_N).tolist()
+    scPayload.v_BN_N = v_BN_N.tolist()
+    scMsg = messaging.SCStatesMsg().write(scPayload)
+
+    scSim = SimulationBaseClass.SimBaseClass()
+    scSim.CreateNewProcess("simProcess").addTask(scSim.CreateNewTask("simTask", macros.sec2nano(1.0)))
+    groundMap = groundMapping.GroundMapping()
+    groundMap.ModelTag = "groundMapping"
+    groundMap.minimumElevation = -np.pi / 2
+    groundMap.nHat_B = [0, 1, 0]
+    groundMap.halfFieldOfView = np.radians(22.5)
+    groundMap.planetInMsg.subscribeTo(planetMsg)
+    groundMap.scStateInMsg.subscribeTo(scMsg)
+    groundMap.addPointToModel(r_LP_P.tolist())
+    scSim.AddModelToTask("simTask", groundMap)
+    log = groundMap.accessOutMsgs[0].recorder()
+    scSim.AddModelToTask("simTask", log)
+    scSim.InitializeSimulation()
+    scSim.TotalSim.SingleStepProcesses()
+
+    assert np.all(np.isfinite(log.v_BL_L[0]))
+    assert np.hypot(log.r_BL_L[0][0], log.r_BL_L[0][1]) < 1e-3  # [m] overhead up to round-off
+    assert log.azimuth[0] == 0.0  # [rad]
+    assert log.az_dot[0] == 0.0  # [rad/s]
+    assert log.el_dot[0] == 0.0  # [rad/s]
+    assert log.slantRange[0] == pytest.approx(altitude, rel=1e-6)  # [m]
+
+
 if __name__ == "__main__":
     test_groundMapping(1e9)

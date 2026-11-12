@@ -10,8 +10,8 @@
 #include "dynParamManager.h"
 #include "dynamicObject.h"
 #include "stateData.h"
-#include "stateVecStochasticIntegrator.h"
 #include "stateRegistry.h"
+#include "stateVecStochasticIntegrator.h"
 
 namespace {
 struct PendingNoiseBinding
@@ -22,8 +22,7 @@ struct PendingNoiseBinding
     const double* liveData;
 };
 
-size_t
-checkedPackedAdd(size_t left, size_t right)
+size_t checkedPackedAdd(size_t left, size_t right)
 {
     const size_t eigenLimit = static_cast<size_t>(std::numeric_limits<Eigen::Index>::max());
     if (right > eigenLimit || left > eigenLimit - right) {
@@ -33,8 +32,7 @@ checkedPackedAdd(size_t left, size_t right)
 }
 }
 
-void
-StateVecStochasticIntegrator::bindStochasticTopology()
+void StateVecStochasticIntegrator::bindStochasticTopology()
 {
     if (this->flatBinding.isBound() && this->flatBinding.objects().size() == this->dynamics().size()) {
         this->validateStochasticTopology();
@@ -54,7 +52,7 @@ StateVecStochasticIntegrator::bindStochasticTopology()
         const size_t noSharedGroup = std::numeric_limits<size_t>::max();
         for (size_t registrationIndex = 0; registrationIndex < layouts.size(); ++registrationIndex) {
             sharedGroupsByState[object.firstStateIndex + registrationIndex].assign(
-              layouts[registrationIndex].noiseCount, noSharedGroup);
+                layouts[registrationIndex].noiseCount, noSharedGroup);
         }
         const auto& sharedTopology = registry.getSharedNoiseTopology();
         for (size_t groupIndex = 0; groupIndex < sharedTopology.size(); ++groupIndex) {
@@ -128,9 +126,9 @@ StateVecStochasticIntegrator::bindStochasticTopology()
             binding.scalarCount = pending.scalarCount;
             binding.liveData = pending.liveData;
             newLocalToPacked.at(newStates[pending.boundStateIndex].localNoiseOffset + pending.localNoiseIndex) =
-              packedDiffusionCount;
+                packedDiffusionCount;
             newLocalLiveData.at(newStates[pending.boundStateIndex].localNoiseOffset + pending.localNoiseIndex) =
-              pending.liveData;
+                pending.liveData;
             packedDiffusionCount = checkedPackedAdd(packedDiffusionCount, pending.scalarCount);
             newBindings.push_back(binding);
         }
@@ -164,8 +162,7 @@ StateVecStochasticIntegrator::bindStochasticTopology()
     this->candidatePhase = CandidateAssemblyPhase::Idle;
 }
 
-void
-StateVecStochasticIntegrator::resetStochasticTopologyBinding() noexcept
+void StateVecStochasticIntegrator::resetStochasticTopologyBinding() noexcept
 {
     this->flatBinding.reset();
     std::vector<StochasticNoiseBinding>().swap(this->noiseBindings);
@@ -184,37 +181,33 @@ StateVecStochasticIntegrator::resetStochasticTopologyBinding() noexcept
     this->candidatePhase = CandidateAssemblyPhase::Idle;
 }
 
-void
-StateVecStochasticIntegrator::validateStochasticTopology() const
+void StateVecStochasticIntegrator::validateStochasticTopology() const
 {
     this->flatBinding.validate(this->dynamics());
 }
 
-void
-StateVecStochasticIntegrator::restoreStochasticStates() const
+void StateVecStochasticIntegrator::restoreStochasticStates() const
 {
     this->scatterStochasticStates(this->rollbackState);
 }
 
-void
-StateVecStochasticIntegrator::buildStochasticCandidateInPlace(const Eigen::VectorXd& base,
-                                                              const Eigen::VectorXd& drift,
-                                                              double timeStep,
-                                                              const Eigen::VectorXd& diffusions,
-                                                              const Eigen::VectorXd& globalPseudoSteps)
+void StateVecStochasticIntegrator::buildStochasticCandidateInPlace(const Eigen::VectorXd& base,
+                                                                   const Eigen::VectorXd& drift,
+                                                                   double timeStep,
+                                                                   const Eigen::VectorXd& diffusions,
+                                                                   const Eigen::VectorXd& globalPseudoSteps)
 {
     this->buildStochasticCandidateInPlace(
-      base, drift, timeStep, diffusions, globalPseudoSteps, 0, this->globalNoiseCount());
+        base, drift, timeStep, diffusions, globalPseudoSteps, 0, this->globalNoiseCount());
 }
 
-void
-StateVecStochasticIntegrator::buildStochasticCandidateInPlace(const Eigen::VectorXd& base,
-                                                              const Eigen::VectorXd& drift,
-                                                              double timeStep,
-                                                              const Eigen::VectorXd& diffusions,
-                                                              const Eigen::VectorXd& globalPseudoSteps,
-                                                              size_t slotBegin,
-                                                              size_t slotEnd)
+void StateVecStochasticIntegrator::buildStochasticCandidateInPlace(const Eigen::VectorXd& base,
+                                                                   const Eigen::VectorXd& drift,
+                                                                   double timeStep,
+                                                                   const Eigen::VectorXd& diffusions,
+                                                                   const Eigen::VectorXd& globalPseudoSteps,
+                                                                   size_t slotBegin,
+                                                                   size_t slotEnd)
 {
     if (base.size() != this->rollbackState.size() || drift.size() != this->packedDerivatives.size() ||
         !this->diffusionInputsMatchTopology(diffusions, globalPseudoSteps) || slotBegin > slotEnd ||
@@ -226,7 +219,7 @@ StateVecStochasticIntegrator::buildStochasticCandidateInPlace(const Eigen::Vecto
     for (const auto& descriptor : this->flatBinding.states()) {
         auto state = descriptor.state->stateView();
         this->buildStochasticDriftCandidate(
-          descriptor, descriptor.stateView(base), descriptor.derivativeView(drift), timeStep, state);
+            descriptor, descriptor.stateView(base), descriptor.derivativeView(drift), timeStep, state);
 
         if (singleSparseSlot) {
             continue;
@@ -236,13 +229,12 @@ StateVecStochasticIntegrator::buildStochasticCandidateInPlace(const Eigen::Vecto
 
     if (singleSparseSlot) {
         this->applyStochasticNoiseSlotInPlace(
-          diffusions, slotBegin, globalPseudoSteps(static_cast<Eigen::Index>(slotBegin)));
+            diffusions, slotBegin, globalPseudoSteps(static_cast<Eigen::Index>(slotBegin)));
     }
 }
 
-void
-StateVecStochasticIntegrator::applyStochasticDiffusionUpdateInPlace(const Eigen::VectorXd& diffusions,
-                                                                    const Eigen::VectorXd& globalPseudoSteps)
+void StateVecStochasticIntegrator::applyStochasticDiffusionUpdateInPlace(const Eigen::VectorXd& diffusions,
+                                                                         const Eigen::VectorXd& globalPseudoSteps)
 {
     if (!this->diffusionInputsMatchTopology(diffusions, globalPseudoSteps)) {
         throw std::invalid_argument("In-place stochastic diffusion update does not match the bound topology.");
@@ -251,14 +243,13 @@ StateVecStochasticIntegrator::applyStochasticDiffusionUpdateInPlace(const Eigen:
     for (const auto& descriptor : this->flatBinding.states()) {
         auto state = descriptor.state->stateView();
         this->applyStochasticNoiseInLocalOrder(
-          descriptor, state, diffusions, globalPseudoSteps, 0, this->noiseSlots.size());
+            descriptor, state, diffusions, globalPseudoSteps, 0, this->noiseSlots.size());
     }
 }
 
-void
-StateVecStochasticIntegrator::applyStochasticNoiseSlotInPlace(const Eigen::VectorXd& diffusions,
-                                                              size_t slotIndex,
-                                                              double pseudoStep)
+void StateVecStochasticIntegrator::applyStochasticNoiseSlotInPlace(const Eigen::VectorXd& diffusions,
+                                                                   size_t slotIndex,
+                                                                   double pseudoStep)
 {
     if (diffusions.size() != this->packedDiffusions.size() || slotIndex >= this->noiseSlots.size()) {
         throw std::invalid_argument("In-place stochastic noise slot does not match the bound topology.");
@@ -271,19 +262,19 @@ StateVecStochasticIntegrator::applyStochasticNoiseSlotInPlace(const Eigen::Vecto
         const auto& descriptor = this->flatBinding.states()[binding.boundStateIndex];
         auto state = descriptor.state->stateView();
         this->applyStochasticNoiseIncrement(
-          descriptor, state, descriptor.diffusionView(diffusions, binding.packedOffset), pseudoStep);
+            descriptor, state, descriptor.diffusionView(diffusions, binding.packedOffset), pseudoStep);
     }
 }
 
-void
-StateVecStochasticIntegrator::buildEulerMaruyamaCandidate(double timeStep, const Eigen::VectorXd& globalPseudoSteps)
+void StateVecStochasticIntegrator::buildEulerMaruyamaCandidate(double timeStep,
+                                                               const Eigen::VectorXd& globalPseudoSteps)
 {
     this->buildStochasticCandidate(
-      this->stochasticAcceptedState(), this->packedDerivatives, timeStep, this->packedDiffusions, globalPseudoSteps);
+        this->stochasticAcceptedState(), this->packedDerivatives, timeStep, this->packedDiffusions, globalPseudoSteps);
 }
 
-void
-StateVecStochasticIntegrator::advanceEuclideanEulerMaruyama(double timeStep, const Eigen::VectorXd& globalPseudoSteps)
+void StateVecStochasticIntegrator::advanceEuclideanEulerMaruyama(double timeStep,
+                                                                 const Eigen::VectorXd& globalPseudoSteps)
 {
     if (!this->stochasticUpdatesAreAllEuclidean() ||
         globalPseudoSteps.size() != static_cast<Eigen::Index>(this->globalNoiseCount())) {
@@ -295,14 +286,14 @@ StateVecStochasticIntegrator::advanceEuclideanEulerMaruyama(double timeStep, con
         Eigen::Map<Eigen::VectorXd> state(descriptor.state->stateView().data(), count);
         const auto initial = base.segment(static_cast<Eigen::Index>(descriptor.stateOffset), count);
         const auto drift =
-          this->packedDerivatives.segment(static_cast<Eigen::Index>(descriptor.derivativeOffset), count);
+            this->packedDerivatives.segment(static_cast<Eigen::Index>(descriptor.derivativeOffset), count);
         const auto diffusion = [&](size_t localIndex) {
             const size_t offset = descriptor.localNoiseOffset + localIndex;
             return Eigen::Map<const Eigen::VectorXd>(this->localNoiseLiveData[offset], count);
         };
         const auto increment = [&](size_t localIndex) {
             return globalPseudoSteps(
-              static_cast<Eigen::Index>(this->localNoiseToGlobalSlot[descriptor.localNoiseOffset + localIndex]));
+                static_cast<Eigen::Index>(this->localNoiseToGlobalSlot[descriptor.localNoiseOffset + localIndex]));
         };
         // Fuse the common one- and two-source updates into one vectorized pass,
         // preserving the same parenthesized additions in local source order.
@@ -319,63 +310,57 @@ StateVecStochasticIntegrator::advanceEuclideanEulerMaruyama(double timeStep, con
     }
 }
 
-void
-StateVecStochasticIntegrator::buildStochasticCandidate(const Eigen::VectorXd& base,
-                                                       const Eigen::VectorXd& drift,
-                                                       double timeStep,
-                                                       const Eigen::VectorXd& diffusions,
-                                                       const Eigen::VectorXd& globalPseudoSteps,
-                                                       size_t slotBegin,
-                                                       size_t slotEnd)
+void StateVecStochasticIntegrator::buildStochasticCandidate(const Eigen::VectorXd& base,
+                                                            const Eigen::VectorXd& drift,
+                                                            double timeStep,
+                                                            const Eigen::VectorXd& diffusions,
+                                                            const Eigen::VectorXd& globalPseudoSteps,
+                                                            size_t slotBegin,
+                                                            size_t slotEnd)
 {
     this->writeStochasticCandidate(base, drift, timeStep, diffusions, globalPseudoSteps, slotBegin, slotEnd);
     this->scatterStochasticStates(this->candidateState);
     this->candidatePhase = CandidateAssemblyPhase::Ready;
 }
 
-void
-StateVecStochasticIntegrator::writeStochasticCandidate(const Eigen::VectorXd& base,
-                                                       const Eigen::VectorXd& drift,
-                                                       double timeStep,
-                                                       const Eigen::VectorXd& diffusions,
-                                                       const Eigen::VectorXd& globalPseudoSteps,
-                                                       size_t slotBegin,
-                                                       size_t slotEnd)
+void StateVecStochasticIntegrator::writeStochasticCandidate(const Eigen::VectorXd& base,
+                                                            const Eigen::VectorXd& drift,
+                                                            double timeStep,
+                                                            const Eigen::VectorXd& diffusions,
+                                                            const Eigen::VectorXd& globalPseudoSteps,
+                                                            size_t slotBegin,
+                                                            size_t slotEnd)
 {
     if (base.size() != this->candidateState.size() || drift.size() != this->packedDerivatives.size() ||
         !this->diffusionInputsMatchTopology(diffusions, globalPseudoSteps) || slotBegin > slotEnd ||
         slotEnd > this->noiseSlots.size()) {
         throw std::invalid_argument("Packed stochastic candidate does not match the bound topology.");
     }
-    this->flatBinding.writeDriftCandidate(
-      base, drift, timeStep, this->candidateState);
+    this->flatBinding.writeDriftCandidate(base, drift, timeStep, this->candidateState);
 
     for (const auto& descriptor : this->flatBinding.states()) {
         this->applyStochasticNoiseInLocalOrder(
-          descriptor, descriptor.stateView(this->candidateState), diffusions, globalPseudoSteps, slotBegin, slotEnd);
+            descriptor, descriptor.stateView(this->candidateState), diffusions, globalPseudoSteps, slotBegin, slotEnd);
     }
 }
 
-void
-StateVecStochasticIntegrator::beginStochasticSparseCandidates(const Eigen::VectorXd& base,
-                                                              const Eigen::VectorXd& drift,
-                                                              double timeStep)
+void StateVecStochasticIntegrator::beginStochasticSparseCandidates(const Eigen::VectorXd& base,
+                                                                   const Eigen::VectorXd& drift,
+                                                                   double timeStep)
 {
     if (base.size() != this->sparseBaselineState.size() || drift.size() != this->packedDerivatives.size()) {
         throw std::invalid_argument("Sparse stochastic baseline does not match the bound topology.");
     }
-    this->flatBinding.writeDriftCandidate(
-      base, drift, timeStep, this->sparseBaselineState);
+    this->flatBinding.writeDriftCandidate(base, drift, timeStep, this->sparseBaselineState);
     this->candidateState = this->sparseBaselineState;
     this->scatterStochasticStates(this->sparseBaselineState);
     this->activeSparseSlot = static_cast<size_t>(-1);
     this->candidatePhase = CandidateAssemblyPhase::Sparse;
 }
 
-void
-StateVecStochasticIntegrator::buildStochasticNoiseSlotCandidate(const Eigen::VectorXd& diffusions,
-                                                                double pseudoStep,
-                                                                size_t slotIndex)
+void StateVecStochasticIntegrator::buildStochasticNoiseSlotCandidate(const Eigen::VectorXd& diffusions,
+                                                                     double pseudoStep,
+                                                                     size_t slotIndex)
 {
     if (this->candidatePhase != CandidateAssemblyPhase::Sparse) {
         throw std::logic_error("Sparse stochastic candidates must be initialized before use.");
@@ -427,7 +412,7 @@ StateVecStochasticIntegrator::buildStochasticNoiseSlotCandidate(const Eigen::Vec
         for (size_t bindingIndex = slot.bindingBegin; bindingIndex < bindingEnd; ++bindingIndex) {
             const auto& descriptor = this->flatBinding.states()[this->noiseBindings[bindingIndex].boundStateIndex];
             const double* baseline =
-              this->sparseBaselineState.data() + static_cast<Eigen::Index>(descriptor.stateOffset);
+                this->sparseBaselineState.data() + static_cast<Eigen::Index>(descriptor.stateOffset);
             std::copy_n(baseline,
                         descriptor.stateCount,
                         this->candidateState.data() + static_cast<Eigen::Index>(descriptor.stateOffset));
@@ -438,8 +423,7 @@ StateVecStochasticIntegrator::buildStochasticNoiseSlotCandidate(const Eigen::Vec
     this->activeSparseSlot = slotIndex;
 }
 
-void
-StateVecStochasticIntegrator::acceptStochasticCandidate()
+void StateVecStochasticIntegrator::acceptStochasticCandidate()
 {
     if (this->candidatePhase != CandidateAssemblyPhase::Ready) {
         throw std::logic_error("A stochastic candidate must be built before it can be accepted.");
@@ -449,12 +433,11 @@ StateVecStochasticIntegrator::acceptStochasticCandidate()
     this->candidatePhase = CandidateAssemblyPhase::Idle;
 }
 
-void
-StateVecStochasticIntegrator::beginAllEuclideanFinalCandidate(const Eigen::VectorXd& base,
-                                                              const Eigen::VectorXd& drift,
-                                                              double timeStep,
-                                                              const Eigen::VectorXd& diffusions,
-                                                              const Eigen::VectorXd& globalPseudoSteps)
+void StateVecStochasticIntegrator::beginAllEuclideanFinalCandidate(const Eigen::VectorXd& base,
+                                                                   const Eigen::VectorXd& drift,
+                                                                   double timeStep,
+                                                                   const Eigen::VectorXd& diffusions,
+                                                                   const Eigen::VectorXd& globalPseudoSteps)
 {
     if (!this->flatBinding.updatesAreAllEuclidean()) {
         throw std::logic_error("All-Euclidean final candidate requested for special state topology.");
@@ -463,11 +446,10 @@ StateVecStochasticIntegrator::beginAllEuclideanFinalCandidate(const Eigen::Vecto
     this->candidatePhase = CandidateAssemblyPhase::EuclideanFinal;
 }
 
-void
-StateVecStochasticIntegrator::appendAllEuclideanFinalCandidate(const Eigen::VectorXd& drift,
-                                                               double timeStep,
-                                                               const Eigen::VectorXd& diffusions,
-                                                               const Eigen::VectorXd& globalPseudoSteps)
+void StateVecStochasticIntegrator::appendAllEuclideanFinalCandidate(const Eigen::VectorXd& drift,
+                                                                    double timeStep,
+                                                                    const Eigen::VectorXd& diffusions,
+                                                                    const Eigen::VectorXd& globalPseudoSteps)
 {
     if (this->candidatePhase != CandidateAssemblyPhase::EuclideanFinal) {
         throw std::logic_error("Euclidean final candidate must be initialized before appending.");
@@ -496,8 +478,7 @@ StateVecStochasticIntegrator::appendAllEuclideanFinalCandidate(const Eigen::Vect
     }
 }
 
-void
-StateVecStochasticIntegrator::commitAllEuclideanFinalCandidate()
+void StateVecStochasticIntegrator::commitAllEuclideanFinalCandidate()
 {
     if (this->candidatePhase != CandidateAssemblyPhase::EuclideanFinal) {
         throw std::logic_error("Euclidean final candidate must be initialized before commit.");
@@ -509,12 +490,11 @@ StateVecStochasticIntegrator::commitAllEuclideanFinalCandidate()
     this->candidatePhase = CandidateAssemblyPhase::Idle;
 }
 
-void
-StateVecStochasticIntegrator::buildStochasticDriftCandidate(const StochasticStateDescriptor& descriptor,
-                                                            ConstMatrixView base,
-                                                            ConstMatrixView drift,
-                                                            double timeStep,
-                                                            MutableMatrixView output)
+void StateVecStochasticIntegrator::buildStochasticDriftCandidate(const StochasticStateDescriptor& descriptor,
+                                                                 ConstMatrixView base,
+                                                                 ConstMatrixView drift,
+                                                                 double timeStep,
+                                                                 MutableMatrixView output)
 {
     if (descriptor.usesEuclideanUpdate()) {
         output = base + drift * timeStep;
@@ -523,11 +503,10 @@ StateVecStochasticIntegrator::buildStochasticDriftCandidate(const StochasticStat
     }
 }
 
-void
-StateVecStochasticIntegrator::applyStochasticNoiseIncrement(const StochasticStateDescriptor& descriptor,
-                                                            MutableMatrixView state,
-                                                            ConstMatrixView diffusion,
-                                                            double pseudoStep)
+void StateVecStochasticIntegrator::applyStochasticNoiseIncrement(const StochasticStateDescriptor& descriptor,
+                                                                 MutableMatrixView state,
+                                                                 ConstMatrixView diffusion,
+                                                                 double pseudoStep)
 {
     if (descriptor.usesEuclideanUpdate()) {
         state += diffusion * pseudoStep;
@@ -536,13 +515,12 @@ StateVecStochasticIntegrator::applyStochasticNoiseIncrement(const StochasticStat
     }
 }
 
-void
-StateVecStochasticIntegrator::applyStochasticNoiseInLocalOrder(const StochasticStateDescriptor& descriptor,
-                                                               MutableMatrixView state,
-                                                               const Eigen::VectorXd& diffusions,
-                                                               const Eigen::VectorXd& globalPseudoSteps,
-                                                               size_t slotBegin,
-                                                               size_t slotEnd)
+void StateVecStochasticIntegrator::applyStochasticNoiseInLocalOrder(const StochasticStateDescriptor& descriptor,
+                                                                    MutableMatrixView state,
+                                                                    const Eigen::VectorXd& diffusions,
+                                                                    const Eigen::VectorXd& globalPseudoSteps,
+                                                                    size_t slotBegin,
+                                                                    size_t slotEnd)
 {
     // Shared-source discovery can reverse global slots relative to local indices.
     // Local order matters for special policies and Euclidean rounding alike.
@@ -553,16 +531,15 @@ StateVecStochasticIntegrator::applyStochasticNoiseInLocalOrder(const StochasticS
             continue;
         }
         this->applyStochasticNoiseIncrement(
-          descriptor,
-          state,
-          descriptor.diffusionView(diffusions, this->localNoiseToPackedOffset[localIndex]),
-          globalPseudoSteps(static_cast<Eigen::Index>(globalSlot)));
+            descriptor,
+            state,
+            descriptor.diffusionView(diffusions, this->localNoiseToPackedOffset[localIndex]),
+            globalPseudoSteps(static_cast<Eigen::Index>(globalSlot)));
     }
 }
 
-bool
-StateVecStochasticIntegrator::diffusionInputsMatchTopology(const Eigen::VectorXd& diffusions,
-                                                           const Eigen::VectorXd& globalPseudoSteps) const
+bool StateVecStochasticIntegrator::diffusionInputsMatchTopology(const Eigen::VectorXd& diffusions,
+                                                                const Eigen::VectorXd& globalPseudoSteps) const
 {
     return diffusions.size() == this->packedDiffusions.size() &&
            globalPseudoSteps.size() == static_cast<Eigen::Index>(this->noiseSlots.size());

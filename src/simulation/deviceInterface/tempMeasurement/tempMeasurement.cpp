@@ -17,20 +17,18 @@
 
 */
 
-
 #include "tempMeasurement.h"
 #include <iostream>
-
 
 /*! This is the constructor for the module class.  It sets default variable
     values and initializes the various parts of the model.
     Don't allow random walk by default.
  */
 TempMeasurement::TempMeasurement()
-  : faultState{ TEMP_FAULT_NOMINAL }
-  , walkBounds{ -1.0 }
-  , spikeProbability{ 0.1 }
-  , spikeAmount{ 2.0 }
+    : faultState{ TEMP_FAULT_NOMINAL }
+    , walkBounds{ -1.0 }
+    , spikeProbability{ 0.1 }
+    , spikeAmount{ 2.0 }
 {
     this->noiseModel = GaussMarkov(1, this->RNGSeed);
     this->propagationMatrix.resize(1);
@@ -56,14 +54,14 @@ void TempMeasurement::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
     this->spikeProbabilityGenerator.seed(static_cast<std::minstd_rand::result_type>(spikeSeed));
     this->noiseModel.setRNGSeed(this->RNGSeed);
 
-    Eigen::VectorXd nMatrix(1,1);
-    nMatrix(0,0) = this->senNoiseStd;
+    Eigen::VectorXd nMatrix(1, 1);
+    nMatrix(0, 0) = this->senNoiseStd;
     this->noiseModel.setNoiseMatrix(nMatrix);
 
     this->noiseModel.setPropMatrix(this->propagationMatrix);
 
-    Eigen::VectorXd bounds(1,1);
-    bounds(0,0) = this->walkBounds;
+    Eigen::VectorXd bounds(1, 1);
+    bounds(0, 0) = this->walkBounds;
     this->noiseModel.setUpperBounds(bounds);
 }
 
@@ -74,28 +72,28 @@ void TempMeasurement::applySensorErrors()
 {
     // apply noise and bias
     double sensorError;
-    if(this->senNoiseStd <= 0.0){
+    if (this->senNoiseStd <= 0.0) {
         sensorError = this->senBias;
     } else {
         // get current error from gaussMarkov random number generator
         this->noiseModel.computeNextState();
         Eigen::VectorXd currentErrorEigen = this->noiseModel.getCurrentState();
-        double sensorNoise = currentErrorEigen(0,0);
+        double sensorNoise = currentErrorEigen(0, 0);
         sensorError = this->senBias + sensorNoise;
     }
     this->sensedTemperature = this->trueTemperature + sensorError;
 
     // apply fault conditions
-    if(this->faultState == TEMP_FAULT_STUCK_VALUE){ // stuck at specified value
+    if (this->faultState == TEMP_FAULT_STUCK_VALUE) { // stuck at specified value
         this->sensedTemperature = this->stuckValue;
-    } else if (this->faultState == TEMP_FAULT_STUCK_CURRENT){ // stuck at last value before flag turned on
+    } else if (this->faultState == TEMP_FAULT_STUCK_CURRENT) { // stuck at last value before flag turned on
         this->sensedTemperature = this->pastValue;
-    } else if (this->faultState == TEMP_FAULT_SPIKING){ // spiking periodically with specified probability
+    } else if (this->faultState == TEMP_FAULT_SPIKING) { // spiking periodically with specified probability
         // have to make a new distribution every time because SWIG can't parse putting this in the H file....?
-        std::uniform_real_distribution<double> spikeProbabilityDistribution(0.0,1.0);
+        std::uniform_real_distribution<double> spikeProbabilityDistribution(0.0, 1.0);
         double n = spikeProbabilityDistribution(this->spikeProbabilityGenerator); // draw from uniform distribution
         if (n <= this->spikeProbability) { // if drawn number within probability of spiking
-            this->sensedTemperature = this->sensedTemperature*this->spikeAmount;
+            this->sensedTemperature = this->sensedTemperature * this->spikeAmount;
         }
     }
 
@@ -108,7 +106,7 @@ void TempMeasurement::applySensorErrors()
 void TempMeasurement::UpdateState(uint64_t CurrentSimNanos)
 {
     TemperatureMsgPayload tempInMsgBuffer;  //!< local copy of message buffer
-    TemperatureMsgPayload tempOutMsgBuffer;  //!< local copy of message buffer
+    TemperatureMsgPayload tempOutMsgBuffer; //!< local copy of message buffer
 
     // always zero the output message buffers before assigning values
     tempOutMsgBuffer = this->tempOutMsg.zeroMsgPayload;
@@ -125,8 +123,7 @@ void TempMeasurement::UpdateState(uint64_t CurrentSimNanos)
     this->tempOutMsg.write(&tempOutMsgBuffer, this->moduleID, CurrentSimNanos);
 }
 
-void
-TempMeasurement::setAMatrix(const Eigen::VectorXd& propMatrix)
+void TempMeasurement::setAMatrix(const Eigen::VectorXd& propMatrix)
 {
     if (propMatrix.rows() != 1 || propMatrix.cols() != 1) {
         bskLogger.bskError("TempMeasurement: Propagation matrix must be 1x1");
@@ -135,8 +132,7 @@ TempMeasurement::setAMatrix(const Eigen::VectorXd& propMatrix)
     this->noiseModel.setPropMatrix(propMatrix);
 }
 
-Eigen::VectorXd
-TempMeasurement::getAMatrix() const
+Eigen::VectorXd TempMeasurement::getAMatrix() const
 {
     return this->propagationMatrix;
 }

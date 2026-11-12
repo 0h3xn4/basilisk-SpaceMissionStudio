@@ -18,7 +18,7 @@ the coding guidelines developed by Stroustrup and Sutter.
 
 **Python foundational guidelines**: the `PEP
 8 <https://www.python.org/dev/peps/pep-0008/>`__ guidelines are to be
-followed for python code development.
+followed for Python code development, with the exceptions described below.
 
 The both of these foundational sets of guidelines are extensive and
 where the Basilisk document is silent these guidelines will prevail.
@@ -278,9 +278,12 @@ C/C++ Exceptions
 Python Exceptions
 -----------------
 
--  General-purpose Python implementation and tooling names are to follow
-   PEP 8. This includes using ``under_scored`` names for functions, methods,
-   local variables, and parameters.
+-  Python functions, methods, local variables, and parameters may use either
+   ``snake_case`` or ``lowerCamelCase``. This applies to general-purpose
+   implementation and tooling as well as BSK architecture code. Follow the
+   established convention in the surrounding file or API, and avoid mixing
+   naming styles within the same interface. Do not rename existing interfaces
+   solely to change naming style.
 -  Public BSK module attributes, message variables, mathematical quantities,
    and names shared across C/C++ and Python interfaces are to retain the
    established Basilisk naming conventions. This includes lower ``camelCase``
@@ -303,6 +306,14 @@ The default packages include ``pytest`` which is a program that can run a series
 python scripts that begin with ``test_``.  The package ``pytest-xdist`` is also installed by default
 and allows these tests to be run in a multi-threaded manner using the argument ``-n auto``.
 
+The ``src`` pytest configuration sets ``MPLCONFIGDIR`` to the checkout's
+``.pytest_cache/matplotlib`` directory before importing Matplotlib. This ignored,
+reusable cache avoids rebuilding the font cache on repeated runs when the home
+directory is not writable, and is shared with local parallel test workers and CI
+workers. An explicitly supplied ``MPLCONFIGDIR`` is preserved. If the checkout
+cache cannot be written, Matplotlib uses its normal cache selection. The first
+run after creating or clearing the cache still builds it.
+
 Further, Basilisk uses the Google ``gtest`` suite to run unit tests on C or C++ support libraries.
 To run all the unit and integrated test open a terminal window and change your working directory
 to the root ``basilisk`` directory.  Activate the python virtual environment if needed.
@@ -317,6 +328,13 @@ reports that the Rust tests were skipped and continues. All tests that run
 should pass. If not all Basilisk modules are built (i.e. the build process
 turned off the ``opNav`` option), then some Python tests will show up as
 skipped.
+
+Native build regression tests use ``buildIntegration`` and ``ciSkip`` markers.
+They run in a separate PR CI step on each platform; routine
+``pytest -n auto -m "not ciSkip"`` runs retain the import and recorder checks.
+To run the build tests locally from the repository root, use::
+
+    pytest -n 2 -m buildIntegration src/tests/test_fswBindingLayout.py src/tests/test_incremental_build_checks.py src/tests/test_cmake_message_cleanup.py
 
 Guarding Tests for Optional Build Features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -409,7 +427,9 @@ this inside a folder as HTML support folder will be created::
 
 Formatting Code Files using ``pre-commit`` and ``clang-format``
 ---------------------------------------------------------------
-If you are developing new code to contribute back to Basilisk it must follow the
-:ref:`codingGuidelines`.  This requires using the ``pre-commit`` and  ``clang-format``
-packages. The file `CONTRIBUTING.md <https://github.com/AVSLab/basilisk/blob/develop/CONTRIBUTING.md>`__
-explains how to setup and use these code formating tools.
+New code contributed to Basilisk must follow the :ref:`codingGuidelines`.
+Use ``pre-commit`` to format C/C++ files. The hook automatically installs the
+clang-format version pinned in ``.pre-commit-config.yaml``. A separate
+clang-format installation is optional.
+See `CONTRIBUTING.md <https://github.com/AVSLab/basilisk/blob/develop/CONTRIBUTING.md>`__
+for installation and usage instructions.

@@ -8,7 +8,8 @@ import inspect
 import os
 
 import numpy as np
-from Basilisk.architecture import messaging
+import pytest
+from Basilisk.architecture import bskLogging, messaging
 from Basilisk.fswAlgorithms import pixelLineConverter
 from Basilisk.utilities import RigidBodyKinematics as rbk
 from Basilisk.utilities import (
@@ -117,8 +118,10 @@ def pixelLineConverterTestFunction():
 
     # Initialize the simulation
     unitTestSim.InitializeSimulation()
-    # The result isn't going to change with more time. The module will continue to produce the same result
-    unitTestSim.ConfigureStopTime(testProcessRate)  # seconds to stop simulation
+    unitTestSim.ConfigureStopTime(0)  # [ns]
+    unitTestSim.ExecuteSimulation()
+    circlesInMsg.write(inputCircles, testProcessRate)
+    unitTestSim.ConfigureStopTime(testProcessRate)  # [ns]
     unitTestSim.ExecuteSimulation()
 
     # Truth Values
@@ -183,3 +186,22 @@ def pixelLineConverterTestFunction():
 
 if __name__ == '__main__':
     test_pixelLine_converter()
+
+
+@pytest.mark.parametrize("planet_id", [0, -1, 4, 1.5, float("nan"), float("inf")])
+def test_pixel_line_converter_rejects_unknown_planet(planet_id):
+    """Reject invalid circle identifiers before casting or using a planet radius."""
+    module = pixelLineConverter.pixelLineConverter()
+    camera = messaging.CameraConfigMsg().write(messaging.CameraConfigMsgPayload())
+    attitude = messaging.NavAttMsg().write(messaging.NavAttMsgPayload())
+    payload = messaging.OpNavCirclesMsgPayload()
+    payload.valid = 1
+    payload.planetIds = [planet_id]
+    circles = messaging.OpNavCirclesMsg().write(payload)
+    module.cameraConfigInMsg.subscribeTo(camera)
+    module.attInMsg.subscribeTo(attitude)
+    module.circlesInMsg.subscribeTo(circles)
+    module.SelfInit()
+    module.Reset(0)
+    with pytest.raises(bskLogging.BasiliskError, match="pixelLineConverter: unsupported circle planet ID"):
+        module.UpdateState(0)

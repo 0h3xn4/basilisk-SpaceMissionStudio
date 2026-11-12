@@ -19,30 +19,48 @@
 
 #pragma once
 
+#include "architecture/utilities/astroConstants.h"
 #include <Eigen/Dense>
 #include <architecture/utilities/orbitalMotion.h>
-#include "architecture/utilities/astroConstants.h"
+#include <cmath>
 
-
-//! @brief The KeplerianOrbit class represents an elliptical orbit and provides a coherent set of
-//! common outputs such as position and velocity, orbital period, semi-parameter, etc. It uses the
-//! utility orbitalMotion to do orbital element to position and velocity conversion.
-class KeplerianOrbit {
-public:
+/*! @brief Represent an elliptical orbit with a coherent set of derived outputs.
+ *
+ * Position and velocity are computed with orbitalMotion. Constructors and element
+ * or gravitational-parameter setters immediately refresh the affected outputs.
+ * Use meters, seconds, and radians for inputs and outputs.
+ *
+ * @note The supported domain is a positive semi-major axis, a positive gravitational
+ * parameter, eccentricity in [0, 1), and inclination in [0, pi]. Hyperbolic, parabolic, and rectilinear
+ * orbits are outside this class's scope. All inputs must be finite.
+ * @note Constructors and setters throw std::invalid_argument (ValueError in
+ * Python) for unsupported inputs or unrepresentable derived outputs. Rejected
+ * setters preserve the complete previous state.
+ * @note E() and M() follow the f2E() and E2M() angle conventions without additional
+ * normalization to [0, 2*pi). Negative and wrapped true anomalies are accepted;
+ * these conversions do not preserve a count of completed revolutions.
+ */
+class KeplerianOrbit
+{
+  public:
     KeplerianOrbit();
     KeplerianOrbit(ClassicElements oe, const double mu);
-    KeplerianOrbit(const KeplerianOrbit &orig);
+    KeplerianOrbit(const KeplerianOrbit& orig);
+    /*! @brief Copy the complete orbital state, including derived outputs.
+     * @param other Orbit whose state is copied.
+     * @return Reference to this orbit after assignment.
+     */
+    KeplerianOrbit& operator=(const KeplerianOrbit& other) = default;
     ~KeplerianOrbit();
 
-
-    Eigen::Vector3d r_BP_P() const;              //!< body position vector relative to planet
-    Eigen::Vector3d v_BP_P() const;              //!< body velocity vector relative to planet
+    Eigen::Vector3d r_BP_P() const; //!< body position vector relative to planet
+    Eigen::Vector3d v_BP_P() const; //!< body velocity vector relative to planet
     Eigen::Vector3d h_BP_P() const; //!< angular momentum of body relative to planet
-    double M() const;
+    double M() const;               //!< Mean elliptic anomaly [rad], using E2M().
     double n() const;
     double P() const;
     double f() const;
-    double fDot() const;
+    double fDot() const; //!< True anomaly rate [rad/s].
     double RAAN() const;
     double omega() const;
     double i() const;
@@ -54,13 +72,27 @@ public:
     double v() const;
     double r_a() const;
     double r_p() const;
-    double fpa() const;
-    double E() const;
+    double fpa() const; //!< Flight-path angle [rad], negative for inward motion.
+    double E() const;   //!< Eccentric anomaly [rad], using f2E().
     double p() const;
-    double rDot() const;
+    double rDot() const; //!< Radial velocity [m/s], negative for inward motion.
+    /*! @brief Return the characteristic orbital energy C3.
+     * @return Twice the specific orbital energy, C3 = -mu/a [m^2/s^2].
+     * @note C3 is negative for the elliptic orbits supported by this class.
+     */
     double c3() const;
+    /*! @brief Return the current orbital elements and derived geometry.
+     * @return Elements including the current radius in rmag [m], inverse semi-major
+     * axis in alpha [1/m], and apsis radii in rPeriap and rApoap [m].
+     */
     ClassicElements oe();
+    /*! @brief Set the central body's gravitational parameter and refresh all derived outputs.
+     * @param mu Gravitational parameter [m^3/s^2].
+     */
     void set_mu(const double mu);
+    /*! @brief Set the semi-major axis and refresh all derived outputs.
+     * @param a Semi-major axis [m].
+     */
     void set_a(double a);
     void set_e(double e);
     void set_i(double i);
@@ -68,9 +100,9 @@ public:
     void set_RAAN(double RAAN);
     void set_f(double f);
 
-private:
-    double mu = MU_EARTH*pow(10,9); // convert to m^3/s^2
-    double semi_major_axis = 1E5*1000;  // convert to meters
+  private:
+    double mu = MU_EARTH * std::pow(10, 9); // [m^3/s^2]
+    double semi_major_axis = 1E5 * 1000;    // convert to meters
     double eccentricity = 1E-5;
     double inclination{};
     double argument_of_periapsis{};
@@ -79,7 +111,7 @@ private:
     double true_anomaly_rate{};
     double orbital_period{};
     double orbital_energy{};
-    double v_infinity{};
+    [[maybe_unused]] double v_infinity{}; //!< Reserved legacy storage; retained to preserve the native class layout.
     double orbit_radius{};
     double radial_rate{};
     double r_apogee{};
@@ -92,7 +124,8 @@ private:
     Eigen::Vector3d orbital_angular_momentum_P;
     Eigen::Vector3d position_BP_P;
     Eigen::Vector3d velocity_BP_P;
-private:
+
+  private:
     void change_orbit();
     void change_f();
 };

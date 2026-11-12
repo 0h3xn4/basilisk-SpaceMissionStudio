@@ -22,8 +22,8 @@
 #include <iostream>
 
 /*! Initialize C-wrapped output messages */
-void
-VscmgGimbalRateServo::SelfInit(){
+void VscmgGimbalRateServo::SelfInit()
+{
     VSCMGArrayTorqueMsg_C_init(&this->cmdsOutMsgC);
 }
 
@@ -37,8 +37,7 @@ VscmgGimbalRateServo::VscmgGimbalRateServo()
 /*! Reset the module to original configuration values.
 
  */
-void
-VscmgGimbalRateServo::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
+void VscmgGimbalRateServo::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
 {
     if (!this->vsmcgParamsInMsg.isLinked()) {
         bskLogger.bskError("VscmgGimbalRateServo.vsmcgParamsInMsg was not linked.");
@@ -56,8 +55,7 @@ VscmgGimbalRateServo::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
     this->vscmgConfigParams = this->vsmcgParamsInMsg();
 }
 
-void
-VscmgGimbalRateServo::UpdateState(uint64_t CurrentSimNanos)
+void VscmgGimbalRateServo::UpdateState(uint64_t CurrentSimNanos)
 {
     Eigen::Matrix3d BG0;
     Eigen::Matrix3d GG0;
@@ -80,15 +78,13 @@ VscmgGimbalRateServo::UpdateState(uint64_t CurrentSimNanos)
 
     if (!this->speedsInMsg.isWritten()) {
         for (int i = 0; i < vscmgConfigParams.numVSCMG; i++) {
-        VSCMGSpeeds.wheelSpeeds[i] = this->vscmgConfigParams.Omega0List[i];
-        VSCMGSpeeds.gimbalAngles[i] = this->vscmgConfigParams.gamma0List[i];
-        VSCMGSpeeds.gimbalRates[i] = this->vscmgConfigParams.gammaDot0List[i];
+            VSCMGSpeeds.wheelSpeeds[i] = this->vscmgConfigParams.Omega0List[i];
+            VSCMGSpeeds.gimbalAngles[i] = this->vscmgConfigParams.gamma0List[i];
+            VSCMGSpeeds.gimbalRates[i] = this->vscmgConfigParams.gammaDot0List[i];
         }
     } else {
         VSCMGSpeeds = this->speedsInMsg();
     }
-
-
 
     omega_BN_B = Eigen::Vector3d(hubAttState.omega_BN_B[0], hubAttState.omega_BN_B[1], hubAttState.omega_BN_B[2]);
     //! - Compute torques for each VSCMG
@@ -107,12 +103,12 @@ VscmgGimbalRateServo::UpdateState(uint64_t CurrentSimNanos)
         omegat = BG.col(1).transpose() * omega_BN_B;
 
         this->outputTorques.wheelTorque[VSCMGi] =
-          vscmgConfigParams.IwsList[VSCMGi] *
-          (VSCMGRefStates.wheelAccels[VSCMGi] + VSCMGSpeeds.gimbalRates[VSCMGi] * omegat);
+            vscmgConfigParams.IwsList[VSCMGi] *
+            (VSCMGRefStates.wheelAccels[VSCMGi] + VSCMGSpeeds.gimbalRates[VSCMGi] * omegat);
         this->outputTorques.gimbalTorque[VSCMGi] =
-          vscmgConfigParams.JgList[VSCMGi] * gammaDotDot -
-          (vscmgConfigParams.JsList[VSCMGi] - vscmgConfigParams.JtList[VSCMGi]) * omegas * omegat -
-          vscmgConfigParams.IwsList[VSCMGi] * VSCMGSpeeds.wheelSpeeds[VSCMGi] * omegat;
+            vscmgConfigParams.JgList[VSCMGi] * gammaDotDot -
+            (vscmgConfigParams.JsList[VSCMGi] - vscmgConfigParams.JtList[VSCMGi]) * omegas * omegat -
+            vscmgConfigParams.IwsList[VSCMGi] * VSCMGSpeeds.wheelSpeeds[VSCMGi] * omegat;
     }
 
     // Write the output message for the VSCMG torques
@@ -121,8 +117,7 @@ VscmgGimbalRateServo::UpdateState(uint64_t CurrentSimNanos)
     VSCMGArrayTorqueMsg_C_write(&this->outputTorques, &this->cmdsOutMsgC, this->moduleID, CurrentSimNanos);
 }
 
-void
-VscmgGimbalRateServo::setK_gammaDot(double var)
+void VscmgGimbalRateServo::setK_gammaDot(double var)
 {
     this->K_gammaDot = var;
 }

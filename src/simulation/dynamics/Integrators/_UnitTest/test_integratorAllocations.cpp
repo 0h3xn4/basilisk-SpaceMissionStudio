@@ -60,8 +60,8 @@ class AllocationDynamics final : public DynamicObject
 {
   public:
     explicit AllocationDynamics(bool stochastic, size_t noiseCount = 1)
-      : stochastic(stochastic)
-      , noiseCount(stochastic ? noiseCount : 0)
+        : stochastic(stochastic)
+        , noiseCount(stochastic ? noiseCount : 0)
     {
         this->reset();
     }
@@ -118,8 +118,7 @@ class AllocationDynamics final : public DynamicObject
     bool allocateInUserCode = false;
 };
 
-RKCoefficients<4>
-rk4Coefficients()
+RKCoefficients<4> rk4Coefficients()
 {
     RKCoefficients<4> coefficients;
     coefficients.aMatrix = { { { { 0.0, 0.0, 0.0, 0.0 } },
@@ -131,8 +130,7 @@ rk4Coefficients()
     return coefficients;
 }
 
-RKAdaptiveCoefficients<4>
-adaptiveCoefficients()
+RKAdaptiveCoefficients<4> adaptiveCoefficients()
 {
     RKAdaptiveCoefficients<4> coefficients;
     coefficients.aMatrix = { { { { 0.0, 0.0, 0.0, 0.0 } },
@@ -149,7 +147,7 @@ class ScopedEigenNoMalloc
 {
   public:
     ScopedEigenNoMalloc()
-      : previous(Eigen::internal::is_malloc_allowed())
+        : previous(Eigen::internal::is_malloc_allowed())
     {
         Eigen::internal::set_is_malloc_allowed(false);
     }
@@ -178,8 +176,7 @@ class LegacyAllocatingNoiseGenerator final : public GaussianNoiseGenerator
 };
 
 template<typename Integrator>
-AllocationSnapshot
-trackStochasticStep(Integrator& integrator, double timeStep = 0.125)
+AllocationSnapshot trackStochasticStep(Integrator& integrator, double timeStep = 0.125)
 {
     return trackAllocations([&]() {
         ScopedEigenNoMalloc noEigenMalloc;
@@ -188,8 +185,7 @@ trackStochasticStep(Integrator& integrator, double timeStep = 0.125)
 }
 
 template<typename Integrator>
-void
-expectFullyTrackedStochasticStepDoesNotAllocate()
+void expectFullyTrackedStochasticStepDoesNotAllocate()
 {
     SCOPED_TRACE(typeid(Integrator).name());
     AllocationDynamics dynamics(true);
@@ -199,8 +195,7 @@ expectFullyTrackedStochasticStepDoesNotAllocate()
     EXPECT_EQ(trackStochasticStep(integrator).totalCalls(), 0U);
 }
 
-void
-recordAllocatorCoverage()
+void recordAllocatorCoverage()
 {
     testing::Test::RecordProperty("allocator_interception",
                                   integrator_allocation_test::allocatorInterceptionDescription());
@@ -319,12 +314,12 @@ TEST(IntegratorAllocationTracker, SuspensionIsNestedAndTrackingIsThreadLocal)
 TEST(IntegratorAllocationTracker, EigenRuntimeNoMallocPositiveControl)
 {
     ASSERT_DEATH(
-      {
-          Eigen::internal::set_is_malloc_allowed(false);
-          Eigen::MatrixXd matrix(64, 64);
-          matrix.setZero();
-      },
-      "heap allocation is forbidden");
+        {
+            Eigen::internal::set_is_malloc_allowed(false);
+            Eigen::MatrixXd matrix(64, 64);
+            matrix.setZero();
+        },
+        "heap allocation is forbidden");
 }
 
 TEST(IntegratorAllocationTracker, FixedAdaptiveAndStochasticUseNoObservedAllocatorsAfterBind)

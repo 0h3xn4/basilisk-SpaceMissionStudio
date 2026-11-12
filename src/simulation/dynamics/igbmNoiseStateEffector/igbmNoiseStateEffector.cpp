@@ -18,8 +18,8 @@
  */
 #include "igbmNoiseStateEffector.h"
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 uint64_t IgbmNoiseStateEffector::effectorID = 1;
 
@@ -31,8 +31,7 @@ IgbmNoiseStateEffector::IgbmNoiseStateEffector()
     this->effProps.rEffPrime_CB_B.setZero();
     this->effProps.IEffPrimePntB_B.setZero();
 
-    this->nameOfState = "igbmNoiseState"
-                        + std::to_string(IgbmNoiseStateEffector::effectorID);
+    this->nameOfState = "igbmNoiseState" + std::to_string(IgbmNoiseStateEffector::effectorID);
     IgbmNoiseStateEffector::effectorID++;
 }
 
@@ -104,9 +103,7 @@ void IgbmNoiseStateEffector::registerStates(DynParamManager& states)
     this->state->setState(state);
 }
 
-void IgbmNoiseStateEffector::linkInStates(DynParamManager& states [[maybe_unused]])
-{
-}
+void IgbmNoiseStateEffector::linkInStates(DynParamManager& states [[maybe_unused]]) {}
 
 void IgbmNoiseStateEffector::computeDerivatives(double integTime [[maybe_unused]],
                                                 Eigen::Vector3d rDDot_BN_N [[maybe_unused]],
@@ -130,8 +127,8 @@ void IgbmNoiseStateEffector::computeDerivatives(double integTime [[maybe_unused]
     const double scale = std::max(this->mean, this->sigmaStationary);
     const double scaledMean = this->mean / scale;
     const double scaledStd = this->sigmaStationary / scale;
-    const double sigma = (std::sqrt(2.0) / std::sqrt(this->timeConstant))
-                         * (scaledStd / std::hypot(scaledMean, scaledStd));
+    const double sigma =
+        (std::sqrt(2.0) / std::sqrt(this->timeConstant)) * (scaledStd / std::hypot(scaledMean, scaledStd));
 
     Eigen::MatrixXd diffusion(1, 1);
     diffusion(0, 0) = sigma * factor;

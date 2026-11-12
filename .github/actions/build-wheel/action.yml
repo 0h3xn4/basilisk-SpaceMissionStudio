@@ -1,6 +1,9 @@
 name: build wheel
 description: Build a Basilisk wheel with compiler and Conan caching.
 inputs:
+  rust-toolchain:
+    description: Exact Rust version resolved once by the calling workflow.
+    required: true
   output-dir:
     description: Directory that receives the built wheel.
     required: true
@@ -19,6 +22,24 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Select workflow Rust toolchain
+      shell: bash
+      env:
+        RUSTUP_TOOLCHAIN: ${{ inputs.rust-toolchain }}
+        RUNNER_OS: ${{ runner.os }}
+      run: |
+        if [[ ! "$RUSTUP_TOOLCHAIN" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error::rust-toolchain must be an exact stable Rust version"
+          exit 1
+        fi
+        echo "RUSTUP_TOOLCHAIN=$RUSTUP_TOOLCHAIN" >> "$GITHUB_ENV"
+        # Linux installs the same toolchain inside the manylinux container.
+        if [[ "$RUNNER_OS" != "Linux" ]]; then
+          rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --no-self-update
+          rustc --version
+          cargo --version
+        fi
+
     - name: Setup system dependencies
       uses: ./.github/actions/setup
 
@@ -31,7 +52,12 @@ runs:
     - name: Install Conan cache tooling
       if: ${{ runner.os != 'Linux' }}
       shell: bash
-      run: python -m pip install "conan>=2.0.5,<=2.28.1"
+      run: python -m pip install "conan>=2.4.0,<=2.33.0"
+
+    - name: Prepare macOS Rust tools
+      if: ${{ runner.os == 'macOS' && contains(inputs.conan-args, '--rustModules True') }}
+      shell: bash
+      run: python .github/scripts/setup_macos_rust.py
 
     - name: Setup sccache
       uses: mozilla-actions/sccache-action@v0.0.10
@@ -46,7 +72,7 @@ runs:
 
         if [[ "${{ runner.os }}" == "Linux" ]]; then
           echo "CONAN_HOME=/host${HOME}/.conan2" >> "${GITHUB_ENV}"
-          linux_environment_pass="CONAN_ARGS CONAN_HOME"
+          linux_environment_pass="CONAN_ARGS CONAN_HOME RUSTUP_TOOLCHAIN"
         fi
 
         if command -v sccache >/dev/null 2>&1; then
@@ -108,22 +134,22 @@ runs:
 
     - name: Build wheel
       if: ${{ inputs.cibw-build == '' }}
-      uses: pypa/cibuildwheel@v3.4.1
+      uses: pypa/cibuildwheel@v4.3.5
       with:
         output-dir: ${{ inputs.output-dir }}
       env:
         CIBW_TEST_SKIP: "*"
-        CONAN_ARGS: ${{ inputs.conan-args }}
+        CONAN_ARGS: "${{ inputs.conan-args }} --verbose"
 
     - name: Build selected wheel
       if: ${{ inputs.cibw-build != '' }}
-      uses: pypa/cibuildwheel@v3.4.1
+      uses: pypa/cibuildwheel@v4.3.5
       with:
         output-dir: ${{ inputs.output-dir }}
       env:
         CIBW_BUILD: ${{ inputs.cibw-build }}
         CIBW_TEST_SKIP: "*"
-        CONAN_ARGS: ${{ inputs.conan-args }}
+        CONAN_ARGS: "${{ inputs.conan-args }} --verbose"
 
     - name: Verify wheel license files
       shell: bash

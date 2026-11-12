@@ -19,8 +19,8 @@
 
 #include "simulation/mujocoDynamics/thrOnTimeToForce/thrOnTimeToForce.h"
 #include "architecture/messaging/ownedMessage.h"
-#include <algorithm>
 #include "architecture/utilities/macroDefinitions.h"
+#include <algorithm>
 
 void ThrOnTimeToForce::Reset(uint64_t CurrentSimNanos)
 {
@@ -29,18 +29,22 @@ void ThrOnTimeToForce::Reset(uint64_t CurrentSimNanos)
     }
 
     if (this->thrMag.size() > MAX_EFF_CNT) {
-        bskLogger.bskError("ThrOnTimeToForce configured for %zu thrusters, but THRArrayOnTimeCmdMsgPayload supports at most %d.",
-                         this->thrMag.size(), MAX_EFF_CNT);
+        bskLogger.bskError(
+            "ThrOnTimeToForce configured for %zu thrusters, but THRArrayOnTimeCmdMsgPayload supports at most %d.",
+            this->thrMag.size(),
+            MAX_EFF_CNT);
     }
 
     if (this->numThr != this->thrMag.size()) {
         bskLogger.bskError("ThrOnTimeToForce thruster count (%zu) does not match size of thrMag vector (%zu).",
-                         this->numThr, this->thrMag.size());
+                           this->numThr,
+                           this->thrMag.size());
     }
 
     if (this->thrusterForceOutMsgs.size() != this->numThr) {
         bskLogger.bskError("ThrOnTimeToForce output message count (%zu) does not match thruster count (%zu).",
-                         this->thrusterForceOutMsgs.size(), this->numThr);
+                           this->thrusterForceOutMsgs.size(),
+                           this->numThr);
     }
 
     this->firingTimeRemaining.assign(this->numThr, 0.0);
@@ -55,16 +59,19 @@ void ThrOnTimeToForce::UpdateState(uint64_t CurrentSimNanos)
 
     // if a new on-time command message has been written since the last update, latch the new command and reset timers
     if (this->onTimeInMsg.isLinked() && this->onTimeInMsg.isWritten() &&
-        this->onTimeInMsg.timeWritten() != this->prevCommandWriteNanos)
-    {
+        this->onTimeInMsg.timeWritten() != this->prevCommandWriteNanos) {
         newOnTimeCmd = true;
         THRArrayOnTimeCmdMsgPayload onTime = this->onTimeInMsg();
         this->prevCommandWriteNanos = this->onTimeInMsg.timeWritten();
 
         for (size_t i = 0; i < this->numThr; ++i) {
             const double cmdTime = onTime.OnTimeRequest[i];
-            if (cmdTime < 0.0) {        // negative on-time commands are treated as zero with a warning
-                bskLogger.bskLog(BSK_WARNING, "ThrOnTimeToForce received negative on-time command (%f s) for thruster %zu. Setting to 0.", cmdTime, i);
+            if (cmdTime < 0.0) { // negative on-time commands are treated as zero with a warning
+                bskLogger.bskLog(
+                    BSK_WARNING,
+                    "ThrOnTimeToForce received negative on-time command (%f s) for thruster %zu. Setting to 0.",
+                    cmdTime,
+                    i);
                 this->firingTimeRemaining[i] = 0.0;
             } else {
                 this->firingTimeRemaining[i] = cmdTime;
@@ -72,17 +79,17 @@ void ThrOnTimeToForce::UpdateState(uint64_t CurrentSimNanos)
         }
     }
 
-    // if there is a new command do not decrement timers, if there is no new command, decrement timers based on time elapsed since last update
-    // this is needed to avoid decrementing by large amounts if there is a gap between when the on-time command message
-    // is written and the first time this module is used to process that command
+    // if there is a new command do not decrement timers, if there is no new command, decrement timers based on time
+    // elapsed since last update this is needed to avoid decrementing by large amounts if there is a gap between when
+    // the on-time command message is written and the first time this module is used to process that command
     if (newOnTimeCmd || this->previousUpdateTimeSec < 0.0) {
         this->previousUpdateTimeSec = currentTimeSec;
     } else {
         const double dt = std::max(0.0, currentTimeSec - this->previousUpdateTimeSec);
         this->previousUpdateTimeSec = currentTimeSec;
-        for (double &timeRemaining : this->firingTimeRemaining) {
+        for (double& timeRemaining : this->firingTimeRemaining) {
             timeRemaining = std::max(0.0, timeRemaining - dt);
-            if (timeRemaining < 1e-12) {     // to avoid numerical issues with very small remaining times, treat as zero
+            if (timeRemaining < 1e-12) { // to avoid numerical issues with very small remaining times, treat as zero
                 timeRemaining = 0.0;
             }
         }

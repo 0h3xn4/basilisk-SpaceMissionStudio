@@ -86,13 +86,19 @@ Note that the option names for groupings of Basilisk modules are the same as wit
       - Boolean
       - True
       - Builds the native GoogleTest executables and registers them with CTest
+    * - ``-o "&:exportCompileCommands=<value>"``
+      - Boolean
+      - True
+      - Exports ``compile_commands.json`` with Ninja or Makefile generators for clangd and other language servers.
+        Xcode and Visual Studio do not support export. Setting this option to ``False`` also removes an existing
+        database from the selected build directory. See :ref:`clangdSetup` for generator and editor configuration.
     * - ``-s build_type``
       - Release, Debug
       - Release
       - Specifies the build type
     * - ``-o "&:strictWarnings=<value>"``
       - Boolean
-      - False
+      - True
       - Enables the additional Basilisk compiler diagnostics described in
         :ref:`strictCompilerWarnings`
     * - ``-o "&:generator=<value>"``
@@ -108,6 +114,53 @@ but no :ref:`vizInterface`, and using a clean distribution folder, and that is b
 
 Note how much more verbose this is, but it gives you full control if you want to store the compiled binaries and
 cmake files in directories other than ``dist3/conan``.
+
+
+.. _clangdSetup:
+
+Configuring clangd
+------------------
+Compilation database export is supported only by CMake's Ninja and Makefile generators. Xcode and Visual Studio
+do not export a database, even when ``exportCompileCommands=True``. For a new build directory, ``--buildProject False``
+defaults to Xcode on macOS and Visual Studio on Windows. Windows command-line builds also fall back to Visual Studio
+when Ninja is unavailable.
+
+To configure a new Ninja build without compiling Basilisk, install Ninja and ensure it is available on ``PATH``,
+then run from the Basilisk repository root::
+
+    python3 conanfile.py --generator Ninja --buildProject False
+
+If the existing build directory uses another generator, add ``--clean`` to remove its previous build artifacts
+before configuring Ninja. See :ref:`buildTable1Label` for generator selection details and the
+`CMake export documentation <https://cmake.org/cmake/help/latest/variable/CMAKE_EXPORT_COMPILE_COMMANDS.html>`__
+for supported generators.
+
+With ``exportCompileCommands=True`` and a supported generator, CMake writes ``compile_commands.json`` into the
+configured build directory, which is ``dist3`` at the Basilisk repository root by default. Clangd does not
+automatically search ``dist3``, so it must be configured to find the generated database.
+
+Setting ``-o "&:exportCompileCommands=False"`` removes an existing ``compile_commands.json`` from the selected build
+directory during ``conan install`` or ``conan build`` generation, including when using a custom ``buildFolder`` or
+Conan output folder. This cleanup applies to every generator. Separately copied databases must be removed manually.
+
+Create or update a ``.clangd`` file at the Basilisk repository root with the following setting:
+
+.. code-block:: yaml
+
+    CompileFlags:
+      CompilationDatabase: dist3
+
+The path is relative to the ``.clangd`` file. If that file already has a ``CompileFlags`` section, add
+``CompilationDatabase`` to that section.
+
+For a custom Conan ``buildFolder``, set ``CompilationDatabase`` to the directory containing the generated
+``compile_commands.json``, using either a path relative to ``.clangd`` or an absolute path. For example,
+``-o "&:buildFolder=/absolute/path/to/bsk-build"`` requires ``CompilationDatabase: /absolute/path/to/bsk-build``.
+
+Alternatively, add ``--compile-commands-dir=/absolute/path/to/basilisk/dist3`` to the arguments your editor passes
+to clangd. Replace the example path with the absolute path to your actual build directory, including when using a
+custom ``buildFolder``. Both settings name the directory containing the database, rather than the JSON file itself.
+See the `clangd configuration documentation <https://clangd.llvm.org/config#compilationdatabase>`__ for details.
 
 
 Running ``cmake`` Directly
@@ -138,7 +191,7 @@ they are not used, then the shown default behaviors are used.
       - ``ON``
       - fetches GoogleTest and builds the native C++ test executables
     * - ``BSK_STRICT_WARNINGS``
-      - ``OFF``
+      - ``ON``
       - enables additional compiler diagnostics for Basilisk C and C++ sources
     * - ``BSK_OFFLINE_BUILD``
       - ``OFF``

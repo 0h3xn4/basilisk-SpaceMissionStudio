@@ -70,7 +70,7 @@ class DownlinkHandling : public DataNodeBase
      *  @note A null source or a reader subscribed to a different source is rejected with BSK_ERROR.
      */
     bool addStorageUnitToDownlink(Message<DataStorageStatusMsgPayload>* tmpStorageUnitMsg,
-                                 ReadFunctor<DataStorageStatusMsgPayload> reader);
+                                  ReadFunctor<DataStorageStatusMsgPayload> reader);
 
     /*! @brief Set requested raw channel bit rate.
      *  @param bitRateRequest Requested bit rate [bit/s], must be finite and :math:`\ge 0`
@@ -190,7 +190,7 @@ class DownlinkHandling : public DataNodeBase
     bool requireFullPacket;      //!< [-]     If true, wait for >=1 full packet before downlinking
 
     std::vector<Message<DataStorageStatusMsgPayload>*>
-      storageUnitMsgPtrs; //!< Storage-msg pointer list for duplicate checks
+        storageUnitMsgPtrs; //!< Storage-msg pointer list for duplicate checks
     std::vector<ReadFunctor<DataStorageStatusMsgPayload>> storageUnitInMsgs; //!< Storage status subscribers
     std::vector<DataStorageStatusMsgPayload> storageUnitMsgsBuffer;          //!< Local storage status buffers
 

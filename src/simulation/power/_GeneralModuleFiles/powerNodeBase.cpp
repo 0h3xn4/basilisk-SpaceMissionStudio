@@ -17,16 +17,16 @@
 
  */
 
-#include "architecture/utilities/macroDefinitions.h"
 #include "powerNodeBase.h"
+#include "architecture/utilities/macroDefinitions.h"
 
 /*! This method initializes the messaging parameters to either empty strings for message names or -1 for message IDs.
 
  */
 PowerNodeBase::PowerNodeBase()
 {
-    this->powerStatus = 1; //! Node defaults to on unless overwritten.
-    this->nodePowerMsg = this->nodePowerOutMsg.zeroMsgPayload;  //! Power node message is zero by default.
+    this->powerStatus = 1;                                     //! Node defaults to on unless overwritten.
+    this->nodePowerMsg = this->nodePowerOutMsg.zeroMsgPayload; //! Power node message is zero by default.
     return;
 }
 
@@ -37,7 +37,6 @@ PowerNodeBase::~PowerNodeBase()
 {
     return;
 }
-
 
 /*! This method is used to reset the module. In general, no functionality must be reset.
 
@@ -64,7 +63,6 @@ void PowerNodeBase::writeMessages(uint64_t CurrentClock)
     return;
 }
 
-
 /*! This method is used to read incoming power status messages.
 
  */
@@ -75,8 +73,7 @@ bool PowerNodeBase::readMessages()
     //! - read in the power node use/supply messages
     bool powerRead = true;
     bool tmpStatusRead = true;
-    if(this->nodeStatusInMsg.isLinked())
-    {
+    if (this->nodeStatusInMsg.isLinked()) {
         statusMsg = this->nodeStatusInMsg();
         tmpStatusRead = this->nodeStatusInMsg.isWritten();
         this->nodeStatusMsg = statusMsg;
@@ -84,11 +81,10 @@ bool PowerNodeBase::readMessages()
         powerRead = powerRead && tmpStatusRead;
     }
 
-
     //! - call the custom method to perform additional input reading
     bool customRead = this->customReadMessages();
 
-    return(powerRead && customRead);
+    return (powerRead && customRead);
 }
 
 /*! Core compute operation that implements switching logic and computes module-wise power consumption.
@@ -96,12 +92,9 @@ bool PowerNodeBase::readMessages()
 
 void PowerNodeBase::computePowerStatus(double currentTime [[maybe_unused]])
 {
-    if(this->powerStatus > 0)
-    {
+    if (this->powerStatus > 0) {
         this->evaluatePowerModel(&this->nodePowerMsg);
-    }
-    else
-    {
+    } else {
         this->nodePowerMsg = this->nodePowerOutMsg.zeroMsgPayload;
     }
 
@@ -115,8 +108,7 @@ void PowerNodeBase::UpdateState(uint64_t CurrentSimNanos)
 {
 
     //! - Only update the power status if we were able to read in messages.
-    if(this->readMessages())
-    {
+    if (this->readMessages()) {
         this->computePowerStatus(static_cast<double>(CurrentSimNanos) * NANO2SEC);
     } else {
         /* if the read was not successful then zero the output message */
@@ -127,8 +119,6 @@ void PowerNodeBase::UpdateState(uint64_t CurrentSimNanos)
 
     return;
 }
-
-
 
 /*! Custom Reset() method.  This allows a child class to add additional functionality to the Reset() method
 

@@ -8,6 +8,20 @@ The module
 contains further information on this module's function,
 how to run it, as well as testing.
 
+Measurement Freshness
+---------------------
+
+The module consumes each written limb message once. After the first write,
+its message-header write time must increase strictly, including after an invalid
+measurement. Unwritten, retained, or older inputs leave the output and its write
+time unchanged, allowing slower consumers to read the last result. A new invalid
+input produces a zero output with ``valid = 0``. Consumers must check the output
+write time to detect new results. Updating camera or attitude data alone does not
+trigger another conversion. ``Reset`` clears the timestamp history, allowing a
+write at time zero.
+Producers must timestamp new measurements when writing them; republishing an old
+image with a newer write time is treated as a new measurement.
+
 Message Connection Descriptions
 -------------------------------
 The following diagram and table list all the module input and output messages.  The module message connection is
@@ -25,3 +39,11 @@ description provides information on what this message is used for.
         attitude input message
     input limbInMsg OpNavLimbMsgPayload
         limb input message
+
+Planet Selection
+----------------
+
+Set ``planetTarget`` to 1 (Earth), 2 (Mars), or 3 (Jupiter). For a valid limb
+measurement, a nonzero ``planetIds`` in ``limbInMsg`` replaces ``planetTarget``
+before the navigation calculation. A zero ID leaves the current target unchanged.
+Unsupported IDs raise ``BasiliskError`` in Python.

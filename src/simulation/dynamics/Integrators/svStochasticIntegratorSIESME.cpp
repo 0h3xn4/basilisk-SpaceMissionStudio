@@ -24,12 +24,11 @@
 // Coefficients for the SIEA/SMEA/SIEB/SMEB tableaux (Tocino & Vigo-Aguiar).
 
 svStochasticIntegratorSIESME::svStochasticIntegratorSIESME(DynamicObject* dyn, const SIESMECoefficients& coefficients)
-  : svIntegratorWeakSIESME(dyn, coefficients)
+    : svIntegratorWeakSIESME(dyn, coefficients)
 {
 }
 
-void
-svStochasticIntegratorSIESME::integrateImpl(double currentTime, double timeStep)
+void svStochasticIntegratorSIESME::integrateImpl(double currentTime, double timeStep)
 {
     if (timeStep == 0.0) {
         return;
@@ -65,7 +64,7 @@ svStochasticIntegratorSIESME::integrateImpl(double currentTime, double timeStep)
     };
     auto buildCandidate = [&](double driftStep, const Eigen::VectorXd& diffusionSteps) {
         this->buildStochasticCandidate(
-          this->stochasticAcceptedState(), workspace.drift(), driftStep, workspace.diffusions(), diffusionSteps);
+            this->stochasticAcceptedState(), workspace.drift(), driftStep, workspace.diffusions(), diffusionSteps);
     };
 
     try {
@@ -108,7 +107,7 @@ svStochasticIntegratorSIESME::integrateImpl(double currentTime, double timeStep)
         const bool coalesceFinalUpdate = this->stochasticUpdatesAreAllEuclidean();
         if (coalesceFinalUpdate) {
             this->beginAllEuclideanFinalCandidate(
-              this->stochasticAcceptedState(), workspace.drift(), timeStep, workspace.diffusions(), pseudoStep);
+                this->stochasticAcceptedState(), workspace.drift(), timeStep, workspace.diffusions(), pseudoStep);
         } else {
             buildCandidate(timeStep, pseudoStep);
         }
@@ -148,77 +147,121 @@ svStochasticIntegratorSIESME::integrateImpl(double currentTime, double timeStep)
 }
 
 svStochasticIntegratorSIEA::svStochasticIntegratorSIEA(DynamicObject* dyn)
-  : svStochasticIntegratorSIESME(dyn, svStochasticIntegratorSIEA::getCoefficients())
-{}
+    : svStochasticIntegratorSIESME(dyn, svStochasticIntegratorSIEA::getCoefficients())
+{
+}
 
 SIESMECoefficients svStochasticIntegratorSIEA::getCoefficients()
 {
     SIESMECoefficients c;
-    c.alpha1 = 0.5;  c.alpha2 = 0.5;
+    c.alpha1 = 0.5;
+    c.alpha2 = 0.5;
     c.gamma1 = 0.5;
-    c.lambda1 = 0.25; c.lambda2 = -0.25; c.lambda3 = 0.25;
-    c.mu1 = 0.25; c.mu2 = 0.25; c.mu3 = -0.25;
-    c.mu0 = 1.0; c.mubar0 = 1.0;
-    c.lambda0 = 1.0; c.lambdabar0 = 1.0;
-    c.nu1 = 1.0; c.nu2 = 0.0;
-    c.beta2 = 1.0; c.beta3 = 0.0;
-    c.delta2 = -1.0; c.delta3 = 0.0;
+    c.lambda1 = 0.25;
+    c.lambda2 = -0.25;
+    c.lambda3 = 0.25;
+    c.mu1 = 0.25;
+    c.mu2 = 0.25;
+    c.mu3 = -0.25;
+    c.mu0 = 1.0;
+    c.mubar0 = 1.0;
+    c.lambda0 = 1.0;
+    c.lambdabar0 = 1.0;
+    c.nu1 = 1.0;
+    c.nu2 = 0.0;
+    c.beta2 = 1.0;
+    c.beta3 = 0.0;
+    c.delta2 = -1.0;
+    c.delta3 = 0.0;
     return c;
 }
 
 svStochasticIntegratorSMEA::svStochasticIntegratorSMEA(DynamicObject* dyn)
-  : svStochasticIntegratorSIESME(dyn, svStochasticIntegratorSMEA::getCoefficients())
-{}
+    : svStochasticIntegratorSIESME(dyn, svStochasticIntegratorSMEA::getCoefficients())
+{
+}
 
 SIESMECoefficients svStochasticIntegratorSMEA::getCoefficients()
 {
     SIESMECoefficients c;
-    c.alpha1 = 0.0;  c.alpha2 = 1.0;
+    c.alpha1 = 0.0;
+    c.alpha2 = 1.0;
     c.gamma1 = 0.5;
-    c.lambda1 = 0.25; c.lambda2 = -0.25; c.lambda3 = 0.25;
-    c.mu1 = 0.25; c.mu2 = 0.25; c.mu3 = -0.25;
-    c.mu0 = 0.5; c.mubar0 = 1.0;
-    c.lambda0 = 0.5; c.lambdabar0 = 1.0;
-    c.nu1 = (2.0 - std::sqrt(6.0)) / 4.0; c.nu2 = std::sqrt(6.0) / 12.0;
-    c.beta2 = 1.0; c.beta3 = 0.0;
-    c.delta2 = -1.0; c.delta3 = 0.0;
+    c.lambda1 = 0.25;
+    c.lambda2 = -0.25;
+    c.lambda3 = 0.25;
+    c.mu1 = 0.25;
+    c.mu2 = 0.25;
+    c.mu3 = -0.25;
+    c.mu0 = 0.5;
+    c.mubar0 = 1.0;
+    c.lambda0 = 0.5;
+    c.lambdabar0 = 1.0;
+    c.nu1 = (2.0 - std::sqrt(6.0)) / 4.0;
+    c.nu2 = std::sqrt(6.0) / 12.0;
+    c.beta2 = 1.0;
+    c.beta3 = 0.0;
+    c.delta2 = -1.0;
+    c.delta3 = 0.0;
     return c;
 }
 
 svStochasticIntegratorSIEB::svStochasticIntegratorSIEB(DynamicObject* dyn)
-  : svStochasticIntegratorSIESME(dyn, svStochasticIntegratorSIEB::getCoefficients())
-{}
+    : svStochasticIntegratorSIESME(dyn, svStochasticIntegratorSIEB::getCoefficients())
+{
+}
 
 SIESMECoefficients svStochasticIntegratorSIEB::getCoefficients()
 {
     SIESMECoefficients c;
-    c.alpha1 = 0.5;  c.alpha2 = 0.5;
+    c.alpha1 = 0.5;
+    c.alpha2 = 0.5;
     c.gamma1 = -0.2;
-    c.lambda1 = 0.6; c.lambda2 = 1.5; c.lambda3 = -0.5;
-    c.mu1 = 0.6; c.mu2 = -1.5; c.mu3 = 0.5;
-    c.mu0 = 1.0; c.mubar0 = 5.0 / 12.0;
-    c.lambda0 = 1.0; c.lambdabar0 = 5.0 / 12.0;
-    c.nu1 = 1.0; c.nu2 = 0.0;
-    c.beta2 = 0.0; c.beta3 = -1.0 / 6.0;
-    c.delta2 = 0.0; c.delta3 = 1.0 / 6.0;
+    c.lambda1 = 0.6;
+    c.lambda2 = 1.5;
+    c.lambda3 = -0.5;
+    c.mu1 = 0.6;
+    c.mu2 = -1.5;
+    c.mu3 = 0.5;
+    c.mu0 = 1.0;
+    c.mubar0 = 5.0 / 12.0;
+    c.lambda0 = 1.0;
+    c.lambdabar0 = 5.0 / 12.0;
+    c.nu1 = 1.0;
+    c.nu2 = 0.0;
+    c.beta2 = 0.0;
+    c.beta3 = -1.0 / 6.0;
+    c.delta2 = 0.0;
+    c.delta3 = 1.0 / 6.0;
     return c;
 }
 
 svStochasticIntegratorSMEB::svStochasticIntegratorSMEB(DynamicObject* dyn)
-  : svStochasticIntegratorSIESME(dyn, svStochasticIntegratorSMEB::getCoefficients())
-{}
+    : svStochasticIntegratorSIESME(dyn, svStochasticIntegratorSMEB::getCoefficients())
+{
+}
 
 SIESMECoefficients svStochasticIntegratorSMEB::getCoefficients()
 {
     SIESMECoefficients c;
-    c.alpha1 = 0.0;  c.alpha2 = 1.0;
+    c.alpha1 = 0.0;
+    c.alpha2 = 1.0;
     c.gamma1 = -0.2;
-    c.lambda1 = 0.6; c.lambda2 = 1.5; c.lambda3 = -0.5;
-    c.mu1 = 0.6; c.mu2 = -1.5; c.mu3 = 0.5;
-    c.mu0 = 0.5; c.mubar0 = 5.0 / 12.0;
-    c.lambda0 = 0.5; c.lambdabar0 = 5.0 / 12.0;
-    c.nu1 = (2.0 - std::sqrt(6.0)) / 4.0; c.nu2 = std::sqrt(6.0) / 12.0;
-    c.beta2 = 0.0; c.beta3 = -1.0 / 6.0;
-    c.delta2 = 0.0; c.delta3 = 1.0 / 6.0;
+    c.lambda1 = 0.6;
+    c.lambda2 = 1.5;
+    c.lambda3 = -0.5;
+    c.mu1 = 0.6;
+    c.mu2 = -1.5;
+    c.mu3 = 0.5;
+    c.mu0 = 0.5;
+    c.mubar0 = 5.0 / 12.0;
+    c.lambda0 = 0.5;
+    c.lambdabar0 = 5.0 / 12.0;
+    c.nu1 = (2.0 - std::sqrt(6.0)) / 4.0;
+    c.nu2 = std::sqrt(6.0) / 12.0;
+    c.beta2 = 0.0;
+    c.beta3 = -1.0 / 6.0;
+    c.delta2 = 0.0;
+    c.delta3 = 1.0 / 6.0;
     return c;
 }

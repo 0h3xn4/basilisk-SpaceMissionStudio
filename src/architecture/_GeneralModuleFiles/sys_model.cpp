@@ -22,4 +22,5 @@
 
 SysModel::SysModel()
     : moduleID(ModuleIdGenerator::GetInstance()->checkoutModuleID())
-{}
+{
+}

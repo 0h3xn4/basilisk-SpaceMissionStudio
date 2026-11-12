@@ -53,8 +53,7 @@ DownlinkHandling::DownlinkHandling()
 }
 
 /*! Add a storage-status message to the module input list */
-bool
-DownlinkHandling::addStorageUnitToDownlink(Message<DataStorageStatusMsgPayload>* tmpStorageUnitMsg)
+bool DownlinkHandling::addStorageUnitToDownlink(Message<DataStorageStatusMsgPayload>* tmpStorageUnitMsg)
 {
     if (tmpStorageUnitMsg == nullptr) {
         bskLogger.bskError("DownlinkHandling.addStorageUnitToDownlink: null message pointer.");
@@ -62,9 +61,8 @@ DownlinkHandling::addStorageUnitToDownlink(Message<DataStorageStatusMsgPayload>*
     return this->addStorageUnitToDownlink(tmpStorageUnitMsg, tmpStorageUnitMsg->addSubscriber());
 }
 
-bool
-DownlinkHandling::addStorageUnitToDownlink(Message<DataStorageStatusMsgPayload>* tmpStorageUnitMsg,
-                                          ReadFunctor<DataStorageStatusMsgPayload> reader)
+bool DownlinkHandling::addStorageUnitToDownlink(Message<DataStorageStatusMsgPayload>* tmpStorageUnitMsg,
+                                                ReadFunctor<DataStorageStatusMsgPayload> reader)
 {
     if (tmpStorageUnitMsg == nullptr || !reader.isSubscribedTo(tmpStorageUnitMsg)) {
         bskLogger.bskError("DownlinkHandling.addStorageUnitToDownlink: reader must subscribe to the source message.");
@@ -83,8 +81,7 @@ DownlinkHandling::addStorageUnitToDownlink(Message<DataStorageStatusMsgPayload>*
 }
 
 /*! Set requested raw bit rate [bit/s] */
-bool
-DownlinkHandling::setBitRateRequest(double bitRateRequest)
+bool DownlinkHandling::setBitRateRequest(double bitRateRequest)
 {
     if (!this->isFiniteNonNegative(bitRateRequest)) {
         bskLogger.bskError("DownlinkHandling.setBitRateRequest: value must be finite and >= 0 [bit/s].");
@@ -95,8 +92,7 @@ DownlinkHandling::setBitRateRequest(double bitRateRequest)
 }
 
 /*! Set packet size used for BER-to-PER conversion [bit] */
-bool
-DownlinkHandling::setPacketSizeBits(double packetSizeBits)
+bool DownlinkHandling::setPacketSizeBits(double packetSizeBits)
 {
     if (!this->isFinitePositive(packetSizeBits)) {
         bskLogger.bskError("DownlinkHandling.setPacketSizeBits: value must be finite and > 0 [bit].");
@@ -107,8 +103,7 @@ DownlinkHandling::setPacketSizeBits(double packetSizeBits)
 }
 
 /*! Set retry-cap used by the ARQ expectation model [-] */
-bool
-DownlinkHandling::setMaxRetransmissions(int64_t maxRetransmissions)
+bool DownlinkHandling::setMaxRetransmissions(int64_t maxRetransmissions)
 {
     if (maxRetransmissions < 1) {
         bskLogger.bskError("DownlinkHandling.setMaxRetransmissions: value must be >= 1.");
@@ -119,8 +114,7 @@ DownlinkHandling::setMaxRetransmissions(int64_t maxRetransmissions)
 }
 
 /*! Set receiver-selection mode: 0=auto, 1=path1, 2=path2 [-] */
-bool
-DownlinkHandling::setReceiverAntenna(int64_t receiverAntenna)
+bool DownlinkHandling::setReceiverAntenna(int64_t receiverAntenna)
 {
     if (receiverAntenna != 0 && receiverAntenna != 1 && receiverAntenna != 2) {
         bskLogger.bskError("DownlinkHandling.setReceiverAntenna: value must be 0 (auto), 1, or 2.");
@@ -131,8 +125,7 @@ DownlinkHandling::setReceiverAntenna(int64_t receiverAntenna)
 }
 
 /*! Set storage-removal policy: 0=remove attempted, 1=remove delivered only */
-bool
-DownlinkHandling::setRemovalPolicy(int64_t removalPolicy)
+bool DownlinkHandling::setRemovalPolicy(int64_t removalPolicy)
 {
     if (removalPolicy == static_cast<int64_t>(RemovalPolicy::REMOVE_ATTEMPTED)) {
         this->removalPolicy = RemovalPolicy::REMOVE_ATTEMPTED;
@@ -143,19 +136,18 @@ DownlinkHandling::setRemovalPolicy(int64_t removalPolicy)
         return true;
     }
 
-    bskLogger.bskError("DownlinkHandling.setRemovalPolicy: value must be 0 (REMOVE_ATTEMPTED) or 1 (REMOVE_DELIVERED_ONLY).");
+    bskLogger.bskError(
+        "DownlinkHandling.setRemovalPolicy: value must be 0 (REMOVE_ATTEMPTED) or 1 (REMOVE_DELIVERED_ONLY).");
 }
 
 /*! Set packet-gating behavior flag */
-void
-DownlinkHandling::setRequireFullPacket(bool requireFullPacket)
+void DownlinkHandling::setRequireFullPacket(bool requireFullPacket)
 {
     this->requireFullPacket = requireFullPacket;
 }
 
 /*! Module reset hook */
-void
-DownlinkHandling::customReset(uint64_t CurrentClock)
+void DownlinkHandling::customReset(uint64_t CurrentClock)
 {
     this->previousTime = static_cast<double>(CurrentClock) * NANO2SEC;
     this->currentTimeStep = 0.0; // [s]
@@ -187,8 +179,7 @@ DownlinkHandling::customReset(uint64_t CurrentClock)
 }
 
 /*! Read custom input messages */
-bool
-DownlinkHandling::customReadMessages()
+bool DownlinkHandling::customReadMessages()
 {
     this->storageUnitMsgsBuffer.clear();
     for (auto& msg : this->storageUnitInMsgs) {
@@ -206,8 +197,7 @@ DownlinkHandling::customReadMessages()
 }
 
 /*! Write custom output messages */
-void
-DownlinkHandling::customWriteMessages(uint64_t CurrentClock)
+void DownlinkHandling::customWriteMessages(uint64_t CurrentClock)
 {
     if (this->dataStatus <= 0) {
         // When DataNodeBase skips evaluateDataModel() (node disabled), avoid publishing stale diagnostics.
@@ -228,8 +218,7 @@ DownlinkHandling::customWriteMessages(uint64_t CurrentClock)
 }
 
 /*! Core data-model evaluation */
-void
-DownlinkHandling::evaluateDataModel(DataNodeUsageMsgPayload* dataUsageMsg, double currentTime)
+void DownlinkHandling::evaluateDataModel(DataNodeUsageMsgPayload* dataUsageMsg, double currentTime)
 {
     *dataUsageMsg = this->nodeDataOutMsg.zeroMsgPayload;
 
@@ -251,12 +240,9 @@ DownlinkHandling::evaluateDataModel(DataNodeUsageMsgPayload* dataUsageMsg, doubl
     const StorageSelection selection = this->selectStorageSelection();
     this->availableDataBits = selection.availableBits;
     const bool selectedDataNameValid =
-      this->setDataNameFromStorageSelection(selection, this->nodeDataName, sizeof(this->nodeDataName));
+        this->setDataNameFromStorageSelection(selection, this->nodeDataName, sizeof(this->nodeDataName));
 
-    std::snprintf(this->downlinkOutBuffer.dataName,
-                  sizeof(this->downlinkOutBuffer.dataName),
-                  "%s",
-                  this->nodeDataName);
+    std::snprintf(this->downlinkOutBuffer.dataName, sizeof(this->downlinkOutBuffer.dataName), "%s", this->nodeDataName);
     this->downlinkOutBuffer.availableDataBits = this->availableDataBits;
     const bool safeStorageRemovalRoute = selectedDataNameValid && this->isStorageRemovalRouteSafe(selection);
     if (!safeStorageRemovalRoute && selection.storageUnitIndex >= 0) {
@@ -265,7 +251,7 @@ DownlinkHandling::evaluateDataModel(DataNodeUsageMsgPayload* dataUsageMsg, doubl
             blockedRouteReason = "selected storage target does not provide an explicit partition name";
         } else if (this->storageUnitMsgsBuffer.size() > 1) {
             blockedRouteReason =
-              "multiple linked storage units cannot be safely targeted through DataNodeUsageMsgPayload";
+                "multiple linked storage units cannot be safely targeted through DataNodeUsageMsgPayload";
         } else if (selection.partitionIndex < 0) {
             blockedRouteReason = "selected storage target has no explicit partition name";
         } else {
@@ -301,7 +287,7 @@ DownlinkHandling::evaluateDataModel(DataNodeUsageMsgPayload* dataUsageMsg, doubl
     auto copyAntennaName = [this](char* destination, size_t destinationSize, const char* source, size_t sourceSize) {
         if (std::memchr(source, '\0', sourceSize) == nullptr) {
             bskLogger.bskError("DownlinkHandling: antenna name is not null-terminated within %zu characters.",
-                             sourceSize);
+                               sourceSize);
         }
         std::snprintf(destination, destinationSize, "%s", source);
     };
@@ -348,7 +334,7 @@ DownlinkHandling::evaluateDataModel(DataNodeUsageMsgPayload* dataUsageMsg, doubl
         // Convert RF quality to per-bit energy so BER reflects user-selected bit rate.
         this->downlinkOutBuffer.cnr_dB = 10.0 * std::log10(selectedCnr);
         this->downlinkOutBuffer.cNo_dBHz =
-          this->downlinkOutBuffer.cnr_dB + 10.0 * std::log10(this->downlinkOutBuffer.bandwidth);
+            this->downlinkOutBuffer.cnr_dB + 10.0 * std::log10(this->downlinkOutBuffer.bandwidth);
         this->downlinkOutBuffer.ebN0_dB = this->downlinkOutBuffer.cNo_dBHz - 10.0 * std::log10(this->bitRateRequest);
 
         ber = this->clampProbability(this->computeBerFromEbN0dB(this->downlinkOutBuffer.ebN0_dB));
@@ -417,7 +403,7 @@ DownlinkHandling::evaluateDataModel(DataNodeUsageMsgPayload* dataUsageMsg, doubl
 
     const double removedBitsThisStep = storageRemovalRate * this->currentTimeStep; // [bit]
     this->downlinkOutBuffer.estimatedRemainingDataBits =
-      this->sanitizeNonNegative(this->availableDataBits - removedBitsThisStep);
+        this->sanitizeNonNegative(this->availableDataBits - removedBitsThisStep);
 
     if (this->currentTimeStep > 0.0) {
         this->cumulativeAttemptedBits += attemptedDataRate * this->currentTimeStep;
@@ -443,8 +429,7 @@ DownlinkHandling::evaluateDataModel(DataNodeUsageMsgPayload* dataUsageMsg, doubl
  *  The function prioritizes per-partition values when available and only falls back to
  *  aggregate ``storageLevel`` for messages that provide no partition vector.
  */
-DownlinkHandling::StorageSelection
-DownlinkHandling::selectStorageSelection() const
+DownlinkHandling::StorageSelection DownlinkHandling::selectStorageSelection() const
 {
     StorageSelection selection;
     selection.storageUnitIndex = -1;
@@ -480,8 +465,7 @@ DownlinkHandling::selectStorageSelection() const
 }
 
 /*! Return true only when the selected storage route can be safely acted on via DataNodeUsageMsgPayload */
-bool
-DownlinkHandling::isStorageRemovalRouteSafe(const StorageSelection& selection) const
+bool DownlinkHandling::isStorageRemovalRouteSafe(const StorageSelection& selection) const
 {
     if (selection.storageUnitIndex < 0) {
         return true;
@@ -496,10 +480,9 @@ DownlinkHandling::isStorageRemovalRouteSafe(const StorageSelection& selection) c
 }
 
 /*! Set data name based on selected storage unit and partition */
-bool
-DownlinkHandling::setDataNameFromStorageSelection(const StorageSelection& selection,
-                                                  char* buffer,
-                                                  std::size_t bufferSize)
+bool DownlinkHandling::setDataNameFromStorageSelection(const StorageSelection& selection,
+                                                       char* buffer,
+                                                       std::size_t bufferSize)
 {
     if (bufferSize == 0) {
         return false;
@@ -526,8 +509,9 @@ DownlinkHandling::setDataNameFromStorageSelection(const StorageSelection& select
         if (!name.empty()) {
             if (name.size() >= bufferSize) {
                 bskLogger.bskError("DownlinkHandling: selected storage partition name is %zu characters, but "
-                                 "the destination buffer supports at most %zu characters.",
-                                 name.size(), bufferSize - 1);
+                                   "the destination buffer supports at most %zu characters.",
+                                   name.size(),
+                                   bufferSize - 1);
             }
             std::snprintf(buffer, bufferSize, "%s", name.c_str());
             return true;
@@ -537,8 +521,7 @@ DownlinkHandling::setDataNameFromStorageSelection(const StorageSelection& select
 }
 
 /*! Select receiver CNR from link budget payload */
-void
-DownlinkHandling::selectReceiver(double* cnrLinear, uint32_t* receiverIndex) const
+void DownlinkHandling::selectReceiver(double* cnrLinear, uint32_t* receiverIndex) const
 {
     *cnrLinear = 0.0;
     *receiverIndex = 0;
@@ -550,9 +533,9 @@ DownlinkHandling::selectReceiver(double* cnrLinear, uint32_t* receiverIndex) con
     const bool rx1 = this->isReceiverState(this->linkBudgetBuffer.antennaState1);
     const bool rx2 = this->isReceiverState(this->linkBudgetBuffer.antennaState2);
     const double cnr1 =
-      (rx1 && this->isFinitePositive(this->linkBudgetBuffer.CNR1)) ? this->linkBudgetBuffer.CNR1 : 0.0;
+        (rx1 && this->isFinitePositive(this->linkBudgetBuffer.CNR1)) ? this->linkBudgetBuffer.CNR1 : 0.0;
     const double cnr2 =
-      (rx2 && this->isFinitePositive(this->linkBudgetBuffer.CNR2)) ? this->linkBudgetBuffer.CNR2 : 0.0;
+        (rx2 && this->isFinitePositive(this->linkBudgetBuffer.CNR2)) ? this->linkBudgetBuffer.CNR2 : 0.0;
 
     if (this->receiverAntenna == 1) {
         if (cnr1 > 0.0) {
@@ -579,8 +562,7 @@ DownlinkHandling::selectReceiver(double* cnrLinear, uint32_t* receiverIndex) con
 }
 
 /*! Validate module configuration values */
-bool
-DownlinkHandling::validateConfiguration() const
+bool DownlinkHandling::validateConfiguration() const
 {
     return this->isFiniteNonNegative(this->bitRateRequest) && this->isFinitePositive(this->packetSizeBits) &&
            this->maxRetransmissions >= 1 &&
@@ -590,29 +572,25 @@ DownlinkHandling::validateConfiguration() const
 }
 
 /*! Return true if `value` is finite */
-bool
-DownlinkHandling::isFinite(double value) const
+bool DownlinkHandling::isFinite(double value) const
 {
     return std::isfinite(value);
 }
 
 /*! Return true if `value` is finite and >= 0 */
-bool
-DownlinkHandling::isFiniteNonNegative(double value) const
+bool DownlinkHandling::isFiniteNonNegative(double value) const
 {
     return std::isfinite(value) && value >= 0.0;
 }
 
 /*! Return true if `value` is finite and > 0 */
-bool
-DownlinkHandling::isFinitePositive(double value) const
+bool DownlinkHandling::isFinitePositive(double value) const
 {
     return std::isfinite(value) && value > 0.0;
 }
 
 /*! Check if antenna state allows receiving */
-bool
-DownlinkHandling::isReceiverState(uint32_t state) const
+bool DownlinkHandling::isReceiverState(uint32_t state) const
 {
     const auto antennaState = static_cast<AntennaTypes::AntennaStateEnum>(state);
     return antennaState == AntennaTypes::AntennaStateEnum::ANTENNA_RX ||
@@ -620,8 +598,7 @@ DownlinkHandling::isReceiverState(uint32_t state) const
 }
 
 /*! Compute BER for BPSK over AWGN from Eb/N0 [dB] */
-double
-DownlinkHandling::computeBerFromEbN0dB(double ebN0_dB) const
+double DownlinkHandling::computeBerFromEbN0dB(double ebN0_dB) const
 {
     if (!std::isfinite(ebN0_dB)) {
         return 0.5;
@@ -638,8 +615,7 @@ DownlinkHandling::computeBerFromEbN0dB(double ebN0_dB) const
 }
 
 /*! Clamp probabilities to [0, 1] */
-double
-DownlinkHandling::clampProbability(double value) const
+double DownlinkHandling::clampProbability(double value) const
 {
     if (!std::isfinite(value)) {
         return 0.0;
@@ -648,8 +624,7 @@ DownlinkHandling::clampProbability(double value) const
 }
 
 /*! Clamp all invalid/non-physical nonnegative outputs to 0 */
-double
-DownlinkHandling::sanitizeNonNegative(double value) const
+double DownlinkHandling::sanitizeNonNegative(double value) const
 {
     if (!std::isfinite(value) || value < 0.0) {
         return 0.0;

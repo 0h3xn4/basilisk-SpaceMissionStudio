@@ -486,6 +486,270 @@ def test_strip_velocity_output(show_plots):
             f"(r x v) · n = {dot_direction}"
 
 
+@pytest.mark.parametrize("tilt_deg", [0.0, 30.0, 60.0])
+def test_planetFixedSpacecraftZeroRates(tilt_deg):
+    """
+    Tests that a spacecraft fixed in the planet frame has zero range, azimuth and elevation rates when
+    observing a stationary strip, with the planet spin axis tilted away from the inertial 3-axis.
+
+    :param tilt_deg: [deg] angle between the planet spin axis and the inertial 3-axis
+    :return:
+    """
+    radius = 6378136.3  # [m] planet radius
+    omega = 7.2921159e-5  # [rad/s] planet spin rate
+    tilt = np.radians(tilt_deg)  # [rad] angle between the planet spin axis and the inertial 3-axis
+
+    def skew(v):
+        return np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+
+    c, s = np.cos(tilt), np.sin(tilt)
+    dcm_PN = np.array([[c, 0.0, -s], [0.0, 1.0, 0.0], [s, 0.0, c]])  # [-] N to P, the P 3-axis is the spin axis
+    w_PN_P = np.array([0.0, 0.0, omega])  # [rad/s] angular velocity of P relative to N, in P components
+    w_PN_N = dcm_PN.T @ w_PN_P  # [rad/s] same vector in N components
+    dcm_PN_dot = -skew(w_PN_P) @ dcm_PN  # [1/s] time derivative of the N to P DCM
+
+    planetPayload = messaging.SpicePlanetStateMsgPayload()
+    planetPayload.J20002Pfix = dcm_PN.tolist()
+    planetPayload.J20002Pfix_dot = dcm_PN_dot.tolist()
+    planetMsg = messaging.SpicePlanetStateMsg().write(planetPayload)
+
+    r_BN_N = np.array([radius + 600e3, 0.0, 1.0e6])  # [m] spacecraft position, fixed in P
+    scPayload = messaging.SCStatesMsgPayload()
+    scPayload.r_BN_N = r_BN_N.tolist()
+    scPayload.v_BN_N = np.cross(w_PN_N, r_BN_N).tolist()  # [m/s]
+    scMsg = messaging.SCStatesMsg().write(scPayload)
+
+    scSim = SimulationBaseClass.SimBaseClass()
+    scSim.CreateNewProcess("simProcess").addTask(scSim.CreateNewTask("simTask", macros.sec2nano(1.0)))
+    stripTarget = stripLocation.StripLocation()
+    stripTarget.planetRadius = radius
+    stripTarget.minimumElevation = -np.pi / 2
+    stripTarget.maximumRange = -1
+    stripTarget.acquisitionSpeed = 0.0  # [m/ns] stationary target
+    stripTarget.preImagingTime = 0
+    stripTarget.specifyLocationStart(np.radians(10.0), np.radians(20.0), 0.0)
+    stripTarget.specifyLocationEnd(np.radians(10.0), np.radians(20.0), 0.0)
+    stripTarget.planetInMsg.subscribeTo(planetMsg)
+    stripTarget.addSpacecraftToModel(scMsg)
+    scSim.AddModelToTask("simTask", stripTarget)
+    dataLog = stripTarget.accessOutMsgs[0].recorder()
+    scSim.AddModelToTask("simTask", dataLog)
+
+    scSim.InitializeSimulation()
+    scSim.TotalSim.SingleStepProcesses()
+
+    np.testing.assert_allclose(dataLog.v_BL_L[0], np.zeros(3), atol=1e-6)  # [m/s]
+    assert dataLog.range_dot[0] == pytest.approx(0.0, abs=1e-6)  # [m/s]
+    assert dataLog.az_dot[0] == pytest.approx(0.0, abs=1e-11)  # [rad/s]
+    assert dataLog.el_dot[0] == pytest.approx(0.0, abs=1e-11)  # [rad/s]
+
+
+def test_nonzeroRelativeVelocityOutput():
+    """
+    Tests that the published SEZ relative velocity is populated and consistent with the range rate for a stationary
+    planet, a stationary strip at zero latitude and longitude, and a moving spacecraft.
+
+    :return:
+    """
+    radius = 6378136.3  # [m] planet radius
+    planetPayload = messaging.SpicePlanetStateMsgPayload()
+    planetPayload.J20002Pfix = np.eye(3).tolist()
+    planetMsg = messaging.SpicePlanetStateMsg().write(planetPayload)
+
+    r_BN_N = np.array([radius + 600e3, 1.0e5, 2.0e5])  # [m]
+    v_BN_N = np.array([10.0, 20.0, 30.0])  # [m/s]
+    scPayload = messaging.SCStatesMsgPayload()
+    scPayload.r_BN_N = r_BN_N.tolist()
+    scPayload.v_BN_N = v_BN_N.tolist()
+    scMsg = messaging.SCStatesMsg().write(scPayload)
+
+    scSim = SimulationBaseClass.SimBaseClass()
+    scSim.CreateNewProcess("simProcess").addTask(scSim.CreateNewTask("simTask", macros.sec2nano(1.0)))
+    stripTarget = stripLocation.StripLocation()
+    stripTarget.planetRadius = radius
+    stripTarget.minimumElevation = -np.pi / 2
+    stripTarget.maximumRange = -1
+    stripTarget.acquisitionSpeed = 0.0  # [m/ns] stationary target
+    stripTarget.preImagingTime = 0
+    stripTarget.specifyLocationStart(0.0, 0.0, 0.0)
+    stripTarget.specifyLocationEnd(0.0, 0.0, 0.0)
+    stripTarget.planetInMsg.subscribeTo(planetMsg)
+    stripTarget.addSpacecraftToModel(scMsg)
+    scSim.AddModelToTask("simTask", stripTarget)
+    dataLog = stripTarget.accessOutMsgs[0].recorder()
+    scSim.AddModelToTask("simTask", dataLog)
+
+    scSim.InitializeSimulation()
+    scSim.TotalSim.SingleStepProcesses()
+
+    v_BL_L_expected = np.array([-30.0, 20.0, 10.0])  # [m/s] SEZ components at lat = lon = 0
+    r_BL_L = np.array(dataLog.r_BL_L[0])  # [m]
+    np.testing.assert_allclose(dataLog.v_BL_L[0], v_BL_L_expected, atol=1e-9)  # [m/s]
+    assert dataLog.range_dot[0] == pytest.approx(v_BL_L_expected @ r_BL_L / np.linalg.norm(r_BL_L), rel=1e-9)  # [m/s]
+    assert dataLog.range_dot[0] == pytest.approx(21.8643266644, rel=1e-8)  # [m/s]
+
+
+@pytest.mark.parametrize("start_lat_lon_deg, end_lat_lon_deg", [
+    ([0.0, 0.0], [0.0, 90.0]),
+    ([20.0, 10.0], [55.0, 75.0]),
+    ([10.0, 20.0], [55.0, 20.0]),
+], ids=["equatorial", "oblique", "meridional"])  # [deg]
+@pytest.mark.parametrize("moving_planet", [False, True])
+def test_movingStripCoordinateRates(start_lat_lon_deg, end_lat_lon_deg, moving_planet):
+    """Check moving-strip coordinate rates against central differences of published geometry.
+
+    Samples are taken inside the strip, away from the endpoint and SEZ singularities.
+    The oblique and meridional cases exercise changes in latitude as well as longitude.
+
+    :param start_lat_lon_deg: [deg] strip start latitude and longitude
+    :param end_lat_lon_deg: [deg] strip end latitude and longitude
+    :param moving_planet: whether to use a tilted, rotating, translating planet and a moving spacecraft
+    """
+    radius = 6378136.3  # [m]
+    sample_time = 10.0  # [s]
+    time_step = 0.01  # [s] central-difference interval
+    spin_rate = 7.2921159e-5 if moving_planet else 0.0  # [rad/s]
+    tilt = np.radians(30.0) if moving_planet else 0.0  # [rad]
+    r_PN_N_initial = np.array([1.5e8, -2.0e7, 5.0e6]) if moving_planet else np.zeros(3)  # [m]
+    v_PN_N = np.array([3.0e4, -1.0e3, 2.0e3]) if moving_planet else np.zeros(3)  # [m/s]
+    r_BP_P_initial = np.array([radius + 600e3, 1.0e5, 2.0e5])  # [m]
+    v_BP_P = np.array([500.0, -1000.0, 250.0]) if moving_planet else np.zeros(3)  # [m/s]
+    omega_PN_P = np.array([0.0, 0.0, spin_rate])  # [rad/s]
+    omega_tilde = np.array([[0.0, -spin_rate, 0.0], [spin_rate, 0.0, 0.0], [0.0, 0.0, 0.0]])  # [rad/s]
+    tilt_dcm = np.array([[np.cos(tilt), 0.0, -np.sin(tilt)], [0.0, 1.0, 0.0],
+                         [np.sin(tilt), 0.0, np.cos(tilt)]])
+
+    planet_payload = messaging.SpicePlanetStateMsgPayload()
+    planet_message = messaging.SpicePlanetStateMsg()
+    spacecraft_payload = messaging.SCStatesMsgPayload()
+    spacecraft_message = messaging.SCStatesMsg()
+    strip_target = stripLocation.StripLocation()
+    strip_target.planetRadius = radius
+    strip_target.acquisitionSpeed = 3.0e-6  # [m/ns]
+    start_lat, start_lon = np.radians(start_lat_lon_deg)  # [rad]
+    end_lat, end_lon = np.radians(end_lat_lon_deg)  # [rad]
+    strip_target.specifyLocationStart(start_lat, start_lon, 0.0)  # [rad, rad, m]
+    strip_target.specifyLocationEnd(end_lat, end_lon, 0.0)  # [rad, rad, m]
+    strip_target.planetInMsg.subscribeTo(planet_message)
+    strip_target.addSpacecraftToModel(spacecraft_message)
+    strip_target.Reset(0)  # [ns]
+
+    positions, coordinates, velocities, coordinate_rates = [], [], [], []
+    for time in [sample_time - time_step, sample_time, sample_time + time_step]:
+        angle = spin_rate * time  # [rad]
+        spin_dcm = np.array([[np.cos(angle), np.sin(angle), 0.0],
+                             [-np.sin(angle), np.cos(angle), 0.0], [0.0, 0.0, 1.0]])
+        dcm_PN = spin_dcm @ tilt_dcm
+        r_BP_P = r_BP_P_initial + v_BP_P * time  # [m]
+        r_PN_N = r_PN_N_initial + v_PN_N * time  # [m]
+        planet_payload.PositionVector = r_PN_N.tolist()
+        planet_payload.VelocityVector = v_PN_N.tolist()
+        planet_payload.J20002Pfix = dcm_PN.tolist()
+        planet_payload.J20002Pfix_dot = (-omega_tilde @ dcm_PN).tolist()
+        planet_message.write(planet_payload)
+        spacecraft_payload.r_BN_N = (r_PN_N + dcm_PN.T @ r_BP_P).tolist()
+        spacecraft_payload.v_BN_N = (
+            v_PN_N + dcm_PN.T @ (v_BP_P + np.cross(omega_PN_P, r_BP_P))).tolist()
+        spacecraft_message.write(spacecraft_payload)
+        strip_target.UpdateState(macros.sec2nano(time))
+
+        output = strip_target.accessOutMsgs[0].read()
+        positions.append(np.array(output.r_BL_L))
+        coordinates.append([output.slantRange, output.azimuth, output.elevation])
+        velocities.append(np.array(output.v_BL_L))
+        coordinate_rates.append([output.range_dot, output.az_dot, output.el_dot])
+
+    coordinates = np.array(coordinates)
+    coordinates[:, 1] = np.unwrap(coordinates[:, 1])
+    expected_velocity = (positions[2] - positions[0]) / (2 * time_step)  # [m/s]
+    expected_rates = (coordinates[2] - coordinates[0]) / (2 * time_step)  # [m/s, rad/s, rad/s]
+    np.testing.assert_allclose(velocities[1], expected_velocity, rtol=1e-7, atol=5e-5)  # [m/s]
+    assert coordinate_rates[1][0] == pytest.approx(expected_rates[0], rel=1e-7, abs=5e-5)  # [m/s]
+    np.testing.assert_allclose(coordinate_rates[1][1:], expected_rates[1:], rtol=1e-7, atol=1e-9)  # [rad/s]
+
+
+@pytest.mark.parametrize("pre_imaging_time", [0.0, 2.0])  # [s]
+@pytest.mark.parametrize("moving_planet", [False, True])
+def test_completedStripStops(pre_imaging_time, moving_planet):
+    """Check that a completed strip remains fixed on the planet with consistent state and access rates.
+
+    The spacecraft is fixed in the planet frame. The target must move before completion,
+    then retain only the inertial velocity due to planet rotation and translation.
+    The case without pre-imaging also samples the exact completion time.
+
+    :param pre_imaging_time: [s] time added before reaching the nominal strip start
+    :param moving_planet: whether to use a tilted, rotating, translating planet
+    """
+    radius = 6378136.3  # [m]
+    traversal_time = 10.0  # [s] time to traverse the nominal quarter-equator strip
+    completion_time = traversal_time + pre_imaging_time  # [s]
+    spin_rate = 7.2921159e-5 if moving_planet else 0.0  # [rad/s]
+    tilt = np.radians(30.0) if moving_planet else 0.0  # [rad]
+    r_PN_N_initial = np.array([1.5e8, -2.0e7, 5.0e6]) if moving_planet else np.zeros(3)  # [m]
+    v_PN_N = np.array([3.0e4, -1.0e3, 2.0e3]) if moving_planet else np.zeros(3)  # [m/s]
+    r_BP_P = np.array([radius + 600e3, 1.0e5, 2.0e5])  # [m] spacecraft fixed in P
+    r_end_P = np.array([0.0, radius, 0.0])  # [m]
+    omega_PN_P = np.array([0.0, 0.0, spin_rate])  # [rad/s]
+    omega_tilde = np.array([[0.0, -spin_rate, 0.0], [spin_rate, 0.0, 0.0], [0.0, 0.0, 0.0]])  # [rad/s]
+    tilt_dcm = np.array([[np.cos(tilt), 0.0, -np.sin(tilt)], [0.0, 1.0, 0.0],
+                         [np.sin(tilt), 0.0, np.cos(tilt)]])
+
+    planet_payload = messaging.SpicePlanetStateMsgPayload()
+    planet_message = messaging.SpicePlanetStateMsg()
+    spacecraft_payload = messaging.SCStatesMsgPayload()
+    spacecraft_message = messaging.SCStatesMsg()
+    strip_target = stripLocation.StripLocation()
+    strip_target.planetRadius = radius
+    strip_target.acquisitionSpeed = radius * np.pi / 2 / macros.sec2nano(traversal_time)  # [m/ns]
+    strip_target.preImagingTime = macros.sec2nano(pre_imaging_time)  # [ns]
+    strip_target.specifyLocationStart(0.0, 0.0, 0.0)  # [rad, rad, m]
+    strip_target.specifyLocationEnd(0.0, np.pi / 2, 0.0)  # [rad, rad, m]
+    strip_target.planetInMsg.subscribeTo(planet_message)
+    strip_target.addSpacecraftToModel(spacecraft_message)
+    strip_target.Reset(0)  # [ns]
+
+    first_stopped_time = completion_time if pre_imaging_time == 0.0 else completion_time + 1.0  # [s]
+    stopped_positions, stopped_coordinates = [], []
+    for time in [completion_time - 1.0, first_stopped_time, completion_time + 2.0]:  # [s]
+        angle = spin_rate * time  # [rad]
+        spin_dcm = np.array([[np.cos(angle), np.sin(angle), 0.0],
+                             [-np.sin(angle), np.cos(angle), 0.0], [0.0, 0.0, 1.0]])
+        dcm_PN = spin_dcm @ tilt_dcm
+        r_PN_N = r_PN_N_initial + v_PN_N * time  # [m]
+        planet_payload.PositionVector = r_PN_N.tolist()
+        planet_payload.VelocityVector = v_PN_N.tolist()
+        planet_payload.J20002Pfix = dcm_PN.tolist()
+        planet_payload.J20002Pfix_dot = (-omega_tilde @ dcm_PN).tolist()
+        planet_message.write(planet_payload)
+        spacecraft_payload.r_BN_N = (r_PN_N + dcm_PN.T @ r_BP_P).tolist()
+        spacecraft_payload.v_BN_N = (v_PN_N + dcm_PN.T @ np.cross(omega_PN_P, r_BP_P)).tolist()
+        spacecraft_message.write(spacecraft_payload)
+        strip_target.UpdateState(macros.sec2nano(time))
+
+        state = strip_target.currentStripStateOutMsg.read()
+        r_LP_P = dcm_PN @ np.array(state.r_LP_N)  # [m]
+        if time < completion_time:
+            v_LP_P = dcm_PN @ np.array(state.v_LP_N) - np.cross(omega_PN_P, r_LP_P)  # [m/s]
+            assert np.linalg.norm(v_LP_P) == pytest.approx(strip_target.acquisitionSpeed * 1e9, rel=1e-12)  # [m/s]
+            assert np.linalg.norm(r_LP_P - r_end_P) > 1.0  # [m]
+            continue
+
+        expected_v_LP_N = dcm_PN.T @ np.cross(omega_PN_P, r_end_P)  # [m/s]
+        np.testing.assert_allclose(r_LP_P, r_end_P, rtol=0.0, atol=1e-7)  # [m]
+        np.testing.assert_allclose(state.v_LP_N, expected_v_LP_N, rtol=0.0, atol=1e-8)  # [m/s]
+        np.testing.assert_allclose(state.v_LN_N, v_PN_N + expected_v_LP_N, rtol=0.0, atol=1e-8)  # [m/s]
+        access = strip_target.accessOutMsgs[0].read()
+        np.testing.assert_allclose(access.v_BL_L, np.zeros(3), rtol=0.0, atol=1e-8)  # [m/s]
+        assert access.range_dot == pytest.approx(0.0, abs=1e-8)  # [m/s]
+        np.testing.assert_allclose([access.az_dot, access.el_dot], np.zeros(2), rtol=0.0, atol=1e-12)  # [rad/s]
+        stopped_positions.append(np.array(access.r_BL_L))
+        stopped_coordinates.append([access.slantRange, access.azimuth, access.elevation])
+
+    np.testing.assert_allclose(stopped_positions[1], stopped_positions[0], rtol=0.0, atol=1e-7)  # [m]
+    assert stopped_coordinates[1][0] == pytest.approx(stopped_coordinates[0][0], abs=1e-7, rel=0.0)  # [m]
+    np.testing.assert_allclose(stopped_coordinates[1][1:], stopped_coordinates[0][1:], rtol=0.0, atol=1e-12)  # [rad]
+
+
 def test_new_start_pre_imaging(show_plots):
     """
     Tests that ``newpstart()`` correctly extends the strip backward so that

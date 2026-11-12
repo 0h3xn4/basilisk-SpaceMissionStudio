@@ -51,11 +51,7 @@ void ScalarJointStatesToRWSpeed::Reset(uint64_t CurrentSimNanos)
 
     // zero out output on reset
     RWSpeedMsgPayload outPayload = {};
-    this->rwSpeedOutMsg.write(
-        &outPayload,
-        this->moduleID,
-        CurrentSimNanos
-    );
+    this->rwSpeedOutMsg.write(&outPayload, this->moduleID, CurrentSimNanos);
 }
 
 void ScalarJointStatesToRWSpeed::UpdateState(uint64_t CurrentSimNanos)
@@ -66,9 +62,5 @@ void ScalarJointStatesToRWSpeed::UpdateState(uint64_t CurrentSimNanos)
         outPayload.wheelSpeeds[i] = inPayload.state;
     }
 
-    this->rwSpeedOutMsg.write(
-        &outPayload,
-        this->moduleID,
-        CurrentSimNanos
-    );
+    this->rwSpeedOutMsg.write(&outPayload, this->moduleID, CurrentSimNanos);
 }

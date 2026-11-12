@@ -17,9 +17,9 @@
 
  */
 #include "simulation/sensors/simpleVoltEstimator/simpleVoltEstimator.h"
-#include <iostream>
-#include <cstring>
 #include "architecture/utilities/avsEigenSupport.h"
+#include <cstring>
+#include <iostream>
 
 /*! This is the constructor for the simple voltage estimator module.  It sets default variable
     values and initializes the various parts of the model */
@@ -29,12 +29,12 @@ SimpleVoltEstimator::SimpleVoltEstimator()
     this->trueVoltState = this->voltOutMsg.zeroMsgPayload;
 
     // Initialize matrices with proper sizes and default values
-    this->PMatrix.resize(1,1);
+    this->PMatrix.resize(1, 1);
     this->PMatrix.fill(0.0);
     this->walkBounds.resize(1);
     this->walkBounds.fill(0.0);
-    this->AMatrix.resize(1,1);
-    this->AMatrix.setIdentity(1,1);
+    this->AMatrix.resize(1, 1);
+    this->AMatrix.setIdentity(1, 1);
 
     // Initialize noise model and set default parameters
     this->errorModel = GaussMarkov(1, this->RNGSeed);
@@ -48,7 +48,6 @@ SimpleVoltEstimator::~SimpleVoltEstimator()
 {
     return;
 }
-
 
 /*! This method is used to reset the module. It
  initializes the various containers used in the model as well as creates the
@@ -67,15 +66,14 @@ void SimpleVoltEstimator::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
     int64_t numStates = 1;
 
     //! - Alert the user and stop if the noise matrix is the wrong size.  That'd be bad.
-    if (this->PMatrix.size() != numStates*numStates) {
+    if (this->PMatrix.size() != numStates * numStates) {
         bskLogger.bskError("Your process noise matrix (PMatrix) is not %lld*%lld. Size is %lld.  Quitting",
                            static_cast<long long>(numStates),
                            static_cast<long long>(numStates),
                            static_cast<long long>(this->PMatrix.size()));
     }
     if (this->walkBounds.size() != numStates) {
-        bskLogger.bskError("Your walkbounds vector is not %lld elements. Quitting",
-                           static_cast<long long>(numStates));
+        bskLogger.bskError("Your walkbounds vector is not %lld elements. Quitting", static_cast<long long>(numStates));
     }
 
     //! - Update the noise model parameters
@@ -83,7 +81,6 @@ void SimpleVoltEstimator::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
     this->errorModel.setRNGSeed(this->RNGSeed);
     this->errorModel.setUpperBounds(this->walkBounds);
 }
-
 
 /*! This method reads the input message associated with the spacecraft voltage
  */
@@ -139,7 +136,7 @@ void SimpleVoltEstimator::UpdateState(uint64_t CurrentSimNanos)
 */
 void SimpleVoltEstimator::setAMatrix(const Eigen::MatrixXd& propMatrix)
 {
-    if(propMatrix.rows() != 1 || propMatrix.cols() != 1) {
+    if (propMatrix.rows() != 1 || propMatrix.cols() != 1) {
         bskLogger.bskError("SimpleVoltEstimator: Propagation matrix must be 1x1");
     }
     this->AMatrix = propMatrix;

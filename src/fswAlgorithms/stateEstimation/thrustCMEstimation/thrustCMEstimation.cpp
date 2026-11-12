@@ -25,7 +25,8 @@ ThrustCMEstimation::ThrustCMEstimation() = default;
 ThrustCMEstimation::~ThrustCMEstimation() = default;
 
 /*! Initialize C-wrapped output messages */
-void ThrustCMEstimation::SelfInit(){
+void ThrustCMEstimation::SelfInit()
+{
     VehicleConfigMsg_C_init(&this->vehConfigOutMsgC);
 }
 
@@ -48,8 +49,7 @@ void ThrustCMEstimation::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
     }
     if (this->vehConfigInMsg.isLinked()) {
         this->cmKnowledge = true;
-    }
-    else {
+    } else {
         this->cmKnowledge = false;
     }
 
@@ -57,10 +57,10 @@ void ThrustCMEstimation::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
     this->P.setZero();
     this->R.setZero();
     this->I.setZero();
-    for (int i=0; i<3; ++i) {
-        this->P(i,i) = this->P0[i];
-        this->R(i,i) = this->R0[i];
-        this->I(i,i) = 1;
+    for (int i = 0; i < 3; ++i) {
+        this->P(i, i) = this->P0[i];
+        this->R(i, i) = this->R0[i];
+        this->I(i, i) = 1;
     }
     this->r_CB_est = this->r_CB_B;
 }
@@ -102,8 +102,8 @@ void ThrustCMEstimation::UpdateState(uint64_t CurrentSimNanos)
     Eigen::Matrix3d S;
 
     /*! assign preFit and postFit residuals to NaN, rewrite them in case of measurement update */
-    preFit  = {nan("1"), nan("1"), nan("1")};
-    postFit = {nan("1"), nan("1"), nan("1")};
+    preFit = { nan("1"), nan("1"), nan("1") };
+    postFit = { nan("1"), nan("1"), nan("1") };
 
     if ((this->attGuidInMsg.isWritten()) && (attError < this->attitudeTol)) {
 
@@ -131,8 +131,8 @@ void ThrustCMEstimation::UpdateState(uint64_t CurrentSimNanos)
 
     /*! compute state 1-sigma covariance */
     Eigen::Vector3d sigma;
-    for (int i=0; i<3; ++i) {
-        sigma[i] = pow(this->P(i,i), 0.5);
+    for (int i = 0; i < 3; ++i) {
+        sigma[i] = pow(this->P(i, i), 0.5);
     }
 
     /*! write estimation data to msg buffer */
@@ -147,9 +147,8 @@ void ThrustCMEstimation::UpdateState(uint64_t CurrentSimNanos)
         Eigen::Vector3d r_CB_B_true = cArray2EigenVector3d(vehConfigBuffer.CoM_B);
         r_CB_error = this->r_CB_est - r_CB_B_true;
         eigenVector3d2CArray(r_CB_error, cmEstDataBuffer.stateError);
-    }
-    else {
-        r_CB_error = {nan("1"), nan("1"), nan("1")};
+    } else {
+        r_CB_error = { nan("1"), nan("1"), nan("1") };
     }
     eigenVector3d2CArray(r_CB_error, cmEstDataBuffer.stateError);
     /*! write output msg */

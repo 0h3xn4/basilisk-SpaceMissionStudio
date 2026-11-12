@@ -19,8 +19,7 @@
 #include "stochasticRKIntegratorBase.h"
 #include <typeinfo>
 
-void
-StochasticRKIntegratorBase::bindFlatStochasticCore()
+void StochasticRKIntegratorBase::bindFlatStochasticCore()
 {
     if (this->stochasticObjectDescriptors().size() != this->dynamics().size()) {
         this->resetFlatStochasticStorage();
@@ -38,8 +37,7 @@ StochasticRKIntegratorBase::bindFlatStochasticCore()
     this->flatNoiseOutputBound = true;
 }
 
-void
-StochasticRKIntegratorBase::resetFlatStochasticStorage() noexcept
+void StochasticRKIntegratorBase::resetFlatStochasticStorage() noexcept
 {
     this->flatNoiseOutputBound = false;
     Eigen::VectorXd().swap(this->dW);
@@ -47,47 +45,42 @@ StochasticRKIntegratorBase::resetFlatStochasticStorage() noexcept
     this->resetStochasticTopologyBinding();
 }
 
-void
-StochasticRKIntegratorBase::generateNoise(double timeStep)
+void StochasticRKIntegratorBase::generateNoise(double timeStep)
 {
     this->generateNoise(timeStep, this->globalNoiseCount());
 }
 
-void
-StochasticRKIntegratorBase::generateNoise(double timeStep, size_t auxiliaryCount)
+void StochasticRKIntegratorBase::generateNoise(double timeStep, size_t auxiliaryCount)
 {
     this->validateStochasticTimeStep(timeStep);
     if (this->nativeGenerator != nullptr) {
         this->nativeGenerator->RandomGaussianNoiseGenerator::generateWithAuxiliaryInto(
-          this->dW, this->dZ, this->globalNoiseCount(), auxiliaryCount, timeStep);
+            this->dW, this->dZ, this->globalNoiseCount(), auxiliaryCount, timeStep);
         return;
     }
     const auto generator = this->noiseGenerator();
     generator->generateWithAuxiliaryInto(this->dW, this->dZ, this->globalNoiseCount(), auxiliaryCount, timeStep);
 }
 
-void
-StochasticRKIntegratorBase::generateWienerNoise(double timeStep)
+void StochasticRKIntegratorBase::generateWienerNoise(double timeStep)
 {
     this->validateStochasticTimeStep(timeStep);
     if (this->nativeGenerator != nullptr) {
         this->nativeGenerator->RandomGaussianNoiseGenerator::generateWienerInto(
-          this->dW, this->globalNoiseCount(), timeStep);
+            this->dW, this->globalNoiseCount(), timeStep);
         return;
     }
     const auto generator = this->noiseGenerator();
     generator->generateWienerInto(this->dW, this->dZ, this->globalNoiseCount(), timeStep);
 }
 
-void
-StochasticRKIntegratorBase::setRNGSeed(size_t seed)
+void StochasticRKIntegratorBase::setRNGSeed(size_t seed)
 {
     const auto generator = this->noiseGenerator();
     generator->setSeed(seed);
 }
 
-void
-StochasticRKIntegratorBase::setNoiseGenerator(std::shared_ptr<GaussianNoiseGenerator> generator)
+void StochasticRKIntegratorBase::setNoiseGenerator(std::shared_ptr<GaussianNoiseGenerator> generator)
 {
     if (generator == nullptr) {
         throw std::invalid_argument("Stochastic integrator noise generator cannot be null.");
@@ -95,20 +88,18 @@ StochasticRKIntegratorBase::setNoiseGenerator(std::shared_ptr<GaussianNoiseGener
     this->rvGenerator = std::move(generator);
     auto* activeGenerator = this->rvGenerator.get();
     this->nativeGenerator = typeid(*activeGenerator) == typeid(RandomGaussianNoiseGenerator)
-                              ? static_cast<RandomGaussianNoiseGenerator*>(activeGenerator)
-                              : nullptr;
+                                ? static_cast<RandomGaussianNoiseGenerator*>(activeGenerator)
+                                : nullptr;
 }
 
-void
-StochasticRKIntegratorBase::prepareIntegrationBinding()
+void StochasticRKIntegratorBase::prepareIntegrationBinding()
 {
     // This runs before first use and after native peer destruction. Method scratch
     // must be sized again along with the shared state and noise buffers.
     this->bindFlatStochasticStorage([this] { this->bindStochasticMethodStorage(); });
 }
 
-void
-StochasticRKIntegratorBase::bindFlatStochasticStorage()
+void StochasticRKIntegratorBase::bindFlatStochasticStorage()
 {
     this->bindFlatStochasticStorage([] {});
 }

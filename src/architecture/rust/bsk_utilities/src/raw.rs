@@ -57,7 +57,7 @@ pub const REQ_PLUTO: f64 = 1137.0;
 pub const NANO2SEC: f64 = 0.000000001;
 pub const SEC2NANO: f64 = 1000000000.0;
 pub const SEC2HOUR: f64 = 0.0002777777777777778;
-#[doc = " @brief Structure used to define classic orbit elements"]
+#[doc = " @brief Classical orbit elements, using consistent distance units L and angles in radians.\n @note See elem2rv() for planar parabolic and rectilinear encodings. In particular,\n e = 1 with nonzero a denotes radial motion, not a planar parabola."]
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct ClassicElements {
@@ -71,15 +71,15 @@ pub struct ClassicElements {
     pub Omega: f64,
     #[doc = "!< Argument of periapsis of the orbit"]
     pub omega: f64,
-    #[doc = "!< True anomaly of the orbit"]
+    #[doc = "!< True anomaly; radial E/H or parabolic direction flag as documented in elem2rv()"]
     pub f: f64,
-    #[doc = "!< Magnitude of the position vector (extra)"]
+    #[doc = "!< Position magnitude [L]; required input for a rectilinear parabola"]
     pub rmag: f64,
     #[doc = "!< Inverted semi-major axis (extra)"]
     pub alpha: f64,
-    #[doc = "!< Radius of periapsis (extra)"]
+    #[doc = "!< Periapsis radius [L]; required input when a = 0, e = 1"]
     pub rPeriap: f64,
-    #[doc = "!< Radius if apoapsis (extra)"]
+    #[doc = "!< Apoapsis radius [L]; signed algebraic value for hyperbolas, zero for parabolas"]
     pub rApoap: f64,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -211,21 +211,35 @@ unsafe extern "C" {
         advec: *mut f64,
     );
     pub fn solarRad(A: f64, m: f64, sunvec: *mut f64, arvec: *mut f64);
+    pub fn addGibbs(q1: *mut f64, q2: *mut f64, result: *mut f64);
     pub fn addMRP(q1: *mut f64, q2: *mut f64, result: *mut f64);
+    pub fn BinvGibbs(q: *mut f64, B: *mut [f64; 3usize]);
     pub fn BinvMRP(q: *mut f64, B: *mut [f64; 3usize]);
+    pub fn BinvPRV(q: *mut f64, B: *mut [f64; 3usize]);
     pub fn BmatMRP(q: *mut f64, B: *mut [f64; 3usize]);
     pub fn BdotmatMRP(q: *mut f64, dq: *mut f64, B: *mut [f64; 3usize]);
+    pub fn BmatPRV(q: *mut f64, B: *mut [f64; 3usize]);
     pub fn C2MRP(C: *mut [f64; 3usize], q: *mut f64);
+    pub fn dGibbs(q: *mut f64, w: *mut f64, dq: *mut f64);
     pub fn dMRP(q: *mut f64, w: *mut f64, dq: *mut f64);
     pub fn dMRP2Omega(q: *mut f64, dq: *mut f64, w: *mut f64);
     pub fn ddMRP(q: *mut f64, dq: *mut f64, w: *mut f64, dw: *mut f64, ddq: *mut f64);
     pub fn ddMRP2dOmega(q: *mut f64, dq: *mut f64, ddq: *mut f64, dw: *mut f64);
+    pub fn dPRV(q: *mut f64, w: *mut f64, dq: *mut f64);
     pub fn EP2MRP(q1: *mut f64, q: *mut f64);
+    pub fn EP2PRV(q1: *mut f64, q: *mut f64);
+    pub fn Gibbs2C(q: *mut f64, C: *mut [f64; 3usize]);
+    pub fn Gibbs2EP(q1: *mut f64, q: *mut f64);
+    pub fn Gibbs2MRP(q1: *mut f64, q: *mut f64);
+    pub fn Gibbs2PRV(q1: *mut f64, q: *mut f64);
     pub fn MRP2C(q: *mut f64, C: *mut [f64; 3usize]);
     pub fn MRP2EP(q1: *mut f64, q: *mut f64);
+    pub fn MRP2Gibbs(q1: *mut f64, q: *mut f64);
+    pub fn MRP2PRV(q1: *mut f64, q: *mut f64);
     pub fn MRPswitch(q: *mut f64, s2: f64, s: *mut f64);
     pub fn MRPshadow(qIn: *mut f64, qOut: *mut f64);
     pub fn wrapToPi(x: f64) -> f64;
+    pub fn subGibbs(q1: *mut f64, q2: *mut f64, q: *mut f64);
     pub fn subMRP(q1: *mut f64, q2: *mut f64, q: *mut f64);
     pub fn Mi(angle: f64, axis: ::core::ffi::c_int, C: *mut [f64; 3usize]);
     pub fn tilde(v: *mut f64, mat: *mut [f64; 3usize]);

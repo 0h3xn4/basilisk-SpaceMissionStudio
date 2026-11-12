@@ -18,16 +18,16 @@
  */
 
 #include "simulation/sensors/magnetometer/magnetometer.h"
+#include "architecture/utilities/avsEigenMRP.h"
+#include "architecture/utilities/avsEigenSupport.h"
 #include "architecture/utilities/rigidBodyKinematics.h"
 #include <math.h>
-#include "architecture/utilities/avsEigenSupport.h"
-#include "architecture/utilities/avsEigenMRP.h"
 
 /*! This is the constructor, setting variables to default values. */
 Magnetometer::Magnetometer()
 {
     this->numStates = 3;
-    this->senBias.fill(0.0); // Tesla
+    this->senBias.fill(0.0);      // Tesla
     this->senNoiseStd.fill(-1.0); // Tesla
     this->walkBounds.fill(0.0);
 
@@ -36,7 +36,7 @@ Magnetometer::Magnetometer()
 
     // Initialize noise matrices with defaults
     Eigen::MatrixXd nMatrix;
-    nMatrix.resize(3,3);
+    nMatrix.resize(3, 3);
     nMatrix.setZero();
     this->noiseModel.setNoiseMatrix(nMatrix);
 
@@ -48,7 +48,7 @@ Magnetometer::Magnetometer()
 
     // Initialize other parameters
     this->scaleFactor = 1.0;
-    this->maxOutput = 1e200; // Tesla
+    this->maxOutput = 1e200;  // Tesla
     this->minOutput = -1e200; // Tesla
     this->saturateUtility = Saturate(static_cast<int64_t>(this->numStates));
     this->dcm_SB.setIdentity(3, 3);
@@ -76,7 +76,6 @@ Eigen::Matrix3d Magnetometer::setBodyToSensorDCM(double yaw, double pitch, doubl
     return this->dcm_SB;
 }
 
-
 /*! This method is used to reset the module.
  @param CurrentSimNanos The current simulation time from the architecture
   */
@@ -97,11 +96,11 @@ void Magnetometer::Reset(uint64_t CurrentSimNanos [[maybe_unused]])
     // Only apply noise if user has configured it
     if (this->walkBounds.norm() > 0 || this->senNoiseStd.norm() > 0) {
         Eigen::MatrixXd nMatrix;
-        nMatrix.resize(3,3);
+        nMatrix.resize(3, 3);
         nMatrix.setZero();
-        nMatrix(0,0) = this->senNoiseStd(0);
-        nMatrix(1,1) = this->senNoiseStd(1);
-        nMatrix(2,2) = this->senNoiseStd(2);
+        nMatrix(0, 0) = this->senNoiseStd(0);
+        nMatrix(1, 1) = this->senNoiseStd(1);
+        nMatrix(2, 2) = this->senNoiseStd(2);
         this->noiseModel.setNoiseMatrix(nMatrix);
         this->noiseModel.setUpperBounds(this->walkBounds);
     }
@@ -161,11 +160,11 @@ void Magnetometer::applySensorErrors()
     }
     if (this->walkBounds.norm() > 0 || this->senNoiseStd.norm() > 0) {
         Eigen::MatrixXd nMatrix;
-        nMatrix.resize(3,3);
+        nMatrix.resize(3, 3);
         nMatrix.setZero();
-        nMatrix(0,0) = this->senNoiseStd(0);
-        nMatrix(1,1) = this->senNoiseStd(1);
-        nMatrix(2,2) = this->senNoiseStd(2);
+        nMatrix(0, 0) = this->senNoiseStd(0);
+        nMatrix(1, 1) = this->senNoiseStd(1);
+        nMatrix(2, 2) = this->senNoiseStd(2);
         this->noiseModel.setNoiseMatrix(nMatrix);
         this->noiseModel.setUpperBounds(this->walkBounds);
     }
@@ -187,14 +186,11 @@ void Magnetometer::applySensorErrors()
     for (int i = 0; i < 3; i++) {
         if (this->faultStateAxis[i] == NOMINAL) {
             // leave as is
-        }
-        else if (this->faultStateAxis[i] == MAG_FAULT_STUCK_VALUE) {
+        } else if (this->faultStateAxis[i] == MAG_FAULT_STUCK_VALUE) {
             this->tamSensed_S[i] = this->stuckValue[i];
-        }
-        else if (this->faultStateAxis[i] == MAG_FAULT_STUCK_CURRENT) {
+        } else if (this->faultStateAxis[i] == MAG_FAULT_STUCK_CURRENT) {
             this->tamSensed_S[i] = this->pastValue[i];
-        }
-        else if (this->faultStateAxis[i] == MAG_FAULT_SPIKING) {
+        } else if (this->faultStateAxis[i] == MAG_FAULT_SPIKING) {
             std::uniform_real_distribution<double> spikeProbabilityDistribution(0.0, 1.0);
             double n = spikeProbabilityDistribution(this->spikeProbabilityGenerator);
             if (n <= this->spikeProbability[i]) {
@@ -254,15 +250,17 @@ Eigen::Matrix3d Magnetometer::getAMatrix() const
     return this->AMatrix;
 }
 
-void Magnetometer::setFaultState(int axis, MagFaultState_t state) {
+void Magnetometer::setFaultState(int axis, MagFaultState_t state)
+{
     if (axis >= 0 && axis < 3) {
         this->faultStateAxis[axis] = state;
     }
 }
 
-MagFaultState_t Magnetometer::getFaultState(int axis) const {
+MagFaultState_t Magnetometer::getFaultState(int axis) const
+{
     if (axis >= 0 && axis < 3) {
         return this->faultStateAxis[axis];
     }
-    return NOMINAL;  // safe default
+    return NOMINAL; // safe default
 }

@@ -17,7 +17,6 @@
 
 */
 
-
 #include "simulation/dynamics/MtbEffector/MtbEffector.h"
 #include "architecture/utilities/avsEigenMRP.h"
 #include "architecture/utilities/avsEigenSupport.h"
@@ -36,17 +35,12 @@ void validateMtbCount(const MTBArrayConfigMsgPayload& config, BSKLogger& logger)
 }
 }
 
-
 /*! This is the constructor for the module class.  It sets default variable
     values and initializes the various parts of the model */
-MtbEffector::MtbEffector()
-{
-}
+MtbEffector::MtbEffector() {}
 
 /*! Module Destructor */
-MtbEffector::~MtbEffector()
-{
-}
+MtbEffector::~MtbEffector() {}
 
 /*! Reset the effector outputs and validate required input-message connections.
 
@@ -100,7 +94,6 @@ void MtbEffector::UpdateState(uint64_t CurrentSimNanos)
     return;
 }
 
-
 /*! This method is used to link the magnetic torque bar effector to the hub attitude.
  *
  * @param[in] states Dynamic parameter manager containing the required states.
@@ -147,7 +140,6 @@ void MtbEffector::computeForceTorque(double integTime [[maybe_unused]], double t
      */
     this->torqueExternalPntB_B.setZero();
 
-
     /*
      * Construct bTilde matrix.
      */
@@ -161,16 +153,13 @@ void MtbEffector::computeForceTorque(double integTime [[maybe_unused]], double t
      * Compute torque produced by magnetic torque bars in body frame components.
      * Transpose the row-major payload into column-major storage for the Eigen map.
      */
-    double GtColMajor[3*MAX_EFF_CNT];
+    double GtColMajor[3 * MAX_EFF_CNT];
     mSetZero(GtColMajor, 3, static_cast<size_t>(this->mtbConfigParams.numMTB));
-    mTranspose(this->mtbConfigParams.GtMatrix_B,
-               3,
-               static_cast<size_t>(this->mtbConfigParams.numMTB),
-               GtColMajor);
+    mTranspose(this->mtbConfigParams.GtMatrix_B, 3, static_cast<size_t>(this->mtbConfigParams.numMTB), GtColMajor);
     const Eigen::Map<const Eigen::Matrix3Xd> GtMatrix_B(GtColMajor, 3, this->mtbConfigParams.numMTB);
 
     /* check if dipole commands are saturating the effector */
-    for (int i=0; i<this->mtbConfigParams.numMTB; i++) {
+    for (int i = 0; i < this->mtbConfigParams.numMTB; i++) {
         if (this->mtbCmdInMsgBuffer.mtbDipoleCmds[i] > this->mtbConfigParams.maxMtbDipoles[i]) {
             this->mtbCmdInMsgBuffer.mtbDipoleCmds[i] = this->mtbConfigParams.maxMtbDipoles[i];
         } else if (this->mtbCmdInMsgBuffer.mtbDipoleCmds[i] < -this->mtbConfigParams.maxMtbDipoles[i]) {

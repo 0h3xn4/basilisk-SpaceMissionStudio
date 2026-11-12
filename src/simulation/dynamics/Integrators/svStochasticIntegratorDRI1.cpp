@@ -24,18 +24,18 @@
 #include <typeinfo>
 
 svStochasticIntegratorDRI1::svStochasticIntegratorDRI1(DynamicObject* dyn)
-    : StochasticRKIntegratorBase(dyn), coefficients(svStochasticIntegratorDRI1::getCoefficients())
+    : StochasticRKIntegratorBase(dyn)
+    , coefficients(svStochasticIntegratorDRI1::getCoefficients())
 {
 }
 
-svStochasticIntegratorDRI1::svStochasticIntegratorDRI1(DynamicObject* dyn,
-                                                       const DRI1Coefficients& coefficients)
-    : StochasticRKIntegratorBase(dyn), coefficients(coefficients)
+svStochasticIntegratorDRI1::svStochasticIntegratorDRI1(DynamicObject* dyn, const DRI1Coefficients& coefficients)
+    : StochasticRKIntegratorBase(dyn)
+    , coefficients(coefficients)
 {
 }
 
-void
-svStochasticIntegratorDRI1::setNonMixing(bool enabled)
+void svStochasticIntegratorDRI1::setNonMixing(bool enabled)
 {
     if (enabled == this->nonMixing) {
         return;
@@ -91,90 +91,177 @@ DRI1Coefficients svStochasticIntegratorDRI1::getCoefficients()
 
 svStochasticIntegratorRI1::svStochasticIntegratorRI1(DynamicObject* dyn)
     : svStochasticIntegratorDRI1(dyn, svStochasticIntegratorRI1::getCoefficients())
-{}
+{
+}
 
 DRI1Coefficients svStochasticIntegratorRI1::getCoefficients()
 {
     DRI1Coefficients c;
-    c.a021 = 2.0 / 3.0; c.a031 = -1.0 / 3.0; c.a032 = 1.0;
-    c.a121 = 1.0; c.a131 = 1.0;
-    c.b021 = 1.0; c.b031 = 0.0;
-    c.b121 = 1.0; c.b131 = -1.0;
-    c.b221 = 1.0; c.b222 = 0.0; c.b223 = 0.0; c.b231 = -1.0; c.b232 = 0.0; c.b233 = 0.0;
-    c.alpha1 = 1.0 / 4.0; c.alpha2 = 1.0 / 2.0; c.alpha3 = 1.0 / 4.0;
-    c.c02 = 2.0 / 3.0; c.c03 = 2.0 / 3.0; c.c12 = 1.0; c.c13 = 1.0;
-    c.beta11 = 1.0 / 2.0; c.beta12 = 1.0 / 4.0; c.beta13 = 1.0 / 4.0;
-    c.beta22 = 1.0 / 2.0; c.beta23 = -1.0 / 2.0;
-    c.beta31 = -1.0 / 2.0; c.beta32 = 1.0 / 4.0; c.beta33 = 1.0 / 4.0;
-    c.beta42 = 1.0 / 2.0; c.beta43 = -1.0 / 2.0;
+    c.a021 = 2.0 / 3.0;
+    c.a031 = -1.0 / 3.0;
+    c.a032 = 1.0;
+    c.a121 = 1.0;
+    c.a131 = 1.0;
+    c.b021 = 1.0;
+    c.b031 = 0.0;
+    c.b121 = 1.0;
+    c.b131 = -1.0;
+    c.b221 = 1.0;
+    c.b222 = 0.0;
+    c.b223 = 0.0;
+    c.b231 = -1.0;
+    c.b232 = 0.0;
+    c.b233 = 0.0;
+    c.alpha1 = 1.0 / 4.0;
+    c.alpha2 = 1.0 / 2.0;
+    c.alpha3 = 1.0 / 4.0;
+    c.c02 = 2.0 / 3.0;
+    c.c03 = 2.0 / 3.0;
+    c.c12 = 1.0;
+    c.c13 = 1.0;
+    c.beta11 = 1.0 / 2.0;
+    c.beta12 = 1.0 / 4.0;
+    c.beta13 = 1.0 / 4.0;
+    c.beta22 = 1.0 / 2.0;
+    c.beta23 = -1.0 / 2.0;
+    c.beta31 = -1.0 / 2.0;
+    c.beta32 = 1.0 / 4.0;
+    c.beta33 = 1.0 / 4.0;
+    c.beta42 = 1.0 / 2.0;
+    c.beta43 = -1.0 / 2.0;
     return c;
 }
 
 svStochasticIntegratorRI3::svStochasticIntegratorRI3(DynamicObject* dyn)
     : svStochasticIntegratorDRI1(dyn, svStochasticIntegratorRI3::getCoefficients())
-{}
+{
+}
 
 DRI1Coefficients svStochasticIntegratorRI3::getCoefficients()
 {
     DRI1Coefficients c;
-    c.a021 = 1.0; c.a031 = 1.0 / 4.0; c.a032 = 1.0 / 4.0;
-    c.a121 = 1.0; c.a131 = 1.0;
-    c.b021 = (3.0 - 2.0 * std::sqrt(6.0)) / 5.0; c.b031 = (6.0 + std::sqrt(6.0)) / 10.0;
-    c.b121 = 1.0; c.b131 = -1.0;
-    c.b221 = 1.0; c.b222 = 0.0; c.b223 = 0.0; c.b231 = -1.0; c.b232 = 0.0; c.b233 = 0.0;
-    c.alpha1 = 1.0 / 6.0; c.alpha2 = 1.0 / 6.0; c.alpha3 = 2.0 / 3.0;
-    c.c02 = 1.0; c.c03 = 1.0 / 2.0; c.c12 = 1.0; c.c13 = 1.0;
-    c.beta11 = 1.0 / 2.0; c.beta12 = 1.0 / 4.0; c.beta13 = 1.0 / 4.0;
-    c.beta22 = 1.0 / 2.0; c.beta23 = -1.0 / 2.0;
-    c.beta31 = -1.0 / 2.0; c.beta32 = 1.0 / 4.0; c.beta33 = 1.0 / 4.0;
-    c.beta42 = 1.0 / 2.0; c.beta43 = -1.0 / 2.0;
+    c.a021 = 1.0;
+    c.a031 = 1.0 / 4.0;
+    c.a032 = 1.0 / 4.0;
+    c.a121 = 1.0;
+    c.a131 = 1.0;
+    c.b021 = (3.0 - 2.0 * std::sqrt(6.0)) / 5.0;
+    c.b031 = (6.0 + std::sqrt(6.0)) / 10.0;
+    c.b121 = 1.0;
+    c.b131 = -1.0;
+    c.b221 = 1.0;
+    c.b222 = 0.0;
+    c.b223 = 0.0;
+    c.b231 = -1.0;
+    c.b232 = 0.0;
+    c.b233 = 0.0;
+    c.alpha1 = 1.0 / 6.0;
+    c.alpha2 = 1.0 / 6.0;
+    c.alpha3 = 2.0 / 3.0;
+    c.c02 = 1.0;
+    c.c03 = 1.0 / 2.0;
+    c.c12 = 1.0;
+    c.c13 = 1.0;
+    c.beta11 = 1.0 / 2.0;
+    c.beta12 = 1.0 / 4.0;
+    c.beta13 = 1.0 / 4.0;
+    c.beta22 = 1.0 / 2.0;
+    c.beta23 = -1.0 / 2.0;
+    c.beta31 = -1.0 / 2.0;
+    c.beta32 = 1.0 / 4.0;
+    c.beta33 = 1.0 / 4.0;
+    c.beta42 = 1.0 / 2.0;
+    c.beta43 = -1.0 / 2.0;
     return c;
 }
 
 svStochasticIntegratorRI5::svStochasticIntegratorRI5(DynamicObject* dyn)
     : svStochasticIntegratorDRI1(dyn, svStochasticIntegratorRI5::getCoefficients())
-{}
+{
+}
 
 DRI1Coefficients svStochasticIntegratorRI5::getCoefficients()
 {
     DRI1Coefficients c;
-    c.a021 = 1.0; c.a031 = 25.0 / 144.0; c.a032 = 35.0 / 144.0;
-    c.a121 = 1.0 / 4.0; c.a131 = 1.0 / 4.0;
-    c.b021 = 1.0 / 3.0; c.b031 = -5.0 / 6.0;
-    c.b121 = 1.0 / 2.0; c.b131 = -1.0 / 2.0;
-    c.b221 = 1.0; c.b222 = 0.0; c.b223 = 0.0; c.b231 = -1.0; c.b232 = 0.0; c.b233 = 0.0;
-    c.alpha1 = 1.0 / 10.0; c.alpha2 = 3.0 / 14.0; c.alpha3 = 24.0 / 35.0;
-    c.c02 = 1.0; c.c03 = 5.0 / 12.0; c.c12 = 1.0 / 4.0; c.c13 = 1.0 / 4.0;
-    c.beta11 = 1.0; c.beta12 = -1.0; c.beta13 = -1.0;
-    c.beta22 = 1.0; c.beta23 = -1.0;
-    c.beta31 = 1.0 / 2.0; c.beta32 = -1.0 / 4.0; c.beta33 = -1.0 / 4.0;
-    c.beta42 = 1.0 / 2.0; c.beta43 = -1.0 / 2.0;
+    c.a021 = 1.0;
+    c.a031 = 25.0 / 144.0;
+    c.a032 = 35.0 / 144.0;
+    c.a121 = 1.0 / 4.0;
+    c.a131 = 1.0 / 4.0;
+    c.b021 = 1.0 / 3.0;
+    c.b031 = -5.0 / 6.0;
+    c.b121 = 1.0 / 2.0;
+    c.b131 = -1.0 / 2.0;
+    c.b221 = 1.0;
+    c.b222 = 0.0;
+    c.b223 = 0.0;
+    c.b231 = -1.0;
+    c.b232 = 0.0;
+    c.b233 = 0.0;
+    c.alpha1 = 1.0 / 10.0;
+    c.alpha2 = 3.0 / 14.0;
+    c.alpha3 = 24.0 / 35.0;
+    c.c02 = 1.0;
+    c.c03 = 5.0 / 12.0;
+    c.c12 = 1.0 / 4.0;
+    c.c13 = 1.0 / 4.0;
+    c.beta11 = 1.0;
+    c.beta12 = -1.0;
+    c.beta13 = -1.0;
+    c.beta22 = 1.0;
+    c.beta23 = -1.0;
+    c.beta31 = 1.0 / 2.0;
+    c.beta32 = -1.0 / 4.0;
+    c.beta33 = -1.0 / 4.0;
+    c.beta42 = 1.0 / 2.0;
+    c.beta43 = -1.0 / 2.0;
     return c;
 }
 
 svStochasticIntegratorRI6::svStochasticIntegratorRI6(DynamicObject* dyn)
     : svStochasticIntegratorDRI1(dyn, svStochasticIntegratorRI6::getCoefficients())
-{}
+{
+}
 
 DRI1Coefficients svStochasticIntegratorRI6::getCoefficients()
 {
     DRI1Coefficients c;
-    c.a021 = 1.0; c.a031 = 0.0; c.a032 = 0.0;
-    c.a121 = 1.0; c.a131 = 1.0;
-    c.b021 = 1.0; c.b031 = 0.0;
-    c.b121 = 1.0; c.b131 = -1.0;
-    c.b221 = 1.0; c.b222 = 0.0; c.b223 = 0.0; c.b231 = -1.0; c.b232 = 0.0; c.b233 = 0.0;
-    c.alpha1 = 1.0 / 2.0; c.alpha2 = 1.0 / 2.0; c.alpha3 = 0.0;
-    c.c02 = 1.0; c.c03 = 0.0; c.c12 = 1.0; c.c13 = 1.0;
-    c.beta11 = 1.0 / 2.0; c.beta12 = 1.0 / 4.0; c.beta13 = 1.0 / 4.0;
-    c.beta22 = 1.0 / 2.0; c.beta23 = -1.0 / 2.0;
-    c.beta31 = -1.0 / 2.0; c.beta32 = 1.0 / 4.0; c.beta33 = 1.0 / 4.0;
-    c.beta42 = 1.0 / 2.0; c.beta43 = -1.0 / 2.0;
+    c.a021 = 1.0;
+    c.a031 = 0.0;
+    c.a032 = 0.0;
+    c.a121 = 1.0;
+    c.a131 = 1.0;
+    c.b021 = 1.0;
+    c.b031 = 0.0;
+    c.b121 = 1.0;
+    c.b131 = -1.0;
+    c.b221 = 1.0;
+    c.b222 = 0.0;
+    c.b223 = 0.0;
+    c.b231 = -1.0;
+    c.b232 = 0.0;
+    c.b233 = 0.0;
+    c.alpha1 = 1.0 / 2.0;
+    c.alpha2 = 1.0 / 2.0;
+    c.alpha3 = 0.0;
+    c.c02 = 1.0;
+    c.c03 = 0.0;
+    c.c12 = 1.0;
+    c.c13 = 1.0;
+    c.beta11 = 1.0 / 2.0;
+    c.beta12 = 1.0 / 4.0;
+    c.beta13 = 1.0 / 4.0;
+    c.beta22 = 1.0 / 2.0;
+    c.beta23 = -1.0 / 2.0;
+    c.beta31 = -1.0 / 2.0;
+    c.beta32 = 1.0 / 4.0;
+    c.beta33 = 1.0 / 4.0;
+    c.beta42 = 1.0 / 2.0;
+    c.beta43 = -1.0 / 2.0;
     return c;
 }
 
-void
-svStochasticIntegratorDRI1::bindMethodStorage()
+void svStochasticIntegratorDRI1::bindMethodStorage()
 {
     const size_t noiseCount = this->globalNoiseCount();
     const auto derivativeSize = this->stochasticPackedDerivatives().size();
@@ -210,23 +297,20 @@ svStochasticIntegratorDRI1::bindMethodStorage()
     this->methodStorageBound = true;
 }
 
-void
-svStochasticIntegratorDRI1::gatherDerivativeStage(size_t stageIndex)
+void svStochasticIntegratorDRI1::gatherDerivativeStage(size_t stageIndex)
 {
     auto stage = this->derivativeStages.col(static_cast<Eigen::Index>(stageIndex));
     this->gatherStochasticDerivatives(stage.data(), stage.size());
 }
 
-void
-svStochasticIntegratorDRI1::gatherAllDiffusionStages(size_t stageIndex)
+void svStochasticIntegratorDRI1::gatherAllDiffusionStages(size_t stageIndex)
 {
     for (size_t globalNoiseIndex = 0; globalNoiseIndex < this->globalNoiseCount(); ++globalNoiseIndex) {
         this->gatherDiffusionStage(globalNoiseIndex, stageIndex);
     }
 }
 
-void
-svStochasticIntegratorDRI1::gatherDiffusionStage(size_t globalNoiseIndex, size_t stageIndex)
+void svStochasticIntegratorDRI1::gatherDiffusionStage(size_t globalNoiseIndex, size_t stageIndex)
 {
     const auto& slot = this->stochasticNoiseSlots().at(globalNoiseIndex);
     const size_t bindingEnd = slot.bindingBegin + slot.bindingCount;
@@ -237,12 +321,11 @@ svStochasticIntegratorDRI1::gatherDiffusionStage(size_t globalNoiseIndex, size_t
                                     static_cast<Eigen::Index>(stageIndex),
                                     static_cast<Eigen::Index>(binding.scalarCount),
                                     1) =
-          Eigen::Map<const Eigen::VectorXd>(binding.liveData, static_cast<Eigen::Index>(binding.scalarCount));
+            Eigen::Map<const Eigen::VectorXd>(binding.liveData, static_cast<Eigen::Index>(binding.scalarCount));
     }
 }
 
-void
-svStochasticIntegratorDRI1::gatherHatDiffusions(size_t hatStageIndex, bool secondHat)
+void svStochasticIntegratorDRI1::gatherHatDiffusions(size_t hatStageIndex, bool secondHat)
 {
     Eigen::MatrixXd& storage = secondHat ? this->secondHatDiffusions : this->firstHatDiffusions;
     const auto& packedOffsets = this->stochasticLocalNoisePackedOffsets();
@@ -253,71 +336,67 @@ svStochasticIntegratorDRI1::gatherHatDiffusions(size_t hatStageIndex, bool secon
                           static_cast<Eigen::Index>(hatStageIndex),
                           static_cast<Eigen::Index>(descriptor.diffusionCount),
                           1) =
-              Eigen::Map<const Eigen::VectorXd>(descriptor.state->diffusionView(localNoiseIndex).data(),
-                                                static_cast<Eigen::Index>(descriptor.diffusionCount));
+                Eigen::Map<const Eigen::VectorXd>(descriptor.state->diffusionView(localNoiseIndex).data(),
+                                                  static_cast<Eigen::Index>(descriptor.diffusionCount));
         }
     }
 }
 
-void
-svStochasticIntegratorDRI1::scaleDrift(size_t stageIndex, double factor, Eigen::VectorXd& output)
+void svStochasticIntegratorDRI1::scaleDrift(size_t stageIndex, double factor, Eigen::VectorXd& output)
 {
     for (const auto& descriptor : this->stochasticStateDescriptors()) {
         const auto offset = static_cast<Eigen::Index>(descriptor.derivativeOffset);
         Eigen::Map<Eigen::MatrixXd> combined(
-          output.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
+            output.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
         const Eigen::Map<const Eigen::MatrixXd> stage(
-          this->derivativeStages.col(static_cast<Eigen::Index>(stageIndex)).data() + offset,
-          descriptor.derivativeRows,
-          descriptor.derivativeColumns);
+            this->derivativeStages.col(static_cast<Eigen::Index>(stageIndex)).data() + offset,
+            descriptor.derivativeRows,
+            descriptor.derivativeColumns);
         combined = stage * factor;
     }
 }
 
-void
-svStochasticIntegratorDRI1::combineTwoDrifts(size_t firstStage,
-                                             double firstFactor,
-                                             size_t secondStage,
-                                             double secondFactor)
+void svStochasticIntegratorDRI1::combineTwoDrifts(size_t firstStage,
+                                                  double firstFactor,
+                                                  size_t secondStage,
+                                                  double secondFactor)
 {
     for (const auto& descriptor : this->stochasticStateDescriptors()) {
         const auto offset = static_cast<Eigen::Index>(descriptor.derivativeOffset);
         Eigen::Map<Eigen::MatrixXd> combined(
-          this->combinedDerivative.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
+            this->combinedDerivative.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
         const Eigen::Map<const Eigen::MatrixXd> first(
-          this->derivativeStages.col(static_cast<Eigen::Index>(firstStage)).data() + offset,
-          descriptor.derivativeRows,
-          descriptor.derivativeColumns);
+            this->derivativeStages.col(static_cast<Eigen::Index>(firstStage)).data() + offset,
+            descriptor.derivativeRows,
+            descriptor.derivativeColumns);
         const Eigen::Map<const Eigen::MatrixXd> second(
-          this->derivativeStages.col(static_cast<Eigen::Index>(secondStage)).data() + offset,
-          descriptor.derivativeRows,
-          descriptor.derivativeColumns);
+            this->derivativeStages.col(static_cast<Eigen::Index>(secondStage)).data() + offset,
+            descriptor.derivativeRows,
+            descriptor.derivativeColumns);
         combined = first * firstFactor;
         combined += second * secondFactor;
     }
 }
 
-void
-svStochasticIntegratorDRI1::combineThreeDrifts(double firstFactor, double secondFactor, double thirdFactor)
+void svStochasticIntegratorDRI1::combineThreeDrifts(double firstFactor, double secondFactor, double thirdFactor)
 {
     for (const auto& descriptor : this->stochasticStateDescriptors()) {
         const auto offset = static_cast<Eigen::Index>(descriptor.derivativeOffset);
         Eigen::Map<Eigen::MatrixXd> combined(
-          this->combinedDerivative.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
+            this->combinedDerivative.data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
         const Eigen::Map<const Eigen::MatrixXd> first(
-          this->derivativeStages.col(0).data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
+            this->derivativeStages.col(0).data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
         const Eigen::Map<const Eigen::MatrixXd> second(
-          this->derivativeStages.col(1).data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
+            this->derivativeStages.col(1).data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
         const Eigen::Map<const Eigen::MatrixXd> third(
-          this->derivativeStages.col(2).data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
+            this->derivativeStages.col(2).data() + offset, descriptor.derivativeRows, descriptor.derivativeColumns);
         combined = first * firstFactor;
         combined += second * secondFactor;
         combined += third * thirdFactor;
     }
 }
 
-void
-svStochasticIntegratorDRI1::scaleDiffusion(size_t globalNoiseIndex, size_t stageIndex, double factor)
+void svStochasticIntegratorDRI1::scaleDiffusion(size_t globalNoiseIndex, size_t stageIndex, double factor)
 {
     const auto& slot = this->stochasticNoiseSlots().at(globalNoiseIndex);
     const size_t bindingEnd = slot.bindingBegin + slot.bindingCount;
@@ -328,20 +407,19 @@ svStochasticIntegratorDRI1::scaleDiffusion(size_t globalNoiseIndex, size_t stage
         const auto& descriptor = descriptors.at(binding.boundStateIndex);
         const auto offset = static_cast<Eigen::Index>(binding.packedOffset);
         Eigen::Map<Eigen::MatrixXd> combined(
-          this->combinedDiffusion.data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
+            this->combinedDiffusion.data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
         const Eigen::Map<const Eigen::MatrixXd> stage(
-          this->diffusionStages.col(static_cast<Eigen::Index>(stageIndex)).data() + offset,
-          descriptor.diffusionRows,
-          descriptor.diffusionColumns);
+            this->diffusionStages.col(static_cast<Eigen::Index>(stageIndex)).data() + offset,
+            descriptor.diffusionRows,
+            descriptor.diffusionColumns);
         combined = stage * factor;
     }
 }
 
-void
-svStochasticIntegratorDRI1::combineThreeDiffusions(size_t globalNoiseIndex,
-                                                   double firstFactor,
-                                                   double secondFactor,
-                                                   double thirdFactor)
+void svStochasticIntegratorDRI1::combineThreeDiffusions(size_t globalNoiseIndex,
+                                                        double firstFactor,
+                                                        double secondFactor,
+                                                        double thirdFactor)
 {
     const auto& slot = this->stochasticNoiseSlots().at(globalNoiseIndex);
     const size_t bindingEnd = slot.bindingBegin + slot.bindingCount;
@@ -352,21 +430,20 @@ svStochasticIntegratorDRI1::combineThreeDiffusions(size_t globalNoiseIndex,
         const auto& descriptor = descriptors.at(binding.boundStateIndex);
         const auto offset = static_cast<Eigen::Index>(binding.packedOffset);
         Eigen::Map<Eigen::MatrixXd> combined(
-          this->combinedDiffusion.data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
+            this->combinedDiffusion.data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
         const Eigen::Map<const Eigen::MatrixXd> first(
-          this->diffusionStages.col(0).data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
+            this->diffusionStages.col(0).data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
         const Eigen::Map<const Eigen::MatrixXd> second(
-          this->diffusionStages.col(1).data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
+            this->diffusionStages.col(1).data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
         const Eigen::Map<const Eigen::MatrixXd> third(
-          this->diffusionStages.col(2).data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
+            this->diffusionStages.col(2).data() + offset, descriptor.diffusionRows, descriptor.diffusionColumns);
         combined = first * firstFactor;
         combined += second * secondFactor;
         combined += third * thirdFactor;
     }
 }
 
-void
-svStochasticIntegratorDRI1::copyHatDiffusion(size_t globalNoiseIndex, size_t hatStageIndex, bool secondHat)
+void svStochasticIntegratorDRI1::copyHatDiffusion(size_t globalNoiseIndex, size_t hatStageIndex, bool secondHat)
 {
     const Eigen::MatrixXd& storage = secondHat ? this->secondHatDiffusions : this->firstHatDiffusions;
     const auto& slot = this->stochasticNoiseSlots().at(globalNoiseIndex);
@@ -377,13 +454,12 @@ svStochasticIntegratorDRI1::copyHatDiffusion(size_t globalNoiseIndex, size_t hat
         const auto offset = static_cast<Eigen::Index>(binding.packedOffset);
         Eigen::Map<Eigen::VectorXd>(this->combinedDiffusion.data() + offset,
                                     static_cast<Eigen::Index>(binding.scalarCount)) =
-          storage.block(
-            offset, static_cast<Eigen::Index>(hatStageIndex), static_cast<Eigen::Index>(binding.scalarCount), 1);
+            storage.block(
+                offset, static_cast<Eigen::Index>(hatStageIndex), static_cast<Eigen::Index>(binding.scalarCount), 1);
     }
 }
 
-void
-svStochasticIntegratorDRI1::integrateImpl(double currentTime, double timeStep)
+void svStochasticIntegratorDRI1::integrateImpl(double currentTime, double timeStep)
 {
     if (timeStep == 0.0) {
         return;
@@ -423,7 +499,7 @@ svStochasticIntegratorDRI1::integrateImpl(double currentTime, double timeStep)
             this->scaleDiffusion(k, 0, c.b021);
         }
         this->buildStochasticCandidateInPlace(
-          this->stochasticAcceptedState(), this->combinedDerivative, timeStep, this->combinedDiffusion, this->weakDW);
+            this->stochasticAcceptedState(), this->combinedDerivative, timeStep, this->combinedDiffusion, this->weakDW);
         this->evaluateDerivatives(currentTime + c.c02 * timeStep, timeStep);
         this->gatherDerivativeStage(1);
 
@@ -432,7 +508,7 @@ svStochasticIntegratorDRI1::integrateImpl(double currentTime, double timeStep)
             this->scaleDiffusion(k, 0, c.b031);
         }
         this->buildStochasticCandidateInPlace(
-          this->stochasticAcceptedState(), this->combinedDerivative, timeStep, this->combinedDiffusion, this->weakDW);
+            this->stochasticAcceptedState(), this->combinedDerivative, timeStep, this->combinedDiffusion, this->weakDW);
         this->evaluateDerivatives(currentTime + c.c03 * timeStep, timeStep);
         this->gatherDerivativeStage(2);
 
@@ -498,7 +574,7 @@ svStochasticIntegratorDRI1::integrateImpl(double currentTime, double timeStep)
             this->scaleDiffusion(k, 0, c.beta11 + self31);
         }
         this->buildStochasticCandidateInPlace(
-          this->stochasticAcceptedState(), this->combinedDerivative, timeStep, this->combinedDiffusion, this->weakDW);
+            this->stochasticAcceptedState(), this->combinedDerivative, timeStep, this->combinedDiffusion, this->weakDW);
 
         for (size_t k = 0; k < m; k++) {
             this->scaleDiffusion(k, 1, 1.0);

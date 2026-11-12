@@ -45,9 +45,8 @@ void LinearTimeInvariantSystem::UpdateState(uint64_t CurrentSimNanos)
         u = readInput(CurrentSimNanos);
 
         if (static_cast<size_t>(u.size()) != inputSize) {
-            bskLogger.bskLog(
-                BSK_ERROR,
-                "LinearTimeInvariantSystem::UpdateState: readInput returned vector with incorrect size.");
+            bskLogger.bskLog(BSK_ERROR,
+                             "LinearTimeInvariantSystem::UpdateState: readInput returned vector with incorrect size.");
         }
     }
 
@@ -57,9 +56,7 @@ void LinearTimeInvariantSystem::UpdateState(uint64_t CurrentSimNanos)
         const auto x = xState->stateView();
 
         if (static_cast<size_t>(x.size()) != stateSize) {
-            bskLogger.bskLog(
-                BSK_ERROR,
-                "LinearTimeInvariantSystem::UpdateState: stored state has incorrect size.");
+            bskLogger.bskLog(BSK_ERROR, "LinearTimeInvariantSystem::UpdateState: stored state has incorrect size.");
         }
 
         Eigen::VectorXd dx = Eigen::VectorXd::Zero(static_cast<Eigen::Index>(stateSize));
@@ -85,8 +82,8 @@ void LinearTimeInvariantSystem::UpdateState(uint64_t CurrentSimNanos)
 
 void LinearTimeInvariantSystem::Reset(uint64_t /*CurrentSimNanos*/)
 {
-    const size_t stateSize  = this->getStateSize();
-    const size_t inputSize  = this->getInputSize();
+    const size_t stateSize = this->getStateSize();
+    const size_t inputSize = this->getInputSize();
     const size_t outputSize = this->getOutputSize();
 
     // =======================
@@ -97,18 +94,13 @@ void LinearTimeInvariantSystem::Reset(uint64_t /*CurrentSimNanos*/)
         const size_t A_cols = static_cast<size_t>(A.cols());
 
         if (A_rows != stateSize || A_cols != stateSize) {
-            bskLogger.bskLog(
-                BSK_ERROR,
-                "%s",
-                (
-                    std::string("LinearTimeInvariantSystem::Reset: matrix A has inconsistent dimensions. ") +
-                    "Expected size [" +
-                        std::to_string(stateSize) + " x " + std::to_string(stateSize) +
-                    "] based on getStateSize(), but received [" +
-                        std::to_string(A_rows) + " x " + std::to_string(A_cols) +
-                    "]."
-                ).c_str()
-            );
+            bskLogger.bskLog(BSK_ERROR,
+                             "%s",
+                             (std::string("LinearTimeInvariantSystem::Reset: matrix A has inconsistent dimensions. ") +
+                              "Expected size [" + std::to_string(stateSize) + " x " + std::to_string(stateSize) +
+                              "] based on getStateSize(), but received [" + std::to_string(A_rows) + " x " +
+                              std::to_string(A_cols) + "].")
+                                 .c_str());
         }
     }
 
@@ -120,18 +112,13 @@ void LinearTimeInvariantSystem::Reset(uint64_t /*CurrentSimNanos*/)
         const size_t B_cols = static_cast<size_t>(B.cols());
 
         if (B_rows != stateSize || B_cols != inputSize) {
-            bskLogger.bskLog(
-                BSK_ERROR,
-                "%s",
-                (
-                    std::string("LinearTimeInvariantSystem::Reset: matrix B has inconsistent dimensions. ") +
-                    "Expected size [" +
-                        std::to_string(stateSize) + " x " + std::to_string(inputSize) +
-                    "] based on getStateSize() and getInputSize(), but received [" +
-                        std::to_string(B_rows) + " x " + std::to_string(B_cols) +
-                    "]."
-                ).c_str()
-            );
+            bskLogger.bskLog(BSK_ERROR,
+                             "%s",
+                             (std::string("LinearTimeInvariantSystem::Reset: matrix B has inconsistent dimensions. ") +
+                              "Expected size [" + std::to_string(stateSize) + " x " + std::to_string(inputSize) +
+                              "] based on getStateSize() and getInputSize(), but received [" + std::to_string(B_rows) +
+                              " x " + std::to_string(B_cols) + "].")
+                                 .c_str());
         }
     }
 
@@ -143,18 +130,13 @@ void LinearTimeInvariantSystem::Reset(uint64_t /*CurrentSimNanos*/)
         const size_t C_cols = static_cast<size_t>(C.cols());
 
         if (C_rows != outputSize || C_cols != stateSize) {
-            bskLogger.bskLog(
-                BSK_ERROR,
-                "%s",
-                (
-                    std::string("LinearTimeInvariantSystem::Reset: matrix C has inconsistent dimensions. ") +
-                    "Expected size [" +
-                        std::to_string(outputSize) + " x " + std::to_string(stateSize) +
-                    "] based on getOutputSize() and getStateSize(), but received [" +
-                        std::to_string(C_rows) + " x " + std::to_string(C_cols) +
-                    "]."
-                ).c_str()
-            );
+            bskLogger.bskLog(BSK_ERROR,
+                             "%s",
+                             (std::string("LinearTimeInvariantSystem::Reset: matrix C has inconsistent dimensions. ") +
+                              "Expected size [" + std::to_string(outputSize) + " x " + std::to_string(stateSize) +
+                              "] based on getOutputSize() and getStateSize(), but received [" + std::to_string(C_rows) +
+                              " x " + std::to_string(C_cols) + "].")
+                                 .c_str());
         }
     }
 
@@ -166,58 +148,53 @@ void LinearTimeInvariantSystem::Reset(uint64_t /*CurrentSimNanos*/)
         const size_t D_cols = static_cast<size_t>(D.cols());
 
         if (D_rows != outputSize || D_cols != inputSize) {
-            bskLogger.bskLog(
-                BSK_ERROR,
-                "%s",
-                (
-                    std::string("LinearTimeInvariantSystem::Reset: matrix D has inconsistent dimensions. ") +
-                    "Expected size [" +
-                        std::to_string(outputSize) + " x " + std::to_string(inputSize) +
-                    "] based on getOutputSize() and getInputSize(), but received [" +
-                        std::to_string(D_rows) + " x " + std::to_string(D_cols) +
-                    "]."
-                ).c_str()
-            );
+            bskLogger.bskLog(BSK_ERROR,
+                             "%s",
+                             (std::string("LinearTimeInvariantSystem::Reset: matrix D has inconsistent dimensions. ") +
+                              "Expected size [" + std::to_string(outputSize) + " x " + std::to_string(inputSize) +
+                              "] based on getOutputSize() and getInputSize(), but received [" + std::to_string(D_rows) +
+                              " x " + std::to_string(D_cols) + "].")
+                                 .c_str());
         }
     }
 }
 
-const Eigen::MatrixXd &LinearTimeInvariantSystem::getA() const
+const Eigen::MatrixXd& LinearTimeInvariantSystem::getA() const
 {
     return A;
 }
 
-void LinearTimeInvariantSystem::setA(const Eigen::MatrixXd &Ain)
+void LinearTimeInvariantSystem::setA(const Eigen::MatrixXd& Ain)
 {
     A = Ain;
 }
 
-const Eigen::MatrixXd &LinearTimeInvariantSystem::getB() const
+const Eigen::MatrixXd& LinearTimeInvariantSystem::getB() const
 {
     return B;
 }
 
-void LinearTimeInvariantSystem::setB(const Eigen::MatrixXd &Bin)
+void LinearTimeInvariantSystem::setB(const Eigen::MatrixXd& Bin)
 {
     B = Bin;
 }
 
-const Eigen::MatrixXd &LinearTimeInvariantSystem::getC() const
+const Eigen::MatrixXd& LinearTimeInvariantSystem::getC() const
 {
     return C;
 }
 
-void LinearTimeInvariantSystem::setC(const Eigen::MatrixXd &Cin)
+void LinearTimeInvariantSystem::setC(const Eigen::MatrixXd& Cin)
 {
     C = Cin;
 }
 
-const Eigen::MatrixXd &LinearTimeInvariantSystem::getD() const
+const Eigen::MatrixXd& LinearTimeInvariantSystem::getD() const
 {
     return D;
 }
 
-void LinearTimeInvariantSystem::setD(const Eigen::MatrixXd &Din)
+void LinearTimeInvariantSystem::setD(const Eigen::MatrixXd& Din)
 {
     D = Din;
 }
@@ -225,15 +202,11 @@ void LinearTimeInvariantSystem::setD(const Eigen::MatrixXd &Din)
 void LinearTimeInvariantSystem::configureSecondOrder(double wn, double zeta, double k)
 {
     if (wn <= 0.0) {
-        bskLogger.bskLog(
-            BSK_ERROR,
-            "configureSecondOrder: natural frequency wn must be positive.");
+        bskLogger.bskLog(BSK_ERROR, "configureSecondOrder: natural frequency wn must be positive.");
         return;
     }
     if (zeta < 0.0) {
-        bskLogger.bskLog(
-            BSK_ERROR,
-            "configureSecondOrder: damping ratio zeta must be non negative.");
+        bskLogger.bskLog(BSK_ERROR, "configureSecondOrder: damping ratio zeta must be non negative.");
         return;
     }
 
@@ -244,81 +217,70 @@ void LinearTimeInvariantSystem::configureSecondOrder(double wn, double zeta, dou
 
     const double wn2 = wn * wn;
 
-    A << 0.0 ,    1.0,
-         -wn2,   -2.0 * zeta * wn;
+    A << 0.0, 1.0, -wn2, -2.0 * zeta * wn;
 
-    B << 0.0,
-         k * wn2;
+    B << 0.0, k * wn2;
 
     C << 1.0, 0.0;
 
     D << 0.0;
 }
 
-void LinearTimeInvariantSystem::configureSecondOrder(const Eigen::VectorXd &wn,
-                                                     const Eigen::VectorXd &zeta,
-                                                     const Eigen::VectorXd &k)
+void LinearTimeInvariantSystem::configureSecondOrder(const Eigen::VectorXd& wn,
+                                                     const Eigen::VectorXd& zeta,
+                                                     const Eigen::VectorXd& k)
 {
     const Eigen::Index n = wn.size();
 
     if (n <= 0) {
-        bskLogger.bskLog(
-            BSK_ERROR,
-            "LinearTimeInvariantSystem::configureSecondOrder(MIMO): input vectors must be non empty."
-        );
+        bskLogger.bskLog(BSK_ERROR,
+                         "LinearTimeInvariantSystem::configureSecondOrder(MIMO): input vectors must be non empty.");
         return;
     }
 
     if (zeta.size() != n || k.size() != n) {
-        bskLogger.bskLog(
-            BSK_ERROR,
-            "%s",
-            (
-                std::string("LinearTimeInvariantSystem::configureSecondOrder(MIMO): size mismatch. ") +
-                "Expected wn, zeta, k to all have length " + std::to_string(static_cast<long long>(n)) + ". "
-                "Received lengths wn=" + std::to_string(static_cast<long long>(wn.size())) +
-                ", zeta=" + std::to_string(static_cast<long long>(zeta.size())) +
-                ", k=" + std::to_string(static_cast<long long>(k.size())) + "."
-            ).c_str()
-        );
+        bskLogger.bskLog(BSK_ERROR,
+                         "%s",
+                         (std::string("LinearTimeInvariantSystem::configureSecondOrder(MIMO): size mismatch. ") +
+                          "Expected wn, zeta, k to all have length " + std::to_string(static_cast<long long>(n)) +
+                          ". "
+                          "Received lengths wn=" +
+                          std::to_string(static_cast<long long>(wn.size())) +
+                          ", zeta=" + std::to_string(static_cast<long long>(zeta.size())) +
+                          ", k=" + std::to_string(static_cast<long long>(k.size())) + ".")
+                             .c_str());
         return;
     }
 
     // Validate entries
     for (Eigen::Index i = 0; i < n; ++i) {
-        const double wn_i   = wn(i);
+        const double wn_i = wn(i);
         const double zeta_i = zeta(i);
 
         if (wn_i <= 0.0) {
-            bskLogger.bskLog(
-                BSK_ERROR,
-                "%s",
-                (
-                    std::string("LinearTimeInvariantSystem::configureSecondOrder(MIMO): wn(") +
-                    std::to_string(static_cast<long long>(i)) +
-                    ") must be positive, but is " + std::to_string(wn_i) + "."
-                ).c_str()
-            );
+            bskLogger.bskLog(BSK_ERROR,
+                             "%s",
+                             (std::string("LinearTimeInvariantSystem::configureSecondOrder(MIMO): wn(") +
+                              std::to_string(static_cast<long long>(i)) + ") must be positive, but is " +
+                              std::to_string(wn_i) + ".")
+                                 .c_str());
             return;
         }
 
         if (zeta_i < 0.0) {
-            bskLogger.bskLog(
-                BSK_ERROR,
-                "%s",
-                (
-                    std::string("LinearTimeInvariantSystem::configureSecondOrder(MIMO): zeta(") +
-                    std::to_string(static_cast<long long>(i)) +
-                    ") must be non negative, but is " + std::to_string(zeta_i) + "."
-                ).c_str()
-            );
+            bskLogger.bskLog(BSK_ERROR,
+                             "%s",
+                             (std::string("LinearTimeInvariantSystem::configureSecondOrder(MIMO): zeta(") +
+                              std::to_string(static_cast<long long>(i)) + ") must be non negative, but is " +
+                              std::to_string(zeta_i) + ".")
+                                 .c_str());
             return;
         }
     }
 
     // Allocate matrices for MIMO second-order system: n channels, each 2 states
-    const Eigen::Index stateSize  = 2 * n;
-    const Eigen::Index inputSize  = n;
+    const Eigen::Index stateSize = 2 * n;
+    const Eigen::Index inputSize = n;
     const Eigen::Index outputSize = n;
 
     A.setZero(stateSize, stateSize);
@@ -327,9 +289,9 @@ void LinearTimeInvariantSystem::configureSecondOrder(const Eigen::VectorXd &wn,
     D.setZero(outputSize, inputSize);
 
     for (Eigen::Index i = 0; i < n; ++i) {
-        const double wn_i   = wn(i);
+        const double wn_i = wn(i);
         const double zeta_i = zeta(i);
-        const double k_i    = k(i);
+        const double k_i = k(i);
 
         const double wn2 = wn_i * wn_i;
 
@@ -353,33 +315,26 @@ void LinearTimeInvariantSystem::configureSecondOrder(const Eigen::VectorXd &wn,
     }
 }
 
-Eigen::VectorXd
-LinearTimeInvariantSystem::getX()
+Eigen::VectorXd LinearTimeInvariantSystem::getX()
 {
     if (!xState) {
-        bskLogger.bskLog(
-            BSK_ERROR,
-            "LinearTimeInvariantSystem::getX: state has not been registered.");
+        bskLogger.bskLog(BSK_ERROR, "LinearTimeInvariantSystem::getX: state has not been registered.");
         return Eigen::VectorXd();
     }
     // The returned VectorXd owns a snapshot without an intermediate MatrixXd copy.
     return xState->stateView();
 }
 
-void LinearTimeInvariantSystem::setX(const Eigen::VectorXd &xin)
+void LinearTimeInvariantSystem::setX(const Eigen::VectorXd& xin)
 {
     if (!xState) {
-        bskLogger.bskLog(
-            BSK_ERROR,
-            "LinearTimeInvariantSystem::setX: state has not been registered.");
+        bskLogger.bskLog(BSK_ERROR, "LinearTimeInvariantSystem::setX: state has not been registered.");
         return;
     }
 
     const size_t stateSize = this->getStateSize();
     if (static_cast<size_t>(xin.size()) != stateSize) {
-        bskLogger.bskLog(
-            BSK_ERROR,
-            "LinearTimeInvariantSystem::setX: input state vector has incorrect size.");
+        bskLogger.bskLog(BSK_ERROR, "LinearTimeInvariantSystem::setX: input state vector has incorrect size.");
         return;
     }
 
