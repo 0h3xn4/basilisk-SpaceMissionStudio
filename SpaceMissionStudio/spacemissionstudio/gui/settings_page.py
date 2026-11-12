@@ -248,7 +248,8 @@ class SettingsPage(QScrollArea):
         self._row(("tools.reference_data",))
 
     def _build_layout(self) -> None:
-        self._row(("view.menu_bar", "view.rail_icons", "view.inspector", "view.problems", "view.reset_layout"))
+        self._row(("view.menu_bar", "view.status_details", "view.rail_icons", "view.inspector", "view.problems",
+                   "view.reset_layout"))
 
     def _build_keyboard(self) -> None:
         self.shortcuts_table = QTableWidget(0, 3)

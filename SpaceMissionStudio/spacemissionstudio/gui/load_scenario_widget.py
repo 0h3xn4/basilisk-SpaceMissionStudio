@@ -84,6 +84,7 @@ from .mission_guide import StartFromScratchCard
 from .startup_fetch_dialog import ReferenceDataCard
 from .template_wizard import TemplateCustomizeWizard, get_wizard_spec
 from .theme import SPACE, TOKENS, icon, items, set_role, ui_font
+from .value_sheet import FoldSection
 from .theme.richtext import css
 
 _logger = logging.getLogger(__name__)
@@ -127,6 +128,23 @@ def description_html(text: str) -> str:
             parts.append(f"<ul style='{css('list')}'>"
                          + "".join(f"<li>{html.escape(item)}</li>" for item in bullets) + "</ul>")
     return "".join(parts)
+
+
+def split_description(text: str) -> tuple[str, list[tuple[str, str]]]:
+    """``(gist, [(heading, body), ...])``: the paragraphs before the first
+    heading ("What to look at:"), then each headed part, for showing the
+    gist and folding the rest."""
+    gist: list[str] = []
+    sections: list[tuple[str, list[str]]] = []
+    for paragraph in text.strip().split("\n\n"):
+        lines = paragraph.splitlines()
+        if lines and lines[0].endswith(":") and not lines[0].startswith("- "):
+            sections.append((lines[0][:-1], ["\n".join(lines[1:])] if len(lines) > 1 else []))
+        elif sections:
+            sections[-1][1].append(paragraph)
+        else:
+            gist.append(paragraph)
+    return "\n\n".join(gist), [(heading, "\n\n".join(body)) for heading, body in sections]
 
 
 # -- what a card says, read from the template ---------------------------------------
@@ -306,12 +324,17 @@ class TemplateCard(QFrame):
         self.line_label = _ClampedLabel(first_sentence(self.description), _CARD_LINES)
         layout.addWidget(self.title_label)
         layout.addWidget(self.type_label)
-        layout.addWidget(self.orbit_label)
-        layout.addSpacing(SPACE["xs"])
-        layout.addWidget(self.line_label)
+        # Calm by default (the owner, 2026-11-12: "a user easily could get
+        # overwhelmed"): a card shows its title and kind; the orbit and the
+        # description are in the details of the card picked. The filter
+        # still reads them.
+        self.orbit_label.hide()
+        self.line_label.hide()
         layout.addStretch(1)
 
-        buttons = QHBoxLayout()
+        self.buttons_holder = QWidget()
+        buttons = QHBoxLayout(self.buttons_holder)
+        buttons.setContentsMargins(0, 0, 0, 0)
         buttons.setSpacing(SPACE["xs"])
         # Not Tab stops: the cards are one stop (the arrow keys move between
         # them, Enter opens) and the details hold the same two buttons.
@@ -339,13 +362,28 @@ class TemplateCard(QFrame):
                 button.setCursor(Qt.CursorShape.PointingHandCursor)
                 set_role(button, variant="ghost")
         buttons.addStretch(1)
-        layout.addLayout(buttons)
+        layout.addWidget(self.buttons_holder)
+        # Shown on the card under the pointer and the card picked; the room
+        # is kept, so the grid does not move.
+        policy = self.buttons_holder.sizePolicy()
+        policy.setRetainSizeWhenHidden(True)
+        self.buttons_holder.setSizePolicy(policy)
+        self.buttons_holder.setVisible(False)
+
+    def enterEvent(self, event) -> None:
+        self.buttons_holder.setVisible(True)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event) -> None:
+        self.buttons_holder.setVisible(self.is_selected())
+        super().leaveEvent(event)
 
     def text_for_filter(self) -> str:
         return " ".join((self.name, self.type_label.text(), self.orbit_label.text(), self.description)).casefold()
 
     def set_selected(self, selected: bool) -> None:
         set_role(self, selected="true" if selected else None)
+        self.buttons_holder.setVisible(selected or self.underMouse())
 
     def is_selected(self) -> bool:
         return self.property("selected") == "true"
@@ -766,6 +804,11 @@ class LoadScenarioWidget(QWidget):
         column.addWidget(self.description_meta)
         column.addLayout(buttons)
         column.addWidget(self.description_label)
+        # The headed parts ("What to look at", "Try changing"), folded.
+        self.details_sections = QVBoxLayout()
+        self.details_sections.setSpacing(SPACE["xs"])
+        column.addLayout(self.details_sections)
+        self.folds: list[FoldSection] = []
         column.addStretch(1)
         self.description_scroll = QScrollArea()
         self.description_scroll.setObjectName("homeDetails")
@@ -782,7 +825,20 @@ class LoadScenarioWidget(QWidget):
         self.description_title.setText(card.name if card is not None else "")
         self.description_meta.setText(
             f"{card.type_label.text()}\n{card.orbit_label.text()}" if card is not None else "")
-        self.description_label.setText(description_html(card.description) if card is not None else "")
+        gist, sections = split_description(card.description) if card is not None else ("", [])
+        self.description_label.setText(description_html(gist) if gist else "")
+        while self.folds:
+            fold = self.folds.pop()
+            self.details_sections.removeWidget(fold)
+            fold.deleteLater()
+        for heading, body in sections:
+            text = QLabel(description_html(body))
+            text.setWordWrap(True)
+            text.setTextFormat(Qt.TextFormat.RichText)
+            text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            fold = FoldSection(heading, text)
+            self.details_sections.addWidget(fold)
+            self.folds.append(fold)
         self.open_template_button.setEnabled(card is not None)
         self.customize_template_button.setEnabled(card is not None and card.customize_button is not None)
         if card is not None:

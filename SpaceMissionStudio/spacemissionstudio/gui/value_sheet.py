@@ -163,3 +163,40 @@ class ValueTable(QWidget):
         lines = [self.title_label.text()] if self.title_label.text() else []
         lines += ["\t".join(self.headers)] + ["\t".join(row) for row in self.rows]
         return "\n".join(lines)
+
+
+class FoldSection(QWidget):
+    """A titled part that starts folded: a disclosure button with the title,
+    and the body under it once opened. For what a reader may want but need
+    not see at first (a template's "What to look at", details of a
+    finding): the screen shows the gist, the rest is one click away."""
+
+    def __init__(self, title: str, body: QWidget, folded: bool = True, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        from PySide6.QtWidgets import QToolButton
+
+        column = QVBoxLayout(self)
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(SPACE["xs"])
+        self.button = QToolButton()
+        self.button.setText(title)
+        self.button.setCheckable(True)
+        self.button.setChecked(not folded)
+        self.button.setAutoRaise(True)
+        self.button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.button.setAccessibleName(title)
+        self.button.toggled.connect(self.set_open)
+        column.addWidget(self.button)
+        self.body = body
+        column.addWidget(body)
+        self.set_open(not folded)
+
+    def set_open(self, opened: bool) -> None:
+        self.button.blockSignals(True)
+        self.button.setChecked(opened)
+        self.button.blockSignals(False)
+        self.button.setArrowType(Qt.ArrowType.DownArrow if opened else Qt.ArrowType.RightArrow)
+        self.body.setVisible(opened)
+
+    def is_open(self) -> bool:
+        return self.button.isChecked()

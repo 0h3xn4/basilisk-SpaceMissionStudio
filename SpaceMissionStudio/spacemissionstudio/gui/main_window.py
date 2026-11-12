@@ -464,6 +464,8 @@ class MainWindow(QMainWindow):
         self._hide_default_panels()
         self._default_layout = self.saveState(_LAYOUT_VERSION)
         self._restore_layout()
+        self._docks_away_for_home: list = []  # the panels Home put aside, shown again when it is left
+        self._quiet_home()
 
         # Run-in-progress feedback: the progress strip (self.run_progress)
         # and the status chip, both in the status bar. A run reports its phase
@@ -488,6 +490,7 @@ class MainWindow(QMainWindow):
         self.basilisk_version_label = self.status_items.basilisk_label
         for widget in (self.run_progress, self.run_chip, *self.status_items.widgets):
             self.statusBar().addPermanentWidget(widget)
+        self.status_items.set_details(self.status_details_action.isChecked())
         # A bound method, not a lambda: a lambda holding self on a child's
         # signal keeps the window alive until the interpreter exits, and its
         # web views are then torn down too late (exit segfault, as in #48).
@@ -723,6 +726,11 @@ class MainWindow(QMainWindow):
             checkable=True, checked=True, keywords=("menus", "File Edit View"),
             tip="Show or hide the menu bar (File, Edit, View, Go, Run, Tools, Help). Hidden, every command "
                 "keeps its shortcut and stays in the command palette (Ctrl+K).")
+        self.status_details_action = add(
+            "view.status_details", "Status Bar: All Details", self._on_status_details_toggled, category="View",
+            area="global", checkable=True, keywords=("Basilisk version", "frames", "Earth orientation"),
+            tip="Show every status-bar entry (the Basilisk version, reference data, Earth orientation, the "
+                "frames), or only those that need attention.")
         self.reset_layout_action = add("view.reset_layout", "&Reset Layout", self.reset_layout, category="View",
                                        area="settings", tip="Put the panels back where they start.")
         self.rail_collapse_action = add(
@@ -872,6 +880,10 @@ class MainWindow(QMainWindow):
     def _on_menu_bar_toggled(self, shown: bool) -> None:
         self.menuBar().setVisible(shown)
 
+    def _on_status_details_toggled(self, shown: bool) -> None:
+        if hasattr(self, "status_items"):
+            self.status_items.set_details(shown)
+
     def _on_recent_menu(self, action) -> None:
         """File > Open Recent: a file picked (its path is the action's
         data), with the same unsaved-changes question as Open."""
@@ -941,6 +953,24 @@ class MainWindow(QMainWindow):
     def _on_area_changed(self, _area_id: str) -> None:
         self._apply_stale_banner()
         self._refresh_breadcrumbs()
+        self._quiet_home()
+
+    def _quiet_home(self) -> None:
+        """Home shows Home only (the owner, 2026-11-12: too much at once): the
+        Inspector, Calculation and Problems panels step aside there, and come
+        back as they were when another area is shown. A panel asked for on
+        Home (View > Problems) shows."""
+        if not hasattr(self, "_docks_away_for_home"):
+            return  # still being built
+        if self.shell.current_area() == "home":
+            for dock in self._docks():
+                if dock.isVisibleTo(self) and dock not in self._docks_away_for_home:
+                    self._docks_away_for_home.append(dock)
+                    dock.hide()
+        elif self._docks_away_for_home:
+            docks, self._docks_away_for_home = self._docks_away_for_home, []
+            for dock in docks:
+                dock.show()
 
     def _on_rail_icons_toggled(self, checked: bool) -> None:
         self.shell.rail.set_collapsed(checked)
@@ -1318,9 +1348,15 @@ class MainWindow(QMainWindow):
 
     def _write_layout(self, settings, group: str) -> None:
         settings.beginGroup(group)
+        away = getattr(self, "_docks_away_for_home", [])
+        for dock in away:  # kept as they are outside Home, not as Home shows them
+            dock.show()
         settings.setValue("state", self.saveState(_LAYOUT_VERSION))
+        for dock in away:
+            dock.hide()
         settings.setValue("rail_collapsed", self.shell.rail.collapsed)
         settings.setValue("menu_bar", self.menu_bar_action.isChecked())
+        settings.setValue("status_details", self.status_details_action.isChecked())
         for name, splitter in self._layout_splitters().items():
             settings.setValue(f"splitter_{name}", splitter.saveState())
         if group.startswith("project-"):
@@ -1337,6 +1373,7 @@ class MainWindow(QMainWindow):
             self.restoreState(state, _LAYOUT_VERSION)
             self.rail_collapse_action.setChecked(settings.value("rail_collapsed", False, type=bool))
             self.menu_bar_action.setChecked(settings.value("menu_bar", True, type=bool))
+            self.status_details_action.setChecked(settings.value("status_details", False, type=bool))
             for name, splitter in self._layout_splitters().items():
                 saved = settings.value(f"splitter_{name}")
                 if saved is not None:

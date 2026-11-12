@@ -394,9 +394,40 @@ class StatusBarItems:
                  self.frames_label)
         # A thin rule between entries: side by side they read as one line.
         separated = [items[0]]
+        self._separators = {}
         for item in items[1:]:
-            separated += [_separator(parent), item]
+            separator = _separator(parent)
+            self._separators[item] = separator
+            separated += [separator, item]
         self.widgets = tuple(separated)
+        self._items = items
+        # Calm by default (the owner, 2026-11-12): an entry that is only
+        # "all is well" (Basilisk qualified, reference data OK, Earth
+        # orientation installed, the frames) is shown only with all
+        # details (View > Status Bar: All Details); one that needs attention
+        # always is. Each tooltip says the rest.
+        self.details = False
+        self._needs_attention: set = set()
+
+    def set_details(self, shown: bool) -> None:
+        """Show every entry (True), or only those that need attention."""
+        self.details = bool(shown)
+        self._apply_visibility()
+
+    def _apply_visibility(self) -> None:
+        shown_before = False
+        for item in self._items:
+            visible = item is self.problems_button or self.details or item in self._needs_attention
+            item.setVisible(visible)
+            if item in self._separators:
+                self._separators[item].setVisible(visible and shown_before)
+            shown_before = shown_before or visible
+
+    def _attention(self, item: QWidget, needs: bool) -> None:
+        if needs:
+            self._needs_attention.add(item)
+        else:
+            self._needs_attention.discard(item)
 
     @property
     def data_clicked(self) -> Signal:
@@ -417,6 +448,8 @@ class StatusBarItems:
                                     "Open Reference data to retry.")
         self.data_button.setProperty("state", "warning")
         _repolish(self.data_button)
+        self._attention(self.data_button, True)
+        self._apply_visibility()
 
     def refresh(self, files: list | None = None, basilisk_version: str | None = None) -> None:
         """Read Earth orientation again, and the reference data inventory
@@ -443,6 +476,8 @@ class StatusBarItems:
         self.data_button.setProperty("state", "warning" if problems else "")
         self.data_button.setToolTip(_DATA_BUTTON_TIP)
         _repolish(self.data_button)
+        self._attention(self.basilisk_label, bool(note) or version is None)
+        self._attention(self.data_button, bool(problems))
 
         kernels = earth_orientation.installed()
         until = earth_orientation.high_accuracy_until(kernels) if kernels else None
@@ -456,6 +491,8 @@ class StatusBarItems:
         earth_fixed = earth_orientation.EARTH_FIXED_FRAME if kernels else earth_orientation.FALLBACK_EARTH_FRAME
         self.frames_label.setText(f"Frames: EME2000 · {earth_fixed} · UTC")
         self.frames_label.setToolTip(f"{self.frames_label.text()}\n{_FRAMES_TIP}")
+        self._attention(self.earth_orientation_label, not kernels)
+        self._apply_visibility()
 
 
 _FRAMES_TIP = ("Inertial frame of orbits and results; Earth-fixed frame of ground stations; the time system "
